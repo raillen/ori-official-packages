@@ -1,0 +1,74 @@
+module raylib_raw
+
+-- Low-level raylib C ABI (scalarized colors and camera fields).
+extern c
+    public InitWindow(width: int, height: int, title: int) -> void
+    public CloseWindow() -> void
+    public WindowShouldClose() -> bool
+    public SetTargetFPS(fps: int) -> void
+    public GetFPS() -> int
+    public GetFrameTime() -> float
+    public GetTime() -> float
+    public SetConfigFlags(flags: u32) -> void
+    public ToggleFullscreen() -> void
+    public GetScreenWidth() -> int
+    public GetScreenHeight() -> int
+    public SetExitKey(key: int) -> void
+
+    public BeginDrawing() -> void
+    public EndDrawing() -> void
+    public ClearBackground(r: int, g: int, b: int, a: int) -> void
+    public BeginMode2D(camera_offset_x: float, camera_offset_y: float, camera_target_x: float, camera_target_y: float, camera_rotation: float, camera_zoom: float) -> void
+    public EndMode2D() -> void
+
+    public DrawLineV(startX: float, startY: float, endX: float, endY: float, r: int, g: int, b: int, a: int) -> void
+    public DrawLineEx(startX: float, startY: float, endX: float, endY: float, thick: float, r: int, g: int, b: int, a: int) -> void
+    public DrawCircleV(centerX: float, centerY: float, radius: float, r: int, g: int, b: int, a: int) -> void
+    public DrawCircleLinesV(centerX: float, centerY: float, radius: float, r: int, g: int, b: int, a: int) -> void
+    public DrawRectangleRec(x: float, y: float, width: float, height: float, r: int, g: int, b: int, a: int) -> void
+    public DrawRectangleLinesEx(x: float, y: float, width: float, height: float, lineThick: int, r: int, g: int, b: int, a: int) -> void
+    public DrawTriangle(v1x: float, v1y: float, v2x: float, v2y: float, v3x: float, v3y: float, r: int, g: int, b: int, a: int) -> void
+    public DrawPoly(centerX: float, centerY: float, sides: int, radius: float, rotation: float, r: int, g: int, b: int, a: int) -> void
+
+    public DrawText(text: int, posX: int, posY: int, fontSize: int, r: int, g: int, b: int, a: int) -> void
+    public DrawTextEx(font: int, text: int, posX: float, posY: float, fontSize: float, spacing: float, r: int, g: int, b: int, a: int) -> void
+    public MeasureText(text: int, fontSize: int) -> int
+    public GetFontDefault() -> int
+
+    public LoadTexture(fileName: int) -> int
+    public UnloadTexture(texture: int) -> void
+    public DrawTexture(texture: int, posX: int, posY: int, r: int, g: int, b: int, a: int) -> void
+    public DrawTextureV(texture: int, posX: float, posY: float, r: int, g: int, b: int, a: int) -> void
+    public DrawTextureRec(texture: int, sourceX: float, sourceY: float, sourceW: float, sourceH: float, posX: float, posY: float, r: int, g: int, b: int, a: int) -> void
+    public GetTextureWidth(texture: int) -> int
+    public GetTextureHeight(texture: int) -> int
+
+    public IsKeyPressed(key: int) -> bool
+    public IsKeyDown(key: int) -> bool
+    public IsKeyReleased(key: int) -> bool
+    public IsKeyUp(key: int) -> bool
+    public GetKeyPressed() -> int
+    public GetMouseX() -> float
+    public GetMouseY() -> float
+    public GetMouseDeltaX() -> float
+    public GetMouseDeltaY() -> float
+    public IsMouseButtonPressed(button: int) -> bool
+    public IsMouseButtonDown(button: int) -> bool
+    public IsMouseButtonReleased(button: int) -> bool
+    public GetMouseWheelMove() -> float
+
+    public InitAudioDevice() -> void
+    public CloseAudioDevice() -> void
+    public LoadSound(fileName: int) -> int
+    public UnloadSound(sound: int) -> void
+    public PlaySound(sound: int) -> void
+    public StopSound(sound: int) -> void
+    public SetSoundVolume(sound: int, volume: float) -> void
+    public LoadMusicStream(fileName: int) -> int
+    public UnloadMusicStream(music: int) -> void
+    public PlayMusicStream(music: int) -> void
+    public StopMusicStream(music: int) -> void
+    public UpdateMusicStream(music: int) -> void
+    public SetMusicVolume(music: int, volume: float) -> void
+    public IsMusicStreamPlaying(music: int) -> bool
+end

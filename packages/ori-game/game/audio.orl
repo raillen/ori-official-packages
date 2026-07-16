@@ -1,0 +1,187 @@
+module game.audio
+
+import raylib = rl
+import ori.mem = mem
+import ori.list = lists
+
+public alias SoundId = int
+public alias MusicId = int
+
+public init() -> void
+    rl.ori_rl_InitAudioDevice()
+end
+
+public close() -> void
+    rl.ori_rl_CloseAudioDevice()
+end
+
+-- Master bus (listener)
+public set_master_volume(volume: float) -> void
+    rl.ori_rl_SetMasterVolume(volume)
+end
+
+public master_volume() -> float
+    return rl.ori_rl_GetMasterVolume()
+end
+
+-- Sounds (SFX)
+public load_sound(path: string) -> SoundId
+    return rl.ori_rl_LoadSound(mem.string_as_ptr(path))
+end
+
+public unload_sound(sound: SoundId) -> void
+    rl.ori_rl_UnloadSound(sound)
+end
+
+public play_sound(sound: SoundId) -> void
+    rl.ori_rl_PlaySound(sound)
+end
+
+public stop_sound(sound: SoundId) -> void
+    rl.ori_rl_StopSound(sound)
+end
+
+public pause_sound(sound: SoundId) -> void
+    rl.ori_rl_PauseSound(sound)
+end
+
+public resume_sound(sound: SoundId) -> void
+    rl.ori_rl_ResumeSound(sound)
+end
+
+public sound_playing(sound: SoundId) -> bool
+    return rl.ori_rl_IsSoundPlaying(sound)
+end
+
+public set_sound_volume(sound: SoundId, volume: float) -> void
+    rl.ori_rl_SetSoundVolume(sound, volume)
+end
+
+public set_sound_pitch(sound: SoundId, pitch: float) -> void
+    rl.ori_rl_SetSoundPitch(sound, pitch)
+end
+
+-- pan: 0.0 left … 0.5 center … 1.0 right
+public set_sound_pan(sound: SoundId, pan: float) -> void
+    rl.ori_rl_SetSoundPan(sound, pan)
+end
+
+-- Music streams
+public load_music(path: string) -> MusicId
+    return rl.ori_rl_LoadMusicStream(mem.string_as_ptr(path))
+end
+
+public unload_music(music: MusicId) -> void
+    rl.ori_rl_UnloadMusicStream(music)
+end
+
+public play_music(music: MusicId) -> void
+    rl.ori_rl_PlayMusicStream(music)
+end
+
+public stop_music(music: MusicId) -> void
+    rl.ori_rl_StopMusicStream(music)
+end
+
+public pause_music(music: MusicId) -> void
+    rl.ori_rl_PauseMusicStream(music)
+end
+
+public resume_music(music: MusicId) -> void
+    rl.ori_rl_ResumeMusicStream(music)
+end
+
+public update_music(music: MusicId) -> void
+    rl.ori_rl_UpdateMusicStream(music)
+end
+
+public set_music_volume(music: MusicId, volume: float) -> void
+    rl.ori_rl_SetMusicVolume(music, volume)
+end
+
+public set_music_pitch(music: MusicId, pitch: float) -> void
+    rl.ori_rl_SetMusicPitch(music, pitch)
+end
+
+public music_playing(music: MusicId) -> bool
+    return rl.ori_rl_IsMusicStreamPlaying(music)
+end
+
+public music_length(music: MusicId) -> float
+    return rl.ori_rl_GetMusicTimeLength(music)
+end
+
+public music_played(music: MusicId) -> float
+    return rl.ori_rl_GetMusicTimePlayed(music)
+end
+
+public seek_music(music: MusicId, position_sec: float) -> void
+    rl.ori_rl_SeekMusicStream(music, position_sec)
+end
+
+-- Volume buses (master scale applied when setting sound/music volume).
+public struct Buses
+    master: float
+    sfx: float
+    music: float
+    ui: float
+end
+
+public default_buses() -> Buses
+    return Buses { master: 1.0, sfx: 1.0, music: 1.0, ui: 1.0 }
+end
+
+public bus_sfx(b: Buses, volume: float) -> float
+    return b.master * b.sfx * volume
+end
+
+public bus_music(b: Buses, volume: float) -> float
+    return b.master * b.music * volume
+end
+
+public bus_ui(b: Buses, volume: float) -> float
+    return b.master * b.ui * volume
+end
+
+public apply_sfx(b: Buses, sound: SoundId, volume: float) -> void
+    set_sound_volume(sound, bus_sfx(b, volume))
+end
+
+public apply_music(b: Buses, music: MusicId, volume: float) -> void
+    set_music_volume(music, bus_music(b, volume))
+end
+
+-- Simple multi-instance pool of the same SoundId (caller loads clones).
+public struct SoundPool
+    sounds: list[SoundId]
+    next: int
+end
+
+public create_pool() -> SoundPool
+    return SoundPool { sounds: [], next: 0 }
+end
+
+public pool_add(p: SoundPool, sound: SoundId) -> SoundPool
+    var out: SoundPool = p
+    lists.push(out.sounds, sound)
+    return out
+end
+
+public pool_play(p: SoundPool) -> SoundPool
+    var out: SoundPool = p
+    const n: int = lists.len(out.sounds)
+    if n == 0
+        return out
+    end
+    const id: SoundId = out.sounds[out.next]
+    play_sound(id)
+    out.next = out.next + 1
+    if out.next >= n
+        out.next = 0
+    end
+    return out
+end
+
+public pool_size(p: SoundPool) -> int
+    return lists.len(p.sounds)
+end

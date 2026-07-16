@@ -1,0 +1,128 @@
+# inventory — Sistema de Inventário
+
+Módulo para gerenciamento de inventário e itens.
+
+## Item
+
+Definição de item.
+
+```ori
+struct Item
+    id: string
+    name: string
+    description: string
+    icon: Texture2D = nil
+    stackable: bool = true
+    max_stack: int = 99
+    usable: bool = false
+    on_use: func() -> void = nil
+end
+```
+
+## InventorySlot
+
+Slot do inventário.
+
+```ori
+struct InventorySlot
+    item: Item = nil
+    count: int = 0
+end
+```
+
+## Inventory
+
+Inventário.
+
+```ori
+struct Inventory
+    slots: list<InventorySlot>
+    max_slots: int = 20
+end
+```
+
+## Funções
+
+### create_inventory
+
+Cria um novo inventário.
+
+```ori
+func create_inventory(max_slots: int) -> Inventory
+```
+
+### add_item
+
+Adiciona um item ao inventário.
+
+```ori
+func add_item(inv: Inventory, item: Item, count: int) -> bool
+```
+
+**Retorna:** `true` se o item foi adicionado.
+
+### remove_item
+
+Remove um item do inventário.
+
+```ori
+func remove_item(inv: Inventory, item_id: string, count: int) -> bool
+```
+
+### has_item
+
+Verifica se o inventário tem um item.
+
+```ori
+func has_item(inv: Inventory, item_id: string) -> bool
+```
+
+### get_item_count
+
+Retorna a quantidade de um item.
+
+```ori
+func get_item_count(inv: Inventory, item_id: string) -> int
+```
+
+### use_item
+
+Usa um item em um slot.
+
+```ori
+func use_item(inv: Inventory, slot: int) -> bool
+```
+
+### clear_inventory
+
+Limpa o inventário.
+
+```ori
+func clear_inventory(inv: Inventory) -> void
+```
+
+### get_slot
+
+Retorna um slot específico.
+
+```ori
+func get_slot(inv: Inventory, index: int) -> InventorySlot
+```
+
+**Exemplo:**
+```ori
+var inv = inventory.create_inventory(20)
+
+var sword = inventory.Item(
+    id: "sword",
+    name: "Espada",
+    stackable: false,
+    usable: true,
+    on_use = do() =>
+        io.print("Atacando!")
+    end
+)
+
+inventory.add_item(inv, sword, 1)
+inventory.use_item(inv, 0)
+```

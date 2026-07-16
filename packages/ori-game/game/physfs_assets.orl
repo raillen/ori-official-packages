@@ -1,0 +1,80 @@
+module game.physfs_assets
+
+-- Thin glue: PhysFS virtual FS for optional asset roots (dirs / archives).
+-- Path-dep `physfs` on ori_game; links `ori_physfs_shim`. Not forced on every game
+-- binary unless a module that imports this (or `physfs.fs`) is linked.
+-- 0.2: write-dir, mkdir, write, multi-mount re-exports.
+
+import physfs.fs = pfs
+
+public init() -> bool
+    return pfs.init()
+end
+
+public deinit() -> bool
+    return pfs.deinit()
+end
+
+-- Mount real path (dir or archive) at virtual mount_point ("" = root).
+public mount(path: string, mount_point: string) -> bool
+    return pfs.mount(path, mount_point)
+end
+
+public unmount(path: string) -> bool
+    return pfs.unmount(path)
+end
+
+public exists(path: string) -> bool
+    return pfs.exists(path)
+end
+
+-- Read file into shim buffer; returns byte length (<0 fail).
+public read(path: string) -> int
+    return pfs.read(path)
+end
+
+public last_len() -> int
+    return pfs.last_len()
+end
+
+public last_sum() -> int
+    return pfs.last_sum()
+end
+
+public last_byte(i: int) -> int
+    return pfs.last_byte(i)
+end
+
+public last_ptr() -> int
+    return pfs.last_ptr()
+end
+
+-- Count entries under virtual dir ("" = root). -1 on error.
+public enumerate_count(dir: string) -> int
+    return pfs.enumerate_count(dir)
+end
+
+-- Real OS directory that receives PHYSFS writes (not auto-mounted).
+public set_write_dir(path: string) -> bool
+    return pfs.set_write_dir(path)
+end
+
+-- Create directory tree under the write dir (virtual path).
+public mkdir(path: string) -> bool
+    return pfs.mkdir(path)
+end
+
+-- Write string bytes to a virtual path (requires set_write_dir).
+-- Returns bytes written, or <0 on failure.
+public write(path: string, data: string) -> int
+    return pfs.write(path, data)
+end
+
+-- Write raw buffer (pointer + byte count). Returns bytes written or <0.
+public write_bytes(path: string, data_ptr: int, nbytes: int) -> int
+    return pfs.write_bytes(path, data_ptr, nbytes)
+end
+
+public last_write_len() -> int
+    return pfs.last_write_len()
+end

@@ -1,0 +1,70 @@
+module game.rres_assets
+
+-- Glue: ORPK packs (`rres.pack`) → `game.assets` cache via raylib loaders.
+-- Consumers must path-dep both `ori_game` and `rres` and link `rres` + raylib.
+
+import rres.pack = pack
+import game.assets = assets
+import game.asset_loader = loader
+
+-- Re-export pack handle type for call sites.
+public alias Pack = pack.Pack
+
+const extract_tmp: string = "/tmp/ori_game_rres_extract.bin"
+
+public open_pack(path: string) -> Pack
+    return pack.open(path)
+end
+
+public create_pack() -> Pack
+    return pack.create()
+end
+
+public close_pack(p: Pack) -> void
+    pack.close(p)
+end
+
+public is_open(p: Pack) -> bool
+    return pack.is_open(p)
+end
+
+public put_file(p: Pack, name: string, file_path: string) -> int
+    return pack.put_file(p, name, file_path)
+end
+
+public save_pack(p: Pack, path: string) -> int
+    return pack.save(p, path)
+end
+
+public has(p: Pack, name: string) -> bool
+    return pack.has(p, name)
+end
+
+public extract_to(p: Pack, name: string, out_path: string) -> bool
+    return pack.export_ok(p, name, out_path)
+end
+
+public read_text(p: Pack, name: string) -> string
+    return pack.read_text(p, name)
+end
+
+-- Extract entry to temp, load texture, cache under pack entry `name`.
+public load_texture(cache: assets.AssetCache, p: Pack, name: string) -> assets.AssetCache
+    if assets.has_texture(cache, name)
+        return cache
+    end
+    if not pack.export_ok(p, name, extract_tmp)
+        return cache
+    end
+    return loader.load_texture_as(cache, name, extract_tmp)
+end
+
+public load_sound(cache: assets.AssetCache, p: Pack, name: string) -> assets.AssetCache
+    if assets.has_sound(cache, name)
+        return cache
+    end
+    if not pack.export_ok(p, name, extract_tmp)
+        return cache
+    end
+    return loader.load_sound_as(cache, name, extract_tmp)
+end

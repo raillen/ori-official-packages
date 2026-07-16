@@ -1,0 +1,92 @@
+module examples.perf_window_probe
+
+-- Perf diagnosis probe (2fps investigation, 2026-07-15):
+-- 1) FFI overhead: 100k trivial extern calls, timed.
+-- 2) Raylib-only viewport (grid + 24 cubes + HUD) — prints fps to stdout.
+-- Run: ori compile examples/perf_window_probe.orl -o /tmp/probe && /tmp/probe
+
+imports
+    game.app = app
+    game.draw3d = draw3d
+    game.camera3d = cam3
+    game.draw = draw2d
+    game.color = color
+    ori.math.vec2 = vec2
+    ori.math.vec3 = vec3
+    ori.io = io
+    ori.format = fmt
+    ori.math = math
+    ori.time = time
+end
+
+var frames: int = 0
+var ffi_done: bool = false
+var cam: cam3.Camera3D = cam3.create_perspective(
+    vec3.Vec3 { x: 40.0, y: 36.0, z: 72.0 },
+    vec3.Vec3 { x: 0.0, y: 8.0, z: 24.0 },
+    45.0
+)
+
+ffi_bench() -> void
+    const t0: time.Instant = time.instant_now()
+    var acc: int = 0
+    var i: int = 0
+    while i < 100000
+        acc = acc + app.fps()
+        i = i + 1
+    end
+    const el: time.Duration = time.elapsed_since(t0)
+    io.print(
+        "FFI: 100k app.fps() calls = "
+        + fmt.number_int(time.duration_to_millis(el))
+        + " ms (acc=" + fmt.number_int(acc) + ")"
+    )
+end
+
+on_update(dt: float) -> void
+    frames = frames + 1
+    if ffi_done == false and frames == 30
+        ffi_bench()
+        ffi_done = true
+    end
+    if frames - (frames / 60) * 60 == 0
+        io.print(
+            "frame " + fmt.number_int(frames)
+            + " fps=" + fmt.number_int(app.fps())
+            + " dt_ms=" + fmt.number_int(math.round(app.frame_time() * 1000.0))
+        )
+    end
+    if frames >= 420
+        app.close_window()
+    end
+end
+
+on_draw() -> void
+    cam3.begin_mode(cam)
+    draw3d.draw_grid(16, 8.0)
+    var i: int = 0
+    while i < 24
+        const fx: float = float(i - (i / 6) * 6) * 20.0 - 50.0
+        const fz: float = float(i / 6) * 20.0 - 30.0
+        draw3d.draw_cube(
+            vec3.Vec3 { x: fx, y: 8.0, z: fz },
+            16.0,
+            16.0,
+            16.0,
+            color.GREEN
+        )
+        i = i + 1
+    end
+    cam3.end_mode()
+    draw2d.draw_text(
+        "probe fps=" + fmt.number_int(app.fps()),
+        vec2.Vec2 { x: 12.0, y: 12.0 },
+        18,
+        color.YELLOW
+    )
+end
+
+main()
+    app.run_window("perf probe", 1280, 720, on_update, on_draw)
+    io.print("probe done frames=" + fmt.number_int(frames))
+end

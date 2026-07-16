@@ -1,0 +1,16 @@
+{
+  "format_version": 1,
+  "id": "player",
+  "name": "Player",
+  "script": "player.orl",
+  "tags": ["player"],
+  "events": ["create", "step", "destroy"],
+  "vars": [
+    { "name": "move_speed", "type": "float", "default": 48.0 },
+    { "name": "mesh_path", "type": "string", "default": "assets/models/brazilian-cowboy.glb" },
+    { "name": "mesh_scale", "type": "float", "default": 48.0 },
+    { "name": "collider_radius", "type": "float", "default": 8.0 },
+    { "name": "collision_layer", "type": "int", "default": 1 }
+  ],
+  "parent": null
+}

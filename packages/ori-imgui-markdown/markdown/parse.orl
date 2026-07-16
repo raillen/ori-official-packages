@@ -1,0 +1,332 @@
+module markdown.parse
+
+-- G1 markdown subset parser (headings, paragraphs, fenced code) → structures.
+-- Choice: pure Ori, not C++ imgui_markdown for v0.1.0.
+-- Product ImGui draw lives in markdown.draw (path-dep ori-imgui).
+
+import ori.list = lists
+import ori.string = str
+
+public const KIND_NONE: int = 0
+public const KIND_HEADING: int = 1
+public const KIND_PARAGRAPH: int = 2
+public const KIND_CODE_FENCE: int = 3
+
+public const MAX_HEADING_LEVEL: int = 6
+
+public struct Block
+    kind: int
+    level: int
+    text: string
+    lang: string
+end
+
+public struct Document
+    blocks: list[Block]
+    source: string
+    open: bool
+    title: string
+end
+
+public create() -> Document
+    var empty: list[Block] = []
+    return Document {
+        blocks: empty,
+        source: "",
+        open: false,
+        title: "Markdown"
+    }
+end
+
+public empty_block() -> Block
+    return Block {
+        kind: KIND_NONE,
+        level: 0,
+        text: "",
+        lang: ""
+    }
+end
+
+public heading_block(level: int, text: string) -> Block
+    var lv: int = level
+    if lv < 1
+        lv = 1
+    end
+    if lv > MAX_HEADING_LEVEL
+        lv = MAX_HEADING_LEVEL
+    end
+    return Block {
+        kind: KIND_HEADING,
+        level: lv,
+        text: text,
+        lang: ""
+    }
+end
+
+public paragraph_block(text: string) -> Block
+    return Block {
+        kind: KIND_PARAGRAPH,
+        level: 0,
+        text: text,
+        lang: ""
+    }
+end
+
+public code_fence_block(lang: string, body: string) -> Block
+    return Block {
+        kind: KIND_CODE_FENCE,
+        level: 0,
+        text: body,
+        lang: lang
+    }
+end
+
+public kind_name(kind: int) -> string
+    if kind == KIND_HEADING
+        return "heading"
+    end
+    if kind == KIND_PARAGRAPH
+        return "paragraph"
+    end
+    if kind == KIND_CODE_FENCE
+        return "code_fence"
+    end
+    return "none"
+end
+
+public block_count(doc: Document) -> int
+    return lists.len(doc.blocks)
+end
+
+public block_at(doc: Document, index: int) -> Block
+    const n: int = lists.len(doc.blocks)
+    if index < 0
+        return empty_block()
+    end
+    if index >= n
+        return empty_block()
+    end
+    return doc.blocks[index]
+end
+
+public source_of(doc: Document) -> string
+    return doc.source
+end
+
+public is_empty(doc: Document) -> bool
+    return lists.len(doc.blocks) == 0
+end
+
+public set_title(doc: Document, title: string) -> Document
+    var out: Document = doc
+    out.title = title
+    return out
+end
+
+public title_of(doc: Document) -> string
+    return doc.title
+end
+
+public open_ui(doc: Document) -> Document
+    var out: Document = doc
+    out.open = true
+    return out
+end
+
+public close(doc: Document) -> Document
+    var out: Document = doc
+    out.open = false
+    return out
+end
+
+public is_open(doc: Document) -> bool
+    return doc.open
+end
+
+-- Strip a single trailing CR (Windows line endings after split on \n).
+strip_cr(line: string) -> string
+    const n: int = str.len(line)
+    if n == 0
+        return line
+    end
+    if str.ends_with(line, "\r")
+        return str.slice(line, 0, n - 1)
+    end
+    return line
+end
+
+is_blank_line(line: string) -> bool
+    return str.len(str.trim(line)) == 0
+end
+
+-- Returns heading level 1..6, or 0 if not a heading line.
+heading_level_of(line: string) -> int
+    const n: int = str.len(line)
+    if n < 2
+        return 0
+    end
+    var i: int = 0
+    while i < n
+        if i >= MAX_HEADING_LEVEL
+            break
+        end
+        if str.slice(line, i, i + 1) != "#"
+            break
+        end
+        i = i + 1
+    end
+    if i == 0
+        return 0
+    end
+    if i >= n
+        return 0
+    end
+    -- ATX heading requires space (or end) after hashes.
+    if str.slice(line, i, i + 1) != " "
+        return 0
+    end
+    return i
+end
+
+heading_text_of(line: string, level: int) -> string
+    -- Skip hashes + following space.
+    const start: int = level + 1
+    const n: int = str.len(line)
+    if start >= n
+        return ""
+    end
+    return str.trim(str.slice(line, start, n))
+end
+
+is_fence_open(line: string) -> bool
+    const t: string = str.trim(line)
+    return str.starts_with(t, "```")
+end
+
+fence_lang_of(line: string) -> string
+    const t: string = str.trim(line)
+    const n: int = str.len(t)
+    if n <= 3
+        return ""
+    end
+    return str.trim(str.slice(t, 3, n))
+end
+
+is_fence_close(line: string) -> bool
+    const t: string = str.trim(line)
+    if not str.starts_with(t, "```")
+        return false
+    end
+    -- Closing fence: ``` with optional trailing spaces only (no lang tag).
+    const rest: string = str.trim(str.slice(t, 3, str.len(t)))
+    return str.len(rest) == 0
+end
+
+push_paragraph(blocks: list[Block], para: string) -> void
+    const body: string = str.trim(para)
+    if str.len(body) == 0
+        return
+    end
+    lists.push(blocks, paragraph_block(body))
+end
+
+-- Parse G1 subset: headings (#..######), paragraphs, fenced code (```lang).
+public parse(source: string) -> Document
+    var doc: Document = create()
+    doc.source = source
+    var blocks: list[Block] = []
+    const raw_lines: list[string] = str.split(source, "\n")
+    const line_count: int = lists.len(raw_lines)
+    var i: int = 0
+    var para: string = ""
+
+    while i < line_count
+        const line: string = strip_cr(raw_lines[i])
+
+        if is_fence_open(line)
+            push_paragraph(blocks, para)
+            para = ""
+            const lang: string = fence_lang_of(line)
+            var body: string = ""
+            var first_body: bool = true
+            i = i + 1
+            while i < line_count
+                const body_line: string = strip_cr(raw_lines[i])
+                if is_fence_close(body_line)
+                    break
+                end
+                if first_body
+                    body = body_line
+                    first_body = false
+                else
+                    body = str.concat(body, "\n")
+                    body = str.concat(body, body_line)
+                end
+                i = i + 1
+            end
+            lists.push(blocks, code_fence_block(lang, body))
+            i = i + 1
+            continue
+        end
+
+        const level: int = heading_level_of(line)
+        if level > 0
+            push_paragraph(blocks, para)
+            para = ""
+            lists.push(blocks, heading_block(level, heading_text_of(line, level)))
+            i = i + 1
+            continue
+        end
+
+        if is_blank_line(line)
+            push_paragraph(blocks, para)
+            para = ""
+            i = i + 1
+            continue
+        end
+
+        if str.len(para) == 0
+            para = line
+        else
+            para = str.concat(para, " ")
+            para = str.concat(para, str.trim(line))
+        end
+        i = i + 1
+    end
+
+    push_paragraph(blocks, para)
+    doc.blocks = blocks
+    return doc
+end
+
+-- Convenience: parse and keep UI title.
+public parse_with_title(source: string, title: string) -> Document
+    var doc: Document = parse(source)
+    doc.title = title
+    return doc
+end
+
+public count_kind(doc: Document, kind: int) -> int
+    var n: int = 0
+    const total: int = lists.len(doc.blocks)
+    var i: int = 0
+    while i < total
+        if doc.blocks[i].kind == kind
+            n = n + 1
+        end
+        i = i + 1
+    end
+    return n
+end
+
+public first_heading_text(doc: Document) -> string
+    const total: int = lists.len(doc.blocks)
+    var i: int = 0
+    while i < total
+        if doc.blocks[i].kind == KIND_HEADING
+            return doc.blocks[i].text
+        end
+        i = i + 1
+    end
+    return ""
+end

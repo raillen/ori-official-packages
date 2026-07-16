@@ -1,0 +1,47 @@
+module app.smoke_tracy
+
+imports
+    tracy.profiler = tracy
+    ori.io = io
+end
+
+main()
+    tracy.reset_stats()
+    tracy.zone_begin("root")
+    tracy.zone_begin("child")
+    if tracy.zone_depth() != 2
+        io.println("depth_fail")
+        return
+    end
+    tracy.message("smoke-zone")
+    tracy.plot_m("frame_ms", 16666)
+    tracy.zone_end()
+    tracy.zone_end()
+    if tracy.zone_depth() != 0
+        io.println("depth0_fail")
+        return
+    end
+    if tracy.zone_begins() != 2 or tracy.zone_ends() != 2
+        io.println("count_fail")
+        return
+    end
+    if tracy.message_count() != 1
+        io.println("msg_fail")
+        return
+    end
+    if tracy.plot_count() != 1 or tracy.last_plot_value_m() != 16666
+        io.println("plot_fail")
+        return
+    end
+    tracy.frame_mark()
+    if tracy.frame_count() != 1
+        io.println("frame_fail")
+        return
+    end
+    -- primary smoke links headless shim (no Tracy GUI required)
+    if tracy.is_full_build()
+        io.println("full_unexpected")
+        return
+    end
+    io.println("ok")
+end

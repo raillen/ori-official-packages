@@ -1,0 +1,4 @@
+module game.sample.solid
+
+on_create(_self_id: int) -> void
+end

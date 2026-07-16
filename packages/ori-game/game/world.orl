@@ -1,0 +1,608 @@
+module game.world
+
+-- ECS-lite / hybrid world (G1 B1): EntityId + component bags + spawn from scene.
+-- Systems ordered (B2) and script_system dispatch (B3) build on this store.
+-- Style: return-style mutation; dense live list (no flecs).
+
+import ori.list = lists
+import ori.math = math
+import game.ogame_entity = entity
+import game.ogame_scene = scene
+import game.ogame_spawn = spawn
+
+public alias EntityId = int
+public alias WorldResult = result[World, string]
+
+-- --- Components (data only) ---
+
+public struct Transform
+    x: float
+    y: float
+    z: float
+    rx: float
+    ry: float
+    rz: float
+    sx: float
+    sy: float
+    sz: float
+end
+
+public struct Velocity
+    vx: float
+    vy: float
+    vz: float
+end
+
+public struct MeshComp
+    path: string
+    scale: float
+end
+
+public struct ColliderComp
+    kind: string
+    radius: float
+    layer: int
+end
+
+public struct ScriptComp
+    entity_type: string
+    script_rel: string
+end
+
+public struct EntityMeta
+    instance_id: string
+    entity_type: string
+    primary_tag: string
+end
+
+-- Packed entity: optional components via has_* flags (AoS, Ori-friendly).
+public struct Entity
+    id: EntityId
+    alive: bool
+    meta: EntityMeta
+    transform: Transform
+    velocity: Velocity
+    has_velocity: bool
+    mesh: MeshComp
+    has_mesh: bool
+    collider: ColliderComp
+    has_collider: bool
+    script: ScriptComp
+    has_script: bool
+    float_vars: list[entity.EntityVar]
+    -- R6.1: parent EntityId; 0 = none (local transform = world for root).
+    parent_id: EntityId
+end
+
+public struct World
+    entities: list[Entity]
+    next_id: EntityId
+end
+
+-- --- Constructors ---
+
+public empty_transform() -> Transform
+    return Transform {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        rx: 0.0,
+        ry: 0.0,
+        rz: 0.0,
+        sx: 1.0,
+        sy: 1.0,
+        sz: 1.0
+    }
+end
+
+public empty_velocity() -> Velocity
+    return Velocity { vx: 0.0, vy: 0.0, vz: 0.0 }
+end
+
+public empty_mesh() -> MeshComp
+    return MeshComp { path: "", scale: 1.0 }
+end
+
+public empty_collider() -> ColliderComp
+    return ColliderComp { kind: "sphere", radius: 1.0, layer: 0 }
+end
+
+-- R3.4: box uses radius as half-extent (axis-aligned cube approx via sphere inflate).
+public is_box_collider(c: ColliderComp) -> bool
+    return c.kind == "box" or c.kind == "capsule"
+end
+
+public collider_resolve_radius(c: ColliderComp) -> float
+    if c.kind == "box"
+        -- sphere bounding half-extent * ~sqrt(3) (1.732) for conservative resolve
+        return c.radius * 1.75
+    end
+    if c.kind == "capsule"
+        return c.radius
+    end
+    return c.radius
+end
+
+public empty_script() -> ScriptComp
+    return ScriptComp { entity_type: "", script_rel: "" }
+end
+
+public empty_meta() -> EntityMeta
+    return EntityMeta {
+        instance_id: "",
+        entity_type: "",
+        primary_tag: ""
+    }
+end
+
+public empty_world() -> World
+    var ents: list[Entity] = []
+    return World { entities: ents, next_id: 1 }
+end
+
+-- --- Queries ---
+
+public entity_count(world: World) -> int
+    return lists.len(world.entities)
+end
+
+public live_count(world: World) -> int
+    const n: int = lists.len(world.entities)
+    var count: int = 0
+    var i: int = 0
+    while i < n
+        if world.entities[i].alive
+            count = count + 1
+        end
+        i = i + 1
+    end
+    return count
+end
+
+public get_entity(world: World, index: int) -> Entity
+    return world.entities[index]
+end
+
+public find_by_id(world: World, id: EntityId) -> optional[Entity]
+    const n: int = lists.len(world.entities)
+    var i: int = 0
+    while i < n
+        const e: Entity = world.entities[i]
+        if e.alive and e.id == id
+            return some(e)
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public find_by_instance(world: World, instance_id: string) -> optional[Entity]
+    const n: int = lists.len(world.entities)
+    var i: int = 0
+    while i < n
+        const e: Entity = world.entities[i]
+        if e.alive and e.meta.instance_id == instance_id
+            return some(e)
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public find_first_of_type(world: World, entity_type: string) -> optional[Entity]
+    const n: int = lists.len(world.entities)
+    var i: int = 0
+    while i < n
+        const e: Entity = world.entities[i]
+        if e.alive and e.meta.entity_type == entity_type
+            return some(e)
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public index_of_id(world: World, id: EntityId) -> int
+    const n: int = lists.len(world.entities)
+    var i: int = 0
+    while i < n
+        if world.entities[i].id == id
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+-- --- Mutations (return World) ---
+
+public spawn_entity(
+    world: World,
+    meta: EntityMeta,
+    transform: Transform
+) -> World
+    var out: World = world
+    var empty_vars: list[entity.EntityVar] = []
+    const e: Entity = Entity {
+        id: out.next_id,
+        alive: true,
+        meta: meta,
+        transform: transform,
+        velocity: empty_velocity(),
+        has_velocity: false,
+        mesh: empty_mesh(),
+        has_mesh: false,
+        collider: empty_collider(),
+        has_collider: false,
+        script: empty_script(),
+        has_script: false,
+        float_vars: empty_vars,
+        parent_id: 0
+    }
+    out.next_id = out.next_id + 1
+    lists.push(out.entities, e)
+    return out
+end
+
+public set_mesh(world: World, id: EntityId, mesh: MeshComp) -> World
+    const idx: int = index_of_id(world, id)
+    if idx < 0
+        return world
+    end
+    var out: World = world
+    var e: Entity = out.entities[idx]
+    e.mesh = mesh
+    e.has_mesh = mesh.path != ""
+    out.entities[idx] = e
+    return out
+end
+
+public set_collider(world: World, id: EntityId, collider: ColliderComp) -> World
+    const idx: int = index_of_id(world, id)
+    if idx < 0
+        return world
+    end
+    var out: World = world
+    var e: Entity = out.entities[idx]
+    e.collider = collider
+    e.has_collider = true
+    out.entities[idx] = e
+    return out
+end
+
+public set_script(world: World, id: EntityId, script: ScriptComp) -> World
+    const idx: int = index_of_id(world, id)
+    if idx < 0
+        return world
+    end
+    var out: World = world
+    var e: Entity = out.entities[idx]
+    e.script = script
+    e.has_script = script.script_rel != ""
+    out.entities[idx] = e
+    return out
+end
+
+public set_velocity(world: World, id: EntityId, velocity: Velocity) -> World
+    const idx: int = index_of_id(world, id)
+    if idx < 0
+        return world
+    end
+    var out: World = world
+    var e: Entity = out.entities[idx]
+    e.velocity = velocity
+    e.has_velocity = true
+    out.entities[idx] = e
+    return out
+end
+
+public set_transform(world: World, id: EntityId, transform: Transform) -> World
+    const idx: int = index_of_id(world, id)
+    if idx < 0
+        return world
+    end
+    var out: World = world
+    var e: Entity = out.entities[idx]
+    e.transform = transform
+    out.entities[idx] = e
+    return out
+end
+
+public set_float_vars(
+    world: World,
+    id: EntityId,
+    vars: list[entity.EntityVar]
+) -> World
+    const idx: int = index_of_id(world, id)
+    if idx < 0
+        return world
+    end
+    var out: World = world
+    var e: Entity = out.entities[idx]
+    e.float_vars = vars
+    out.entities[idx] = e
+    return out
+end
+
+public despawn(world: World, id: EntityId) -> World
+    const idx: int = index_of_id(world, id)
+    if idx < 0
+        return world
+    end
+    var out: World = world
+    var e: Entity = out.entities[idx]
+    e.alive = false
+    out.entities[idx] = e
+    return out
+end
+
+-- Drop dead entities (despawn only marks alive=false; call this periodically
+-- so long sessions with spawn/despawn churn don't grow the list unbounded).
+public cleanup_dead(world: World) -> World
+    var out: World = world
+    var kept: list[Entity] = []
+    const n: int = lists.len(out.entities)
+    var i: int = 0
+    while i < n
+        if out.entities[i].alive
+            lists.push(kept, out.entities[i])
+        end
+        i = i + 1
+    end
+    out.entities = kept
+    return out
+end
+
+public set_parent(world: World, id: EntityId, parent: EntityId) -> World
+    const idx: int = index_of_id(world, id)
+    if idx < 0
+        return world
+    end
+    var out: World = world
+    var e: Entity = out.entities[idx]
+    e.parent_id = parent
+    out.entities[idx] = e
+    return out
+end
+
+-- World position: local + parent local (one level; chain stops at root/cycle).
+public world_transform_of(world: World, id: EntityId) -> Transform
+    match find_by_id(world, id)
+        case some(e):
+            if e.parent_id == 0
+                return e.transform
+            end
+            match find_by_id(world, e.parent_id)
+                case some(p):
+                    var t: Transform = e.transform
+                    t.x = t.x + p.transform.x
+                    t.y = t.y + p.transform.y
+                    t.z = t.z + p.transform.z
+                    return t
+                case none:
+                    return e.transform
+            end
+        case none:
+            return empty_transform()
+    end
+    return empty_transform()
+end
+
+-- Simple ray vs sphere entities (R3.2 gameplay query).
+public raycast_spheres(
+    world: World,
+    ox: float,
+    oy: float,
+    oz: float,
+    dx: float,
+    dy: float,
+    dz: float,
+    max_dist: float
+) -> optional[EntityId]
+    const n: int = lists.len(world.entities)
+    var best_id: EntityId = 0
+    var best_t: float = max_dist
+    var found: bool = false
+    var i: int = 0
+    while i < n
+        const e: Entity = world.entities[i]
+        if e.alive and e.has_collider
+            const cx: float = e.transform.x - ox
+            const cy: float = e.transform.y - oy
+            const cz: float = e.transform.z - oz
+            const b: float = cx * dx + cy * dy + cz * dz
+            const c: float = cx * cx + cy * cy + cz * cz - e.collider.radius * e.collider.radius
+            const disc: float = b * b - c
+            if disc >= 0.0
+                -- Closest intersection: t = b - sqrt(disc) (dir must be unit).
+                const t: float = b - math.sqrt(disc)
+                if t > 0.0 and t < best_t
+                    best_t = t
+                    best_id = e.id
+                    found = true
+                end
+            end
+        end
+        i = i + 1
+    end
+    if found
+        return some(best_id)
+    end
+    return none
+end
+
+-- --- Component helpers from vars / scene ---
+
+float_var_named(
+    vars: list[entity.EntityVar],
+    name: string,
+    fallback: float
+) -> float
+    const n: int = lists.len(vars)
+    var i: int = 0
+    while i < n
+        if vars[i].name == name
+            return vars[i].default_float
+        end
+        i = i + 1
+    end
+    return fallback
+end
+
+string_var_from_def(
+    def: entity.EntityDef,
+    name: string,
+    fallback: string
+) -> string
+    const n: int = lists.len(def.vars)
+    var i: int = 0
+    while i < n
+        const v: entity.EntityVar = def.vars[i]
+        if v.name == name and v.type_name == "string"
+            return v.default_string
+        end
+        i = i + 1
+    end
+    return fallback
+end
+
+public float_var_of(entity_row: Entity, name: string, fallback: float) -> float
+    return float_var_named(entity_row.float_vars, name, fallback)
+end
+
+-- Build one Entity from catalog resolve + scene instance (mesh/collider from vars).
+entity_from_spawned(
+    id: EntityId,
+    spawned: spawn.SpawnedInstance,
+    def: entity.EntityDef,
+    inst: scene.SceneInstance
+) -> Entity
+    var t: Transform = empty_transform()
+    t.x = spawned.x
+    t.y = spawned.y
+    t.z = spawned.z
+
+    const mesh_default: string = string_var_from_def(def, "mesh_path", "")
+    const mesh_path: string = scene.override_string(inst, "mesh_path", mesh_default)
+    const mesh_scale: float = float_var_named(spawned.float_vars, "mesh_scale", 1.0)
+    const has_mesh: bool = mesh_path != ""
+
+    const radius: float = float_var_named(spawned.float_vars, "collider_radius", 0.0)
+    const layer_f: float = float_var_named(spawned.float_vars, "collision_layer", 0.0)
+    const has_collider: bool = radius > 0.0
+    var col: ColliderComp = empty_collider()
+    col.kind = "sphere"
+    col.radius = radius
+    col.layer = math.round(layer_f)
+
+    const has_script: bool = spawned.script_rel != ""
+    var script: ScriptComp = empty_script()
+    script.entity_type = spawned.entity_id
+    script.script_rel = spawned.script_rel
+
+    var mesh: MeshComp = empty_mesh()
+    mesh.path = mesh_path
+    mesh.scale = mesh_scale
+
+    return Entity {
+        id: id,
+        alive: true,
+        meta: EntityMeta {
+            instance_id: spawned.instance_id,
+            entity_type: spawned.entity_id,
+            primary_tag: spawned.primary_tag
+        },
+        transform: t,
+        velocity: empty_velocity(),
+        has_velocity: false,
+        mesh: mesh,
+        has_mesh: has_mesh,
+        collider: col,
+        has_collider: has_collider,
+        script: script,
+        has_script: has_script,
+        float_vars: spawned.float_vars,
+        parent_id: 0
+    }
+end
+
+-- --- Scene spawn ---
+
+public spawn_scene(
+    world: World,
+    cat: spawn.EntityCatalog,
+    sc: scene.SceneFile
+) -> WorldResult
+    var out: World = world
+    const n: int = lists.len(sc.instances)
+    var i: int = 0
+    while i < n
+        const inst: scene.SceneInstance = sc.instances[i]
+        match spawn.resolve_instance(cat, inst)
+            case ok(spawned):
+                match spawn.catalog_find(cat, spawned.entity_id)
+                    case some(def):
+                        const e: Entity = entity_from_spawned(
+                            out.next_id,
+                            spawned,
+                            def,
+                            inst
+                        )
+                        out.next_id = out.next_id + 1
+                        lists.push(out.entities, e)
+                    case none:
+                        return err("unknown entity type: " + spawned.entity_id)
+                end
+            case err(msg):
+                return err(msg)
+        end
+        i = i + 1
+    end
+    return ok(out)
+end
+
+public spawn_scene_path(
+    world: World,
+    cat: spawn.EntityCatalog,
+    path: string
+) -> WorldResult
+    match scene.load_scene(path)
+        case ok(sc):
+            return spawn_scene(world, cat, sc)
+        case err(msg):
+            return err(msg)
+    end
+    return err("spawn_scene_path failed")
+end
+
+public load_sample_world() -> WorldResult
+    match spawn.load_sample_catalog()
+        case ok(cat):
+            return spawn_scene_path(
+                empty_world(),
+                cat,
+                spawn.sample_scene_path()
+            )
+        case err(msg):
+            return err(msg)
+    end
+    return err("load_sample_world failed")
+end
+
+public sample_engine_test_scene_path() -> string
+    return "assets/sample_project/scenes/engine_test.scene.json"
+end
+
+public load_engine_test_world() -> WorldResult
+    match spawn.load_sample_catalog()
+        case ok(cat):
+            return spawn_scene_path(
+                empty_world(),
+                cat,
+                sample_engine_test_scene_path()
+            )
+        case err(msg):
+            return err(msg)
+    end
+    return err("load_engine_test_world failed")
+end

@@ -1,0 +1,101 @@
+module app.smoke_immemory
+
+imports
+    immemory.buffer = buf
+    immemory.hex = hex
+    ori.io = io
+    ori.list = lists
+    ori.bytes = by
+    ori.string = str
+end
+
+-- Headless smoke: bind buffer, read/write cell, hex row helpers — no GUI.
+main()
+    var cells: list[int] = []
+    lists.push(cells, 0)
+    lists.push(cells, 15)
+    lists.push(cells, 255)
+    lists.push(cells, 65)
+    lists.push(cells, 66)
+    lists.push(cells, 67)
+    lists.push(cells, 10)
+    lists.push(cells, 32)
+
+    var e: buf.Editor = buf.bind_for_test(cells, 4096)
+    e = buf.set_cols(e, 4)
+
+    if buf.nbytes(e) != 8
+        io.println("nbytes_fail")
+        return
+    end
+    if buf.read_cell(e, 2) != 255
+        io.println("read_fail")
+        return
+    end
+    if hex.byte_hex(15) != "0F"
+        io.println("byte_hex_fail")
+        return
+    end
+    if hex.address_hex(4096, 8) != "00001000"
+        io.println("addr_fail")
+        return
+    end
+
+    e = buf.write_cell(e, 0, 222)
+    if buf.read_cell(e, 0) != 222
+        io.println("write_fail")
+        return
+    end
+
+    if hex.row_count(e) != 2
+        io.println("row_count_fail")
+        return
+    end
+    const row0: string = hex.format_row_hex(e, 0)
+    if row0 != "DE 0F FF 41"
+        io.println("row_hex_fail")
+        io.println(row0)
+        return
+    end
+    const ascii0: string = hex.format_row_ascii(e, 0)
+    -- 222 non-printable → '.', 15 → '.', 255 → '.', 65 → 'A'
+    if ascii0 != "...A"
+        io.println("ascii_fail")
+        io.println(ascii0)
+        return
+    end
+    const line0: string = hex.format_row_line(e, 0)
+    if str.count(line0, "00001000") < 1
+        io.println("line_addr_fail")
+        return
+    end
+    if str.count(line0, "DE 0F FF 41") < 1
+        io.println("line_hex_fail")
+        return
+    end
+
+    e = buf.set_read_only(e, true)
+    e = buf.write_cell(e, 0, 1)
+    if buf.read_cell(e, 0) != 222
+        io.println("readonly_fail")
+        return
+    end
+
+    const raw: bytes = buf.to_bytes(e)
+    if by.len(raw) != 8
+        io.println("to_bytes_fail")
+        return
+    end
+
+    var empty: buf.Editor = buf.create()
+    if not buf.is_empty(empty)
+        io.println("empty_fail")
+        return
+    end
+    if hex.row_count(empty) != 0
+        io.println("empty_rows_fail")
+        return
+    end
+
+    io.println("ok")
+end

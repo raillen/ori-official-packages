@@ -1,0 +1,94 @@
+module game.json_fields
+
+-- Domain helpers for reading fields from ori.json Object maps.
+-- Shared by game.ogame_*, game.tiled, game.aseprite (Rule of Three).
+
+import ori.json = json
+import ori.map = maps
+import ori.list = lists
+import ori.math = math
+
+public as_object(val: json.Value) -> optional[map[string, json.Value]]
+    match val
+        case Object(fields):
+            return some(fields)
+        case else:
+            return none
+    end
+    return none
+end
+
+public number_field(
+    fields: map[string, json.Value],
+    key: string,
+    fallback: float
+) -> float
+    if some(v) = maps.try_get(fields, key)
+        match v
+            case Number(value):
+                return value
+            case else:
+                return fallback
+        end
+    end
+    return fallback
+end
+
+public int_field(
+    fields: map[string, json.Value],
+    key: string,
+    fallback: int
+) -> int
+    return math.round(number_field(fields, key, float(fallback)))
+end
+
+public string_field(
+    fields: map[string, json.Value],
+    key: string,
+    fallback: string
+) -> string
+    if some(v) = maps.try_get(fields, key)
+        match v
+            case String(value):
+                return value
+            case else:
+                return fallback
+        end
+    end
+    return fallback
+end
+
+public bool_field(
+    fields: map[string, json.Value],
+    key: string,
+    fallback: bool
+) -> bool
+    if some(v) = maps.try_get(fields, key)
+        match v
+            case Bool(value):
+                return value
+            case else:
+                return fallback
+        end
+    end
+    return fallback
+end
+
+public string_list_from_value(val: json.Value) -> list[string]
+    var out: list[string] = []
+    match val
+        case Array(items):
+            const n: int = lists.len(items)
+            var i: int = 0
+            while i < n
+                match items[i]
+                    case String(value):
+                        lists.push(out, value)
+                    case else:
+                end
+                i = i + 1
+            end
+        case else:
+    end
+    return out
+end

@@ -1,0 +1,29 @@
+module test.tilemap_paint
+
+imports
+    game.tilemap = tm
+    game.shape = shape
+    ori.list = lists
+    ori.test = test
+end
+
+@test
+paint_and_solid_count()
+    var grid: tm.Tilemap = tm.create(4, 3, 16.0)
+    test.equal_int(tm.solid_count(grid), 0)
+    grid = tm.paint(grid, 1, 1, 2)
+    grid = tm.paint(grid, 2, 1, 2)
+    test.equal_int(tm.get_tile(grid, 1, 1), 2)
+    test.equal_int(tm.solid_count(grid), 2)
+    grid = tm.erase(grid, 1, 1)
+    test.equal_int(tm.solid_count(grid), 1)
+end
+
+@test
+fill_rect_and_colliders()
+    var grid: tm.Tilemap = tm.create(5, 5, 8.0)
+    grid = tm.fill_rect(grid, 0, 0, 2, 1, 1)
+    test.equal_int(tm.solid_count(grid), 6)
+    const rects: list[shape.Rectangle] = tm.collect_solid_rects(grid)
+    test.equal_int(lists.len(rects), 6)
+end

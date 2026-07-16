@@ -1,0 +1,61 @@
+# movement — Sistema de Movimentação
+
+Módulo com funções de movimentação por eixos e grid.
+
+## Funções
+
+### move_4axis
+
+Movimentação nos 4 eixos (cima, baixo, esquerda, direita).
+
+```ori
+func move_4axis(e: Entity, speed: float, dt: float, up: int, down: int, left: int, right: int) -> void
+```
+
+**Parâmetros:**
+- `e` — entidade a mover
+- `speed` — velocidade em pixels/segundo
+- `dt` — delta time
+- `up/down/left/right` — códigos das teclas
+
+**Exemplo:**
+```ori
+-- WASD
+movement.move_4axis(player, 200.0, dt, 87, 83, 65, 68)
+
+-- Setas
+movement.move_4axis(player, 200.0, dt, 38, 40, 37, 39)
+```
+
+### move_8axis
+
+Movimentação nos 8 eixos (incluindo diagonais normalizadas).
+
+```ori
+func move_8axis(e: Entity, speed: float, dt: float, up: int, down: int, left: int, right: int) -> void
+```
+
+### move_grid
+
+Movimentação em grid (snap para posições de grid).
+
+```ori
+func move_grid(e: Entity, grid_size: int, dir: Vec2) -> Vec2
+```
+
+### snap_to_grid
+
+Snap uma posição para o grid mais próximo.
+
+```ori
+func snap_to_grid(pos: Vec2, grid_size: int) -> Vec2
+```
+
+**Exemplo — Grid Movement:**
+```ori
+const grid_size = 32
+
+-- Mover para direita
+var target = movement.move_grid(player, grid_size, vec2.Vec2(x: 1.0, y: 0.0))
+player.pos = target
+```

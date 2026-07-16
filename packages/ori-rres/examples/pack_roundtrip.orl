@@ -1,0 +1,48 @@
+module app.pack_roundtrip
+
+imports
+    rres.pack = rres
+    ori.io = io
+end
+
+main()
+    var pack: rres.Pack = rres.create()
+    const a: int = rres.put_file(pack, "hello.txt", "examples/assets/hello.txt")
+    const b: int = rres.put_file(pack, "note.txt", "examples/assets/hello.txt")
+    const s: int = rres.save(pack, "/tmp/ori_demo.orpk")
+    rres.close(pack)
+
+    if not rres.validate_ok("/tmp/ori_demo.orpk")
+        io.print("validate_failed")
+        return
+    end
+
+    var loaded: rres.Pack = rres.open("/tmp/ori_demo.orpk")
+    if not rres.is_open(loaded)
+        io.print("open_failed")
+        return
+    end
+    if not rres.is_valid(loaded)
+        io.print("invalid_pack")
+        rres.close(loaded)
+        return
+    end
+    const n: int = rres.count(loaded)
+    const has_h: bool = rres.has(loaded, "hello.txt")
+    const sz: int = rres.size_of(loaded, "hello.txt")
+    const name0: string = rres.name_at(loaded, 0)
+    const names: string = rres.list_names(loaded)
+    const text: string = rres.read_text(loaded, "hello.txt")
+    const exp: int = rres.read_bytes_to_path(loaded, "hello.txt", "/tmp/ori_rres_bytes.bin")
+    const rem: int = rres.remove(loaded, "note.txt")
+    const n2: int = rres.count(loaded)
+    rres.close(loaded)
+
+    if a == 0 and b == 0 and s == 0 and rem == 0 and exp == 0 and n == 2 and n2 == 1 and has_h and sz == 20 and text == "hello from rres pack"
+        if names != ""
+            io.print("ok")
+            return
+        end
+    end
+    io.print("fail")
+end

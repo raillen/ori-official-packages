@@ -1,0 +1,187 @@
+module sqlite.db
+
+import ori.mem = mem
+import ori.fs = fs
+
+-- SQLite for Ori. Handles are int slots; SQL/paths via mem.string_as_ptr.
+
+extern c
+    public ori_sqlite_open(path_ptr: int) -> int
+    public ori_sqlite_close(db: int) -> void
+    public ori_sqlite_exec(db: int, sql_ptr: int) -> int
+    public ori_sqlite_query_int(db: int, sql_ptr: int) -> int
+    public ori_sqlite_query_text_to_path(db: int, sql_ptr: int, path_ptr: int) -> int
+    public ori_sqlite_query_all_to_json_path(db: int, sql_ptr: int, path_ptr: int) -> int
+    public ori_sqlite_last_insert_rowid(db: int) -> int
+    public ori_sqlite_changes(db: int) -> int
+    public ori_sqlite_errmsg_to_path(path_ptr: int) -> int
+    public ori_sqlite_has_error() -> int
+    public ori_sqlite_prepare(db: int, sql_ptr: int) -> int
+    public ori_sqlite_bind_int(stmt: int, idx: int, value: int) -> int
+    public ori_sqlite_bind_text(stmt: int, idx: int, text_ptr: int) -> int
+    public ori_sqlite_step(stmt: int) -> int
+    public ori_sqlite_column_int(stmt: int, col: int) -> int
+    public ori_sqlite_column_text_to_path(stmt: int, col: int, path_ptr: int) -> int
+    public ori_sqlite_column_count(stmt: int) -> int
+    public ori_sqlite_reset(stmt: int) -> int
+    public ori_sqlite_clear_bindings(stmt: int) -> int
+    public ori_sqlite_finalize(stmt: int) -> void
+end
+
+-- sqlite3_step result codes
+public const STEP_ROW: int = 100
+public const STEP_DONE: int = 101
+
+public struct Db
+    id: int
+end
+
+public struct Stmt
+    id: int
+end
+
+public open(path: string) -> Db
+    return Db { id: ori_sqlite_open(mem.string_as_ptr(path)) }
+end
+
+public close(db: Db) -> void
+    ori_sqlite_close(db.id)
+end
+
+public is_open(db: Db) -> bool
+    return db.id >= 0
+end
+
+-- 0 = success, nonzero = SQLite error code.
+public exec(db: Db, sql: string) -> int
+    return ori_sqlite_exec(db.id, mem.string_as_ptr(sql))
+end
+
+public exec_ok(db: Db, sql: string) -> bool
+    return exec(db, sql) == 0
+end
+
+public query_int(db: Db, sql: string) -> int
+    return ori_sqlite_query_int(db.id, mem.string_as_ptr(sql))
+end
+
+-- Writes first column of first row as text to path; 0 = success.
+public query_text_to_path(db: Db, sql: string, path: string) -> int
+    return ori_sqlite_query_text_to_path(db.id, mem.string_as_ptr(sql), mem.string_as_ptr(path))
+end
+
+public query_text(db: Db, sql: string) -> string
+    const path: string = "/tmp/ori_sqlite_query_text.tmp"
+    if query_text_to_path(db, sql, path) != 0
+        return ""
+    end
+    return fs.read_text_or(path, "")
+end
+
+-- Multi-row JSON array to path: [{"c0":...,"c1":"..."}, ...]
+public query_all_to_json_path(db: Db, sql: string, path: string) -> int
+    return ori_sqlite_query_all_to_json_path(db.id, mem.string_as_ptr(sql), mem.string_as_ptr(path))
+end
+
+public query_all_json(db: Db, sql: string) -> string
+    const path: string = "/tmp/ori_sqlite_query_all.json"
+    if query_all_to_json_path(db, sql, path) != 0
+        return "[]"
+    end
+    return fs.read_text_or(path, "[]")
+end
+
+public last_insert_rowid(db: Db) -> int
+    return ori_sqlite_last_insert_rowid(db.id)
+end
+
+public changes(db: Db) -> int
+    return ori_sqlite_changes(db.id)
+end
+
+public begin(db: Db) -> bool
+    return exec_ok(db, "BEGIN")
+end
+
+public commit(db: Db) -> bool
+    return exec_ok(db, "COMMIT")
+end
+
+public rollback(db: Db) -> bool
+    return exec_ok(db, "ROLLBACK")
+end
+
+public has_error() -> bool
+    return ori_sqlite_has_error() != 0
+end
+
+public last_error() -> string
+    const path: string = "/tmp/ori_sqlite_errmsg.tmp"
+    if ori_sqlite_errmsg_to_path(mem.string_as_ptr(path)) != 0
+        return ""
+    end
+    return fs.read_text_or(path, "")
+end
+
+-- ---- prepared statements ----
+
+public prepare(db: Db, sql: string) -> Stmt
+    return Stmt { id: ori_sqlite_prepare(db.id, mem.string_as_ptr(sql)) }
+end
+
+public is_prepared(st: Stmt) -> bool
+    return st.id >= 0
+end
+
+-- Bind indices are 1-based (SQLite convention).
+public bind_int(st: Stmt, idx: int, value: int) -> int
+    return ori_sqlite_bind_int(st.id, idx, value)
+end
+
+public bind_text(st: Stmt, idx: int, value: string) -> int
+    return ori_sqlite_bind_text(st.id, idx, mem.string_as_ptr(value))
+end
+
+public step(st: Stmt) -> int
+    return ori_sqlite_step(st.id)
+end
+
+public step_row(st: Stmt) -> bool
+    return step(st) == STEP_ROW
+end
+
+public step_done(st: Stmt) -> bool
+    return step(st) == STEP_DONE
+end
+
+public column_int(st: Stmt, col: int) -> int
+    return ori_sqlite_column_int(st.id, col)
+end
+
+public column_text_to_path(st: Stmt, col: int, path: string) -> int
+    return ori_sqlite_column_text_to_path(st.id, col, mem.string_as_ptr(path))
+end
+
+public column_text(st: Stmt, col: int) -> string
+    const path: string = "/tmp/ori_sqlite_col_text.tmp"
+    if column_text_to_path(st, col, path) != 0
+        return ""
+    end
+    return fs.read_text_or(path, "")
+end
+
+public column_count(st: Stmt) -> int
+    return ori_sqlite_column_count(st.id)
+end
+
+public reset(st: Stmt) -> int
+    return ori_sqlite_reset(st.id)
+end
+
+public clear_bindings(st: Stmt) -> int
+    return ori_sqlite_clear_bindings(st.id)
+end
+
+public finalize(st: Stmt) -> void
+    ori_sqlite_finalize(st.id)
+end

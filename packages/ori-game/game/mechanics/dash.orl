@@ -1,0 +1,52 @@
+module game.mechanics.dash
+
+import ori.math.vec2 = vec2
+
+public struct DashState
+    cooldown: float
+    duration: float
+    remaining: float
+    active: bool
+    speed: float
+end
+
+public create(cooldown: float, duration: float, speed: float) -> DashState
+    return DashState {
+        cooldown: cooldown,
+        duration: duration,
+        remaining: 0.0,
+        active: false,
+        speed: speed
+    }
+end
+
+public tick(ds: DashState, dt: float) -> DashState
+    var out: DashState = ds
+    if out.active
+        out.remaining = out.remaining - dt
+        if out.remaining <= 0.0
+            out.active = false
+            out.remaining = out.cooldown
+        end
+    elif out.remaining > 0.0
+        out.remaining = out.remaining - dt
+    end
+    return out
+end
+
+public try_start(ds: DashState) -> DashState
+    if ds.active or ds.remaining > 0.0
+        return ds
+    end
+    var out: DashState = ds
+    out.active = true
+    out.remaining = out.duration
+    return out
+end
+
+public velocity(ds: DashState, dir: vec2.Vec2) -> vec2.Vec2
+    if not ds.active
+        return vec2.Vec2 { x: 0.0, y: 0.0 }
+    end
+    return vec2.Vec2 { x: dir.x * ds.speed, y: dir.y * ds.speed }
+end

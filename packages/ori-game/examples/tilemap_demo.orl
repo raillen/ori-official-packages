@@ -1,0 +1,82 @@
+module app.tilemap_demo
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.shape = shape
+    game.tilemap = tm
+    ori.math.vec2 = vec2
+    ori.math = math
+end
+
+var grid: tm.Tilemap = tm.create(20, 12, 32.0)
+var px: float = 64.0
+var py: float = 64.0
+const size: float = 20.0
+const speed: float = 160.0
+
+setup_grid() -> void
+    var x: int = 0
+    while x < 20
+        grid = tm.set_tile(grid, x, 11, 1)
+        grid = tm.set_tile(grid, x, 10, 1)
+        x = x + 1
+    end
+    grid = tm.set_tile(grid, 5, 8, 1)
+    grid = tm.set_tile(grid, 6, 8, 1)
+    grid = tm.set_tile(grid, 7, 8, 1)
+    grid = tm.set_tile(grid, 12, 6, 1)
+    grid = tm.set_tile(grid, 13, 6, 1)
+end
+
+solid_at(wx: float, wy: float) -> bool
+    var g: tm.Tilemap = grid
+    const tx: int = math.floor(wx / g.tile_size)
+    const ty: int = math.floor(wy / g.tile_size)
+    return tm.get_tile(grid, tx, ty) != 0
+end
+
+on_update(dt: float) -> void
+    var nx: float = px
+    var ny: float = py
+    if input.key_down(input.KEY_RIGHT)
+        nx = nx + speed * dt
+    end
+    if input.key_down(input.KEY_LEFT)
+        nx = nx - speed * dt
+    end
+    if input.key_down(input.KEY_DOWN)
+        ny = ny + speed * dt
+    end
+    if input.key_down(input.KEY_UP)
+        ny = ny - speed * dt
+    end
+    if not solid_at(nx, ny) and not solid_at(nx + size, ny + size)
+        px = nx
+        py = ny
+    end
+end
+
+on_draw() -> void
+    var g: tm.Tilemap = grid
+    var y: int = 0
+    while y < g.height
+        var x: int = 0
+        while x < g.width
+            if tm.get_tile(grid, x, y) != 0
+                draw.draw_rect(tm.tile_rect(grid, x, y), color.DARKGRAY)
+            end
+            x = x + 1
+        end
+        y = y + 1
+    end
+    draw.draw_rect(shape.rect(px, py, size, size), color.RED)
+    draw.draw_text("Arrow keys - solid tiles block", vec2.Vec2 { x: 10.0, y: 10.0 }, 16, color.WHITE)
+end
+
+main()
+    setup_grid()
+    app.run_window("Tilemap Demo", 640, 384, on_update, on_draw)
+end

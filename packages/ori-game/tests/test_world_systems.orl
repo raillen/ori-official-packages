@@ -1,0 +1,234 @@
+module test.world_systems
+
+-- B2/B3: ordered systems + script create/step over game.world.
+
+imports
+    game.world = world
+    game.world_systems = systems
+    game.ogame_level = level
+    game.ogame_script = ogs
+    game.ogame_entity = entity
+    ori.test = test
+    ori.list = lists
+end
+
+const CREATE_OGS: string = "-- ogs:print player create\n-- ogs:set_var ready = 1\n-- ogs:call on_ready\n"
+
+make_player_world() -> world.World
+    var w: world.World = world.empty_world()
+    var t: world.Transform = world.empty_transform()
+    t.x = 0.0
+    t.y = 1.0
+    t.z = 8.0
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "p1",
+            entity_type: "player",
+            primary_tag: "player"
+        },
+        t
+    )
+    const id: world.EntityId = world.get_entity(w, 0).id
+    w = world.set_collider(w, id, world.ColliderComp {
+        kind: "sphere",
+        radius: 8.0,
+        layer: 1
+    })
+    w = world.set_script(w, id, world.ScriptComp {
+        entity_type: "player",
+        script_rel: "player.orl"
+    })
+    var vars: list[entity.EntityVar] = []
+    lists.push(vars, entity.EntityVar {
+        name: "move_speed",
+        type_name: "float",
+        default_float: 50.0,
+        default_int: 50,
+        default_bool: false,
+        default_string: ""
+    })
+    w = world.set_float_vars(w, id, vars)
+    return w
+end
+
+@test
+input_sets_player_velocity()
+    var w: world.World = make_player_world()
+    var fi: systems.FrameInput = systems.empty_input()
+    fi.move_x = 1.0
+    fi.move_z = 0.0
+    w = systems.input_system(w, fi)
+    const e: world.Entity = world.get_entity(w, 0)
+    test.assert(e.has_velocity, "has velocity")
+    test.assert(e.velocity.vx == 50.0, "vx = speed")
+    test.assert(e.velocity.vz == 0.0, "vz")
+    test.assert(e.transform.ry == 90.0, "yaw right")
+end
+
+@test
+move_integrates_velocity()
+    var w: world.World = make_player_world()
+    const id: world.EntityId = world.get_entity(w, 0).id
+    w = world.set_velocity(w, id, world.Velocity {
+        vx: 10.0,
+        vy: 0.0,
+        vz: 0.0
+    })
+    w = systems.move_system(w, 0.5)
+    const e: world.Entity = world.get_entity(w, 0)
+    test.assert(e.transform.x == 5.0, "x after 0.5s")
+end
+
+@test
+tick_order_moves_player()
+    var w: world.World = make_player_world()
+    var host: systems.ScriptHost = systems.empty_script_host()
+    var solids: list[level.SolidPiece] = []
+    var fi: systems.FrameInput = systems.empty_input()
+    fi.move_z = -1.0
+    w = systems.input_system(w, fi)
+    host = systems.tick_scripts(w, host, 0.1, CREATE_OGS)
+    w = systems.move_system(w, 0.1)
+    w = systems.collision_system(w, solids)
+    const e: world.Entity = world.get_entity(w, 0)
+    -- speed 50 * -1 * 0.1 = -5 on z from 8 → 3
+    test.assert(e.transform.z == 3.0, "z after tick")
+    match systems.get_script_state(host, e.id)
+        case some(st):
+            test.assert(st.last_print == "player create", "create ran")
+            test.assert(st.last_call == "on_ready", "call ran")
+        case none:
+            test.assert(false, "script host missing")
+    end
+end
+
+@test
+load_engine_test_and_tick()
+    match world.load_engine_test_world()
+        case ok(w0):
+            var host: systems.ScriptHost = systems.empty_script_host()
+            var solids: list[level.SolidPiece] = []
+            var fi: systems.FrameInput = systems.empty_input()
+            var w: world.World = w0
+            w = systems.input_system(w, fi)
+            host = systems.tick_scripts(w, host, 0.016, CREATE_OGS)
+            w = systems.move_system(w, 0.016)
+            w = systems.collision_system(w, solids)
+            test.assert(world.live_count(w) >= 1, "live entities")
+            match world.find_first_of_type(w, "player")
+                case some(p):
+                    match systems.get_script_state(host, p.id)
+                        case some(st):
+                            test.assert(
+                                ogs.is_finished(st) or st.last_print == "player create",
+                                "script active"
+                            )
+                        case none:
+                            test.assert(false, "no script")
+                    end
+                case none:
+                    test.assert(false, "no player")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+floor_solid() -> level.SolidPiece
+    -- Floor slab: center y=0, height 2 → top at y=1 (matches engine_test floor idea).
+    return level.SolidPiece {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        sx: 200.0,
+        sy: 2.0,
+        sz: 200.0,
+        r: 90,
+        g: 120,
+        b: 70,
+        a: 255,
+        metallic: 0.0,
+        roughness: 0.9,
+        layer: 1,
+        collider: true
+    }
+end
+
+@test
+collision_system_pushes_out_of_solid()
+    var w: world.World = make_player_world()
+    -- Bury player center deep in floor AABB (with radius 8, center y=0 is inside expanded bounds).
+    const id: world.EntityId = world.get_entity(w, 0).id
+    var t: world.Transform = world.empty_transform()
+    t.x = 0.0
+    t.y = 0.0
+    t.z = 0.0
+    w = world.set_transform(w, id, t)
+    var solids: list[level.SolidPiece] = []
+    lists.push(solids, floor_solid())
+    w = systems.collision_system(w, solids)
+    const e: world.Entity = world.get_entity(w, 0)
+    -- Expanded floor max_y ≈ 1+8=9; shallowest push should lift Y significantly.
+    test.assert(e.transform.y > 1.0, "collision should lift player above floor interior")
+end
+
+@test
+collision_system_respects_layer()
+    var w: world.World = make_player_world()
+    const id: world.EntityId = world.get_entity(w, 0).id
+    -- player collider layer 1
+    var solids: list[level.SolidPiece] = []
+    var wall: level.SolidPiece = floor_solid()
+    wall.layer = 2
+    wall.sy = 40.0
+    wall.y = 0.0
+    lists.push(solids, wall)
+    var t: world.Transform = world.empty_transform()
+    t.x = 0.0
+    t.y = 0.0
+    t.z = 0.0
+    w = world.set_transform(w, id, t)
+    w = systems.collision_system(w, solids)
+    const e: world.Entity = world.get_entity(w, 0)
+    test.assert(e.transform.x == 0.0 and e.transform.y == 0.0 and e.transform.z == 0.0, "layer 2 solid ignored by layer 1")
+end
+
+@test
+engine_test_scene_solids_and_collision()
+    const path: string = "assets/sample_project/scenes/engine_test.scene.json"
+    const lvl: level.LevelGeometry = level.load_level(path)
+    const solids: list[level.SolidPiece] = level.collect_solids(lvl)
+    test.assert(lists.len(solids) >= 2, "floor + wall solids")
+    match world.load_engine_test_world()
+        case ok(w0):
+            var w: world.World = w0
+            match world.find_first_of_type(w, "player")
+                case some(p0):
+                    test.assert(p0.has_collider, "player collider from vars")
+                    test.assert(p0.collider.radius == 8.0, "radius")
+                    test.equal_int(p0.collider.layer, 1)
+                case none:
+                    test.assert(false, "no player")
+            end
+            -- Drive into wall region: z positive toward wall at z=48
+            var fi: systems.FrameInput = systems.empty_input()
+            fi.move_z = 1.0
+            var step: int = 0
+            while step < 40
+                w = systems.input_system(w, fi)
+                w = systems.move_system(w, 0.05)
+                w = systems.collision_system(w, solids)
+                step = step + 1
+            end
+            match world.find_first_of_type(w, "player")
+                case some(p):
+                    -- Without wall, z would grow a lot; with wall, z stays below wall face.
+                    test.assert(p.transform.z < 55.0, "wall should block deep z travel")
+                case none:
+                    test.assert(false, "player gone")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end

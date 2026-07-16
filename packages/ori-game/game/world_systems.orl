@@ -1,0 +1,276 @@
+module game.world_systems
+
+-- Ordered G1 systems over game.world (B2).
+-- Fixed order: input → script_step → move → collision.
+-- Camera/draw stay in the app (or B4 camera_system later).
+
+import ori.list = lists
+import game.world = world
+import game.ogame_level = level
+import game.ogame_script = ogs
+import game.world_physics = wphys
+
+-- Axes already resolved from keys/gamepad by the host.
+public struct FrameInput
+    move_x: float
+    move_y: float
+    move_z: float
+end
+
+public empty_input() -> FrameInput
+    return FrameInput { move_x: 0.0, move_y: 0.0, move_z: 0.0 }
+end
+
+-- Parallel script host (EntityId ↔ ScriptState); not a World component yet.
+public struct ScriptHost
+    entity_ids: list[world.EntityId]
+    states: list[ogs.ScriptState]
+    created: list[bool]
+end
+
+public empty_script_host() -> ScriptHost
+    var ids: list[world.EntityId] = []
+    var states: list[ogs.ScriptState] = []
+    var created: list[bool] = []
+    return ScriptHost {
+        entity_ids: ids,
+        states: states,
+        created: created
+    }
+end
+
+host_index(host: ScriptHost, id: world.EntityId) -> int
+    const n: int = lists.len(host.entity_ids)
+    var i: int = 0
+    while i < n
+        if host.entity_ids[i] == id
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+public ensure_script_slot(host: ScriptHost, id: world.EntityId) -> ScriptHost
+    if host_index(host, id) >= 0
+        return host
+    end
+    var out: ScriptHost = host
+    lists.push(out.entity_ids, id)
+    lists.push(out.states, ogs.empty_state(id))
+    lists.push(out.created, false)
+    return out
+end
+
+public get_script_state(host: ScriptHost, id: world.EntityId) -> optional[ogs.ScriptState]
+    const idx: int = host_index(host, id)
+    if idx < 0
+        return none
+    end
+    return some(host.states[idx])
+end
+
+yaw_from_axes(mx: float, mz: float, current: float) -> float
+    if mx == 0.0 and mz == 0.0
+        return current
+    end
+    if mx > 0.0
+        return 90.0
+    end
+    if mx < 0.0
+        return -90.0
+    end
+    if mz > 0.0
+        return 0.0
+    end
+    if mz < 0.0
+        return 180.0
+    end
+    return current
+end
+
+-- 1) input_system: player-tagged entities get velocity from axes * move_speed.
+public input_system(w: world.World, input: FrameInput) -> world.World
+    var out: world.World = w
+    const n: int = world.entity_count(out)
+    var i: int = 0
+    while i < n
+        var e: world.Entity = world.get_entity(out, i)
+        if e.alive and e.meta.primary_tag == "player"
+            const speed: float = world.float_var_of(e, "move_speed", 48.0)
+            e.velocity = world.Velocity {
+                vx: input.move_x * speed,
+                vy: input.move_y * speed,
+                vz: input.move_z * speed
+            }
+            e.has_velocity = true
+            e.transform.ry = yaw_from_axes(
+                input.move_x,
+                input.move_z,
+                e.transform.ry
+            )
+            out.entities[i] = e
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- 2a) script_system create: once per entity with Script component.
+public script_create_system(
+    w: world.World,
+    host: ScriptHost,
+    create_ogs_body: string
+) -> ScriptHost
+    var out: ScriptHost = host
+    const n: int = world.entity_count(w)
+    var i: int = 0
+    while i < n
+        const e: world.Entity = world.get_entity(w, i)
+        if e.alive and e.has_script
+            out = ensure_script_slot(out, e.id)
+            const idx: int = host_index(out, e.id)
+            if idx >= 0 and out.created[idx] == false
+                var st: ogs.ScriptState = ogs.empty_state(e.id)
+                st = ogs.set_var(
+                    st,
+                    "move_speed",
+                    world.float_var_of(e, "move_speed", 0.0)
+                )
+                st = ogs.set_var(
+                    st,
+                    "mesh_scale",
+                    world.float_var_of(e, "mesh_scale", 1.0)
+                )
+                if create_ogs_body != ""
+                    st = ogs.run_ogs_body(st, create_ogs_body)
+                end
+                out.states[idx] = st
+                out.created[idx] = true
+            end
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- 2b) script_system step: tick unfinished ogs programs.
+public script_step_system(host: ScriptHost, dt: float) -> ScriptHost
+    var out: ScriptHost = host
+    const n: int = lists.len(out.states)
+    var i: int = 0
+    while i < n
+        if out.created[i] and ogs.is_finished(out.states[i]) == false
+            out.states[i] = ogs.tick(out.states[i], dt)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- 3) move_system: integrate velocity into transform.
+public move_system(w: world.World, dt: float) -> world.World
+    var out: world.World = w
+    const n: int = world.entity_count(out)
+    var i: int = 0
+    while i < n
+        var e: world.Entity = world.get_entity(out, i)
+        if e.alive and e.has_velocity
+            e.transform.x = e.transform.x + e.velocity.vx * dt
+            e.transform.y = e.transform.y + e.velocity.vy * dt
+            e.transform.z = e.transform.z + e.velocity.vz * dt
+            out.entities[i] = e
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- 4) collision_system: sphere resolve on level solids for colliders.
+public collision_system(
+    w: world.World,
+    solids: list[level.SolidPiece]
+) -> world.World
+    var out: world.World = w
+    const n: int = world.entity_count(out)
+    var i: int = 0
+    while i < n
+        var e: world.Entity = world.get_entity(out, i)
+        if e.alive and e.has_collider
+            const rad: float = world.collider_resolve_radius(e.collider)
+            const resolved: level.Vec3Pos = level.resolve_sphere_on_layer(
+                e.transform.x,
+                e.transform.y,
+                e.transform.z,
+                rad,
+                solids,
+                e.collider.layer
+            )
+            e.transform.x = resolved.x
+            e.transform.y = resolved.y
+            e.transform.z = resolved.z
+            out.entities[i] = e
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- Nota (Ori AOT): não devolver World+ScriptHost no mesmo struct — residual
+-- de return com dois agregados managed grandes causa SIGSEGV no sample.
+-- Ordem G1 no host: input_system → tick_scripts → move → collision.
+
+-- Create once + step unfinished ogs programs.
+public tick_scripts(
+    w: world.World,
+    host: ScriptHost,
+    dt: float,
+    create_ogs_body: string
+) -> ScriptHost
+    var scripts: ScriptHost = host
+    scripts = script_create_system(w, scripts, create_ogs_body)
+    scripts = script_step_system(scripts, dt)
+    return scripts
+end
+
+-- Input then integrate then collide (no scripts — call tick_scripts between
+-- input and move if you need the canonical full order).
+public tick_world(
+    w: world.World,
+    input: FrameInput,
+    solids: list[level.SolidPiece],
+    dt: float
+) -> world.World
+    var world_out: world.World = w
+    world_out = input_system(world_out, input)
+    world_out = move_system(world_out, dt)
+    world_out = collision_system(world_out, solids)
+    return world_out
+end
+
+-- F: optional gravity for PhysicsHost entities before move.
+-- Full order when physics on: input → scripts → physics → move → collision.
+public physics_system(
+    w: world.World,
+    host: wphys.PhysicsHost,
+    gravity_y: float,
+    dt: float
+) -> world.World
+    return wphys.apply_gravity(w, host, gravity_y, dt)
+end
+
+public tick_world_physics(
+    w: world.World,
+    input: FrameInput,
+    solids: list[level.SolidPiece],
+    host: wphys.PhysicsHost,
+    gravity_y: float,
+    dt: float
+) -> world.World
+    var world_out: world.World = w
+    world_out = input_system(world_out, input)
+    world_out = physics_system(world_out, host, gravity_y, dt)
+    world_out = move_system(world_out, dt)
+    world_out = collision_system(world_out, solids)
+    return world_out
+end

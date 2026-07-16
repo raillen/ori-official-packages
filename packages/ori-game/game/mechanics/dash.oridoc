@@ -1,0 +1,81 @@
+# dash — Sistema de Dash
+
+Módulo com funções para dash (impulso rápido).
+
+## DashConfig
+
+Configuração do dash.
+
+```ori
+struct DashConfig
+    distance: float = 100.0
+    duration: float = 0.15
+    cooldown: float = 0.5
+    allow_air_dash: bool = true
+    direction_lock: bool = true
+end
+```
+
+**Campos:**
+- `distance` — distância percorrida em pixels
+- `duration` — duração em segundos
+- `cooldown` — tempo entre dashes
+- `allow_air_dash` — permitir dash no ar
+- `direction_lock` — travar direção durante o dash
+
+## DashState
+
+Estado do dash.
+
+```ori
+struct DashState
+    is_dashing: bool = false
+    dash_timer: float = 0.0
+    dash_dir: Vec2 = Vec2(x: 0.0, y: 0.0)
+    dash_speed: float = 0.0
+    cooldown_timer: Timer = nil
+    can_dash: bool = true
+end
+```
+
+## Funções
+
+### can_dash
+
+Verifica se a entidade pode fazer dash.
+
+```ori
+func can_dash(state: DashState, config: DashConfig, on_ground: bool) -> bool
+```
+
+### start_dash
+
+Inicia o dash.
+
+```ori
+func start_dash(e: Entity, state: DashState, config: DashConfig, dir: Vec2) -> void
+```
+
+### update_dash
+
+Atualiza o dash.
+
+```ori
+func update_dash(e: Entity, state: DashState, dt: float) -> void
+```
+
+**Exemplo:**
+```ori
+const config = dash.DashConfig(distance: 150.0, cooldown: 0.8)
+var state = dash.DashState()
+
+-- No update:
+if input.key_pressed(67) and dash.can_dash(state, config, true)  -- C key
+    var dir = vec2.Vec2(x: 1.0, y: 0.0)
+    if input.key_down(37)
+        dir.x = -1.0
+    end
+    dash.start_dash(player, state, config, dir)
+end
+dash.update_dash(player, state, dt)
+```

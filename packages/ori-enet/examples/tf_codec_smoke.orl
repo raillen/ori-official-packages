@@ -1,0 +1,35 @@
+module app.tf_codec_smoke
+
+-- Headless encode/decode smoke (no network).
+
+imports
+    enet.tf_codec = tf
+    ori.io = io
+end
+
+main()
+    const msg: string = tf.encode_tf(1.5, 2.0, -3.25)
+    if tf.is_tf_message(msg) == false
+        io.print("fail")
+        return
+    end
+    const pose: tf.TfPose = tf.decode_tf(msg)
+    if pose.ok == false
+        io.print("fail")
+        return
+    end
+    -- loose tolerance (parser is demo-grade)
+    if pose.x < 1.4 or pose.x > 1.6
+        io.print("fail")
+        return
+    end
+    if pose.y < 1.9 or pose.y > 2.1
+        io.print("fail")
+        return
+    end
+    if tf.is_ack_message(tf.encode_ack()) == false
+        io.print("fail")
+        return
+    end
+    io.print("ok")
+end

@@ -1,0 +1,78 @@
+module game.physics
+
+import ori.list = lists
+import ori.math.vec2 = vec2
+
+public struct PhysicsBody
+    pos: vec2.Vec2
+    vel: vec2.Vec2
+    force: vec2.Vec2
+    mass: float
+    radius: float
+    alive: bool
+end
+
+public struct PhysicsWorld
+    bodies: list[PhysicsBody]
+    gravity: vec2.Vec2
+end
+
+public create_world(gravity_y: float) -> PhysicsWorld
+    var bodies: list[PhysicsBody] = []
+    return PhysicsWorld {
+        bodies: bodies,
+        gravity: vec2.Vec2 { x: 0.0, y: gravity_y }
+    }
+end
+
+public add_body(world: PhysicsWorld, pos: vec2.Vec2, mass: float, radius: float) -> PhysicsWorld
+    var out: PhysicsWorld = world
+    const b: PhysicsBody = PhysicsBody {
+        pos: pos,
+        vel: vec2.Vec2 { x: 0.0, y: 0.0 },
+        force: vec2.Vec2 { x: 0.0, y: 0.0 },
+        mass: mass,
+        radius: radius,
+        alive: true
+    }
+    lists.push(out.bodies, b)
+    return out
+end
+
+public apply_force(body: PhysicsBody, f: vec2.Vec2) -> PhysicsBody
+    var out: PhysicsBody = body
+    out.force = vec2.Vec2 { x: out.force.x + f.x, y: out.force.y + f.y }
+    return out
+end
+
+public set_body(world: PhysicsWorld, index: int, body: PhysicsBody) -> PhysicsWorld
+    if index < 0 or index >= lists.len(world.bodies)
+        return world
+    end
+    var out: PhysicsWorld = world
+    lists.set(out.bodies, index, body)
+    return out
+end
+
+public step(world: PhysicsWorld, dt: float) -> PhysicsWorld
+    var out: PhysicsWorld = world
+    const n: int = lists.len(out.bodies)
+    var i: int = 0
+    while i < n
+        var b: PhysicsBody = out.bodies[i]
+        if b.alive and b.mass > 0.0
+            const ax: float = out.gravity.x + b.force.x / b.mass
+            const ay: float = out.gravity.y + b.force.y / b.mass
+            b.vel = vec2.Vec2 { x: b.vel.x + ax * dt, y: b.vel.y + ay * dt }
+            b.pos = vec2.Vec2 { x: b.pos.x + b.vel.x * dt, y: b.pos.y + b.vel.y * dt }
+            b.force = vec2.Vec2 { x: 0.0, y: 0.0 }
+            lists.set(out.bodies, i, b)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+public body_count(world: PhysicsWorld) -> int
+    return lists.len(world.bodies)
+end

@@ -1,0 +1,116 @@
+# grab — Sistema de Agarrar e Arrastar
+
+Módulo com funções para agarrar e arrastar objetos.
+
+## Grabbable
+
+Componente para objetos que podem ser agarrados.
+
+```ori
+struct Grabbable
+    is_grabbed: bool = false
+    grab_offset: Vec2 = Vec2(x: 0.0, y: 0.0)
+    weight: float = 1.0
+    max_pull_force: float = 500.0
+    friction: float = 0.8
+    throw_force: float = 300.0
+end
+```
+
+## GrabState
+
+Estado de agarramento.
+
+```ori
+struct GrabState
+    grabber: Entity = nil
+    target: Entity = nil
+    grab_distance: float = 50.0
+    is_grabbing: bool = false
+end
+```
+
+## Funções
+
+### can_grab
+
+Verifica se a entidade pode agarrar o alvo.
+
+```ori
+func can_grab(grabber: Entity, target: Entity, config: GrabState) -> bool
+```
+
+### grab_object
+
+Agarra um objeto.
+
+```ori
+func grab_object(grabber: Entity, target: Entity, state: GrabState, grabbable: Grabbable) -> void
+```
+
+### release_object
+
+Solta o objeto agarrado.
+
+```ori
+func release_object(grabber: Entity, state: GrabState, grabbable: Grabbable) -> void
+```
+
+### throw_object
+
+Arremessa o objeto na direção especificada.
+
+```ori
+func throw_object(grabber: Entity, state: GrabState, grabbable: Grabbable, direction: Vec2) -> void
+```
+
+### drag_object
+
+Arrasta o objeto (movimento suave).
+
+```ori
+func drag_object(grabber: Entity, state: GrabState, grabbable: Grabbable, dt: float) -> void
+```
+
+### is_grabbing
+
+Verifica se a entidade está agarrando algo.
+
+```ori
+func is_grabbing(state: GrabState) -> bool
+```
+
+### get_grabbed_entity
+
+Retorna a entidade agarrada.
+
+```ori
+func get_grabbed_entity(state: GrabState) -> optional<Entity>
+```
+
+**Exemplo — Agarrar com botão E:**
+```ori
+var grab_state = ai.GrabState()
+var box_grababble = grab.Grabbable(weight: 2.0)
+
+-- No update:
+if input.key_pressed(69)  -- E key
+    if grab.is_grabbing(grab_state)
+        grab.release_object(player, grab_state, box_grababble)
+    else
+        grab.grab_object(player, box, grab_state, box_grababble)
+    end
+end
+
+if grab.is_grabbing(grab_state)
+    grab.drag_object(player, grab_state, box_grababble, dt)
+end
+```
+
+**Exemplo — Arremessar com botão Q:**
+```ori
+if input.key_pressed(81) and grab.is_grabbing(grab_state)  -- Q key
+    var throw_dir = vec2.Vec2(x: 1.0, y: -1.0)
+    grab.throw_object(player, grab_state, box_grababble, throw_dir)
+end
+```

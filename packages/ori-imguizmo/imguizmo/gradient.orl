@@ -1,0 +1,79 @@
+module imguizmo.gradient
+
+-- ImGradient color stops for Ori. Headless: stops + sample (milli 0..1000 = 0..1).
+-- FULL: ori_gradient_edit draws ImGradient when ImGui context is active.
+
+extern c
+    public ori_gradient_clear() -> void
+    public ori_gradient_stop_count() -> int
+    public ori_gradient_add_stop_m(r_m: int, g_m: int, b_m: int, a_m: int, t_m: int) -> int
+    public ori_gradient_set_stop_m(index: int, r_m: int, g_m: int, b_m: int, a_m: int, t_m: int) -> int
+    public ori_gradient_stop_r_m(index: int) -> int
+    public ori_gradient_stop_g_m(index: int) -> int
+    public ori_gradient_stop_b_m(index: int) -> int
+    public ori_gradient_stop_a_m(index: int) -> int
+    public ori_gradient_stop_t_m(index: int) -> int
+    public ori_gradient_sample_r_m(t_m: int) -> int
+    public ori_gradient_sample_g_m(t_m: int) -> int
+    public ori_gradient_sample_b_m(t_m: int) -> int
+    public ori_gradient_sample_a_m(t_m: int) -> int
+    public ori_gradient_edit() -> int
+end
+
+public clear() -> void
+    ori_gradient_clear()
+end
+
+public stop_count() -> int
+    return ori_gradient_stop_count()
+end
+
+-- Returns index after sort by t, or -1 if full.
+public add_stop_m(r_m: int, g_m: int, b_m: int, a_m: int, t_m: int) -> int
+    return ori_gradient_add_stop_m(r_m, g_m, b_m, a_m, t_m)
+end
+
+public set_stop_m(index: int, r_m: int, g_m: int, b_m: int, a_m: int, t_m: int) -> int
+    return ori_gradient_set_stop_m(index, r_m, g_m, b_m, a_m, t_m)
+end
+
+public stop_r_m(index: int) -> int
+    return ori_gradient_stop_r_m(index)
+end
+
+public stop_g_m(index: int) -> int
+    return ori_gradient_stop_g_m(index)
+end
+
+public stop_b_m(index: int) -> int
+    return ori_gradient_stop_b_m(index)
+end
+
+public stop_a_m(index: int) -> int
+    return ori_gradient_stop_a_m(index)
+end
+
+public stop_t_m(index: int) -> int
+    return ori_gradient_stop_t_m(index)
+end
+
+public sample_r_m(t_m: int) -> int
+    return ori_gradient_sample_r_m(t_m)
+end
+
+public sample_g_m(t_m: int) -> int
+    return ori_gradient_sample_g_m(t_m)
+end
+
+public sample_b_m(t_m: int) -> int
+    return ori_gradient_sample_b_m(t_m)
+end
+
+public sample_a_m(t_m: int) -> int
+    return ori_gradient_sample_a_m(t_m)
+end
+
+-- FULL: ImGradient UI; headless always false.
+public edit() -> bool
+    return ori_gradient_edit() == 1
+end

@@ -1,0 +1,6 @@
+*.o
+*.a
+*.so
+lib/x86_64-*/
+build/
+target/

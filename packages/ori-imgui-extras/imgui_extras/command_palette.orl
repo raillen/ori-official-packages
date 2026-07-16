@@ -1,0 +1,198 @@
+module imgui_extras.command_palette
+
+-- Command palette: register commands, filter by query, run by id/index.
+-- Headless-safe; product draw binds open/query/selection to ImGui.
+
+import imgui_extras.search = search
+import ori.list = lists
+
+public struct Command
+    id: string
+    label: string
+    shortcut: string
+end
+
+public struct Palette
+    commands: list[Command]
+    query: string
+    open: bool
+    last_run_id: string
+end
+
+public create() -> Palette
+    return Palette {
+        commands: [],
+        query: "",
+        open: false,
+        last_run_id: ""
+    }
+end
+
+public register(p: Palette, id: string, label: string, shortcut: string) -> Palette
+    var out: Palette = p
+    if id == ""
+        return out
+    end
+    -- Replace existing id if re-registered.
+    const n: int = lists.len(out.commands)
+    var i: int = 0
+    while i < n
+        if out.commands[i].id == id
+            lists.set(out.commands, i, Command {
+                id: id,
+                label: label,
+                shortcut: shortcut
+            })
+            return out
+        end
+        i = i + 1
+    end
+    lists.push(out.commands, Command {
+        id: id,
+        label: label,
+        shortcut: shortcut
+    })
+    return out
+end
+
+public unregister(p: Palette, id: string) -> Palette
+    var out: Palette = p
+    const n: int = lists.len(out.commands)
+    var i: int = 0
+    while i < n
+        if out.commands[i].id == id
+            lists.remove(out.commands, i)
+            return out
+        end
+        i = i + 1
+    end
+    return out
+end
+
+public open_ui(p: Palette) -> Palette
+    var out: Palette = p
+    out.open = true
+    out.query = ""
+    out.last_run_id = ""
+    return out
+end
+
+public close(p: Palette) -> Palette
+    var out: Palette = p
+    out.open = false
+    out.query = ""
+    return out
+end
+
+public is_open(p: Palette) -> bool
+    return p.open
+end
+
+public set_query(p: Palette, query: string) -> Palette
+    var out: Palette = p
+    out.query = query
+    return out
+end
+
+public query_of(p: Palette) -> string
+    return p.query
+end
+
+public command_count(p: Palette) -> int
+    return lists.len(p.commands)
+end
+
+command_matches(cmd: Command, query: string) -> bool
+    if search.matches_query(cmd.label, query, false)
+        return true
+    end
+    if search.matches_query(cmd.id, query, false)
+        return true
+    end
+    return search.matches_query(cmd.shortcut, query, false)
+end
+
+public filtered(p: Palette) -> list[Command]
+    var out: list[Command] = []
+    const n: int = lists.len(p.commands)
+    var i: int = 0
+    while i < n
+        const cmd: Command = p.commands[i]
+        if command_matches(cmd, p.query)
+            lists.push(out, cmd)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+public filtered_count(p: Palette) -> int
+    return lists.len(filtered(p))
+end
+
+public filtered_id_at(p: Palette, index: int) -> string
+    const rows: list[Command] = filtered(p)
+    if index < 0 or index >= lists.len(rows)
+        return ""
+    end
+    return rows[index].id
+end
+
+public filtered_label_at(p: Palette, index: int) -> string
+    const rows: list[Command] = filtered(p)
+    if index < 0 or index >= lists.len(rows)
+        return ""
+    end
+    return rows[index].label
+end
+
+find_index_by_id(p: Palette, id: string) -> int
+    const n: int = lists.len(p.commands)
+    var i: int = 0
+    while i < n
+        if p.commands[i].id == id
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+-- Run command by id; sets last_run_id and closes palette. Unknown id is no-op.
+public run_by_id(p: Palette, id: string) -> Palette
+    var out: Palette = p
+    if id == ""
+        return out
+    end
+    if find_index_by_id(out, id) < 0
+        return out
+    end
+    out.last_run_id = id
+    out.open = false
+    out.query = ""
+    return out
+end
+
+-- Run filtered row at index (after query). Out of range is no-op.
+public run_filtered_at(p: Palette, index: int) -> Palette
+    const id: string = filtered_id_at(p, index)
+    if id == ""
+        return p
+    end
+    return run_by_id(p, id)
+end
+
+public last_run_id_of(p: Palette) -> string
+    return p.last_run_id
+end
+
+-- Consumer finished handling last_run_id.
+public take_run(p: Palette) -> Palette
+    var out: Palette = p
+    out.last_run_id = ""
+    return out
+end
+
+public has_run(p: Palette) -> bool
+    return p.last_run_id != ""
+end

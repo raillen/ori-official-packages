@@ -1,0 +1,8 @@
+:root { font-family: system-ui, sans-serif; --ink:#141313; --muted:#666; --paper:#faf6f0; --line:#e5d9c8; --accent:#c45e18; }
+body { margin: 0; background: var(--paper); color: var(--ink); line-height: 1.55; }
+.bar { display: flex; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--line); }
+.bar a { color: inherit; text-decoration: none; font-weight: 600; }
+.wrap { max-width: 40rem; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 0.75rem; padding: 1.1rem; }
+.muted { color: var(--muted); font-size: 0.9rem; }
+ul { padding-left: 1.1rem; }

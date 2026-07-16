@@ -1,0 +1,90 @@
+module test.tiled
+
+imports
+    game.tiled = tiled
+    game.tilemap = tilemap
+    ori.test = test
+    ori.list = lists
+end
+
+const SAMPLE: string = "{\"width\":8.0,\"height\":5.0,\"tilewidth\":32.0,\"tileheight\":32.0,\"orientation\":\"orthogonal\",\"layers\":[{\"name\":\"ground\",\"type\":\"tilelayer\",\"visible\":true,\"opacity\":1.0,\"width\":8.0,\"height\":5.0,\"data\":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]},{\"name\":\"entities\",\"type\":\"objectgroup\",\"visible\":true,\"opacity\":1.0,\"objects\":[{\"id\":3.0,\"name\":\"player_start\",\"type\":\"spawn\",\"x\":48.0,\"y\":64.0,\"width\":16.0,\"height\":16.0,\"visible\":true}]}]}"
+
+@test
+parse_map_size()
+    match tiled.parse_map(SAMPLE)
+        case ok(m):
+            test.equal_int(m.width, 8)
+            test.equal_int(m.height, 5)
+            test.equal_int(m.tile_width, 32)
+            test.equal_int(tiled.layer_count(m), 2)
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+tile_layer_gids()
+    match tiled.parse_map(SAMPLE)
+        case ok(m):
+            match tiled.first_tile_layer(m)
+                case some(layer):
+                    test.assert(layer.name == "ground", "layer name")
+                    test.equal_int(lists.len(layer.data), 40)
+                    const tm: tilemap.Tilemap = tiled.layer_to_tilemap(m, layer)
+                    test.equal_int(tilemap.get_tile(tm, 0, 0), 0)
+                    test.equal_int(tilemap.get_tile(tm, 2, 2), 1)
+                    test.assert(tiled.is_solid_gid(tilemap.get_tile(tm, 2, 2)), "solid gid")
+                case none:
+                    test.assert(false, "no tile layer")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+objects_spawn()
+    match tiled.parse_map(SAMPLE)
+        case ok(m):
+            match tiled.first_object_group(m)
+                case some(layer):
+                    test.assert(layer.name == "entities", "og name")
+                    const spawns: list[tiled.TiledObject] = tiled.objects_of_type(layer, "spawn")
+                    test.equal_int(lists.len(spawns), 1)
+                    var s: tiled.TiledObject = spawns[0]
+                    test.assert(s.name == "player_start", "spawn name")
+                    test.assert(s.x == 48.0, "spawn x")
+                case none:
+                    test.assert(false, "no objects")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+load_file_sample()
+    match tiled.load_map("assets/maps/sample.tmj")
+        case ok(m):
+            test.equal_int(m.width, 8)
+            test.equal_int(tiled.layer_count(m), 2)
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+solid_tiles_from_layer()
+    match tiled.parse_map(SAMPLE)
+        case ok(m):
+            const solids: list[tiled.SolidTile] = tiled.first_layer_solid_tiles(
+                m, 0.0, 0.0, 0.0, 32.0
+            )
+            -- SAMPLE ground has 3 + 8 + 8 = 19 solid cells
+            test.equal_int(lists.len(solids), 19)
+            test.assert(solids[0].sx == 32.0, "tile width")
+            test.assert(solids[0].sy == 32.0, "wall height")
+        case err(msg):
+            test.assert(false, msg)
+    end
+end

@@ -1,0 +1,258 @@
+module game.ogame_spawn
+
+-- Catalog + resolve/spawn instances into game.engine (R2–R3).
+
+import ori.list = lists
+import ori.math = math
+import ori.math.vec2 = vec2
+import game.ogame_entity = entity
+import game.ogame_scene = scene
+import game.engine = engine
+
+public struct EntityCatalog
+    entities: list[entity.EntityDef]
+end
+
+public struct SpawnedInstance
+    instance_id: string
+    entity_id: string
+    entity_name: string
+    x: float
+    y: float
+    z: float
+    primary_tag: string
+    script_rel: string
+    float_vars: list[entity.EntityVar]
+end
+
+public alias CatalogResult = result[EntityCatalog, string]
+public alias SpawnListResult = result[list[SpawnedInstance], string]
+
+public empty_catalog() -> EntityCatalog
+    var ents: list[entity.EntityDef] = []
+    return EntityCatalog { entities: ents }
+end
+
+public catalog_count(cat: EntityCatalog) -> int
+    return lists.len(cat.entities)
+end
+
+public catalog_add(cat: EntityCatalog, def: entity.EntityDef) -> EntityCatalog
+    var out: EntityCatalog = cat
+    lists.push(out.entities, def)
+    return out
+end
+
+public catalog_find(
+    cat: EntityCatalog,
+    entity_id: string
+) -> optional[entity.EntityDef]
+    const n: int = lists.len(cat.entities)
+    var i: int = 0
+    while i < n
+        if cat.entities[i].id == entity_id
+            return some(cat.entities[i])
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public load_catalog(paths: list[string]) -> CatalogResult
+    var cat: EntityCatalog = empty_catalog()
+    const n: int = lists.len(paths)
+    var i: int = 0
+    while i < n
+        match entity.load_entity(paths[i])
+            case ok(def):
+                cat = catalog_add(cat, def)
+            case err(msg):
+                return err(msg)
+        end
+        i = i + 1
+    end
+    return ok(cat)
+end
+
+public sample_entity_paths() -> list[string]
+    var paths: list[string] = []
+    lists.push(paths, "assets/sample_project/entities/player/entity.json")
+    lists.push(paths, "assets/sample_project/entities/enemy/entity.json")
+    lists.push(paths, "assets/sample_project/entities/solid/entity.json")
+    lists.push(paths, "assets/sample_project/entities/empty/entity.json")
+    return paths
+end
+
+public load_sample_catalog() -> CatalogResult
+    return load_catalog(sample_entity_paths())
+end
+
+public sample_scene_path() -> string
+    return "assets/sample_project/scenes/room1.scene.json"
+end
+
+override_float(
+    inst: scene.SceneInstance,
+    name: string
+) -> optional[float]
+    const n: int = lists.len(inst.var_overrides)
+    var i: int = 0
+    while i < n
+        const o: scene.VarOverride = inst.var_overrides[i]
+        if o.name == name
+            if o.type_name == "float" or o.type_name == "int"
+                return some(o.float_value)
+            end
+        end
+        i = i + 1
+    end
+    return none
+end
+
+resolve_float_vars(
+    def: entity.EntityDef,
+    inst: scene.SceneInstance
+) -> list[entity.EntityVar]
+    var out: list[entity.EntityVar] = []
+    const n: int = lists.len(def.vars)
+    var i: int = 0
+    while i < n
+        var v: entity.EntityVar = def.vars[i]
+        if some(ov) = override_float(inst, v.name)
+            v.default_float = ov
+            v.default_int = math.round(ov)
+        end
+        lists.push(out, v)
+        i = i + 1
+    end
+    return out
+end
+
+primary_tag_of(def: entity.EntityDef) -> string
+    if lists.len(def.tags) > 0
+        return def.tags[0]
+    end
+    return def.id
+end
+
+public resolve_instance(
+    cat: EntityCatalog,
+    inst: scene.SceneInstance
+) -> result[SpawnedInstance, string]
+    if inst.entity == ""
+        return err("instance missing entity id")
+    end
+    match catalog_find(cat, inst.entity)
+        case some(def):
+            return ok(SpawnedInstance {
+                instance_id: inst.id,
+                entity_id: def.id,
+                entity_name: def.name,
+                x: inst.x,
+                y: inst.y,
+                z: inst.z,
+                primary_tag: primary_tag_of(def),
+                script_rel: def.script,
+                float_vars: resolve_float_vars(def, inst)
+            })
+        case none:
+            return err("unknown entity type: " + inst.entity)
+    end
+    return err("resolve_instance failed")
+end
+
+public spawn_scene(
+    cat: EntityCatalog,
+    sc: scene.SceneFile
+) -> SpawnListResult
+    var out: list[SpawnedInstance] = []
+    const n: int = lists.len(sc.instances)
+    var i: int = 0
+    while i < n
+        match resolve_instance(cat, sc.instances[i])
+            case ok(spawned):
+                lists.push(out, spawned)
+            case err(msg):
+                return err(msg)
+        end
+        i = i + 1
+    end
+    return ok(out)
+end
+
+public spawned_count(spawned: list[SpawnedInstance]) -> int
+    return lists.len(spawned)
+end
+
+public find_spawned(
+    spawned: list[SpawnedInstance],
+    instance_id: string
+) -> optional[SpawnedInstance]
+    const n: int = lists.len(spawned)
+    var i: int = 0
+    while i < n
+        if spawned[i].instance_id == instance_id
+            return some(spawned[i])
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public float_var_value(
+    spawned: SpawnedInstance,
+    name: string,
+    fallback: float
+) -> float
+    const n: int = lists.len(spawned.float_vars)
+    var i: int = 0
+    while i < n
+        if spawned.float_vars[i].name == name
+            return spawned.float_vars[i].default_float
+        end
+        i = i + 1
+    end
+    return fallback
+end
+
+public spawn_into_engine(
+    eng: engine.Engine,
+    spawned: list[SpawnedInstance]
+) -> engine.Engine
+    var out: engine.Engine = eng
+    const n: int = lists.len(spawned)
+    var i: int = 0
+    while i < n
+        const s: SpawnedInstance = spawned[i]
+        -- Engine 2D ainda usa plano x/z no chão (y altura em s.y para 3D futuro).
+        out = engine.spawn_tagged(
+            out,
+            vec2.Vec2 { x: s.x, y: s.z },
+            s.primary_tag
+        )
+        i = i + 1
+    end
+    return out
+end
+
+public load_and_spawn_sample() -> result[engine.Engine, string]
+    match load_sample_catalog()
+        case ok(cat):
+            match scene.load_scene(sample_scene_path())
+                case ok(sc):
+                    match spawn_scene(cat, sc)
+                        case ok(spawned):
+                            var eng: engine.Engine = engine.create_engine()
+                            eng = spawn_into_engine(eng, spawned)
+                            return ok(eng)
+                        case err(msg):
+                            return err(msg)
+                    end
+                case err(msg):
+                    return err(msg)
+            end
+        case err(msg):
+            return err(msg)
+    end
+    return err("load_and_spawn_sample failed")
+end

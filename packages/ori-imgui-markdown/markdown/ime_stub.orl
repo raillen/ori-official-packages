@@ -1,0 +1,130 @@
+module markdown.ime_stub
+
+-- IME / CJK input policy surface (Linux no-op stubs).
+-- Real IMM32 composition is Phase OS Windows-only (DearImGui-with-IMM32 family).
+-- On Linux this module keeps enable flags and empty composition; no OS hooks.
+
+import ori.string = str
+
+public const PLATFORM_UNKNOWN: int = 0
+public const PLATFORM_LINUX: int = 1
+public const PLATFORM_WINDOWS: int = 2
+
+public struct ImeState
+    enabled: bool
+    composition: string
+    candidate_count: int
+    platform: int
+end
+
+-- Create Linux stub state. Real IMM32 is never wired here.
+public create() -> ImeState
+    return ImeState {
+        enabled: false,
+        composition: "",
+        candidate_count: 0,
+        platform: PLATFORM_LINUX
+    }
+end
+
+public create_for_platform(platform: int) -> ImeState
+    var p: int = platform
+    if p < PLATFORM_UNKNOWN
+        p = PLATFORM_UNKNOWN
+    end
+    if p > PLATFORM_WINDOWS
+        p = PLATFORM_UNKNOWN
+    end
+    return ImeState {
+        enabled: false,
+        composition: "",
+        candidate_count: 0,
+        platform: p
+    }
+end
+
+public platform_of(s: ImeState) -> int
+    return s.platform
+end
+
+public platform_name(s: ImeState) -> string
+    if s.platform == PLATFORM_LINUX
+        return "linux"
+    end
+    if s.platform == PLATFORM_WINDOWS
+        return "windows"
+    end
+    return "unknown"
+end
+
+-- Real OS IME only exists for Windows IMM32 (Phase OS). Always false on Linux stubs.
+public supports_real_ime(s: ImeState) -> bool
+    return false
+end
+
+public is_windows_only_real_impl() -> bool
+    return true
+end
+
+-- Enable flag is bookkeeping only; no IMM32 / fcitx / ibus connection.
+public enable(s: ImeState) -> ImeState
+    var out: ImeState = s
+    out.enabled = true
+    return out
+end
+
+public disable(s: ImeState) -> ImeState
+    var out: ImeState = s
+    out.enabled = false
+    out.composition = ""
+    out.candidate_count = 0
+    return out
+end
+
+public is_enabled(s: ImeState) -> bool
+    return s.enabled
+end
+
+-- Composition never advances on Linux stub (no OS feed).
+public composition_text(s: ImeState) -> string
+    return s.composition
+end
+
+public is_composing(s: ImeState) -> bool
+    return str.len(s.composition) > 0
+end
+
+public candidate_count_of(s: ImeState) -> int
+    return s.candidate_count
+end
+
+-- No-op: Linux stub does not accept composition text from OS.
+public begin_composition(s: ImeState) -> ImeState
+    return s
+end
+
+public end_composition(s: ImeState) -> ImeState
+    var out: ImeState = s
+    out.composition = ""
+    out.candidate_count = 0
+    return out
+end
+
+-- No-op setter kept for API parity with future Windows IMM32 backend.
+public set_composition(s: ImeState, text: string) -> ImeState
+    -- Intentionally ignore on Linux stub so tests assert empty composition.
+    return s
+end
+
+-- Key processing never consumes events on the stub (host should use OS input).
+public process_key(s: ImeState, key_code: int) -> bool
+    return false
+end
+
+public clear(s: ImeState) -> ImeState
+    var out: ImeState = s
+    out.composition = ""
+    out.candidate_count = 0
+    out.enabled = false
+    return out
+end

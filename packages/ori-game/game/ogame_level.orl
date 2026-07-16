@@ -1,0 +1,644 @@
+module game.ogame_level
+
+-- Level geometry: brushes, subtracts (AABB CSG), materials, colliders, mesh path, block terrain.
+-- Draw path uses game.draw3d (raylib).
+
+import ori.json = json
+import ori.map = maps
+import ori.list = lists
+import ori.fs = fs
+import ori.math = math
+import game.json_fields = jf
+import game.ogame_level_csg = csg
+
+public struct BrushBox
+    id: string
+    kind: string
+    x: float
+    y: float
+    z: float
+    sx: float
+    sy: float
+    sz: float
+    rx: float
+    ry: float
+    rz: float
+    -- Material (RGBA 0–255)
+    r: int
+    g: int
+    b: int
+    a: int
+    metallic: float
+    roughness: float
+    -- Optional mesh (.obj / glTF via raylib)
+    mesh_path: string
+    -- Optional albedo / diffuse texture path for mesh materials
+    albedo_path: string
+    -- Collision
+    collider: bool
+    layer: int
+end
+
+public struct SubtractBox
+    id: string
+    x: float
+    y: float
+    z: float
+    sx: float
+    sy: float
+    sz: float
+    rx: float
+    ry: float
+    rz: float
+end
+
+-- Discrete block terrain (not continuous heightmap): each cell is a column height.
+public struct TerrainGrid
+    cell_size: float
+    width: int
+    depth: int
+    heights: list[int]
+    r: int
+    g: int
+    b: int
+end
+
+public struct LevelGeometry
+    brushes: list[BrushBox]
+    subtracts: list[SubtractBox]
+    terrain: TerrainGrid
+    chunk_size: float
+    chunks_enabled: bool
+end
+
+-- Solid AABB after CSG (for draw / collision / PBR).
+public struct SolidPiece
+    x: float
+    y: float
+    z: float
+    sx: float
+    sy: float
+    sz: float
+    r: int
+    g: int
+    b: int
+    a: int
+    metallic: float
+    roughness: float
+    layer: int
+    collider: bool
+end
+
+public empty_terrain() -> TerrainGrid
+    var h: list[int] = []
+    return TerrainGrid {
+        cell_size: 16.0,
+        width: 0,
+        depth: 0,
+        heights: h,
+        r: 100,
+        g: 140,
+        b: 80
+    }
+end
+
+public empty_level() -> LevelGeometry
+    var b: list[BrushBox] = []
+    var s: list[SubtractBox] = []
+    return LevelGeometry {
+        brushes: b,
+        subtracts: s,
+        terrain: empty_terrain(),
+        chunk_size: 64.0,
+        chunks_enabled: false
+    }
+end
+
+default_brush() -> BrushBox
+    return BrushBox {
+        id: "",
+        kind: "box",
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        sx: 16.0,
+        sy: 16.0,
+        sz: 16.0,
+        rx: 0.0,
+        ry: 0.0,
+        rz: 0.0,
+        r: 144,
+        g: 202,
+        b: 249,
+        a: 255,
+        metallic: 0.0,
+        roughness: 0.8,
+        mesh_path: "",
+        albedo_path: "",
+        collider: true,
+        layer: 1
+    }
+end
+
+parse_brush(val: json.Value) -> BrushBox
+    var out: BrushBox = default_brush()
+    match jf.as_object(val)
+        case some(fields):
+            out.id = jf.string_field(fields, "id", "")
+            out.kind = jf.string_field(fields, "kind", "box")
+            out.x = jf.number_field(fields, "x", 0.0)
+            out.y = jf.number_field(fields, "y", 0.0)
+            out.z = jf.number_field(fields, "z", 0.0)
+            out.sx = jf.number_field(fields, "sx", 16.0)
+            out.sy = jf.number_field(fields, "sy", 16.0)
+            out.sz = jf.number_field(fields, "sz", 16.0)
+            out.rx = jf.number_field(fields, "rx", 0.0)
+            out.ry = jf.number_field(fields, "ry", 0.0)
+            out.rz = jf.number_field(fields, "rz", 0.0)
+            out.metallic = jf.number_field(fields, "metallic", 0.0)
+            out.roughness = jf.number_field(fields, "roughness", 0.8)
+            out.mesh_path = jf.string_field(fields, "meshPath", "")
+            if out.mesh_path == ""
+                out.mesh_path = jf.string_field(fields, "mesh_path", "")
+            end
+            out.albedo_path = jf.string_field(fields, "albedoPath", "")
+            if out.albedo_path == ""
+                out.albedo_path = jf.string_field(fields, "albedo_path", "")
+            end
+            out.layer = jf.int_field(fields, "layer", 1)
+            out.r = jf.int_field(fields, "r", out.r)
+            out.g = jf.int_field(fields, "g", out.g)
+            out.b = jf.int_field(fields, "b", out.b)
+            out.a = jf.int_field(fields, "a", 255)
+            out.collider = jf.bool_field(fields, "collider", true)
+            return out
+        case none:
+    end
+    return out
+end
+
+parse_subtract(val: json.Value) -> SubtractBox
+    match jf.as_object(val)
+        case some(fields):
+            return SubtractBox {
+                id: jf.string_field(fields, "id", ""),
+                x: jf.number_field(fields, "x", 0.0),
+                y: jf.number_field(fields, "y", 0.0),
+                z: jf.number_field(fields, "z", 0.0),
+                sx: jf.number_field(fields, "sx", 16.0),
+                sy: jf.number_field(fields, "sy", 16.0),
+                sz: jf.number_field(fields, "sz", 16.0),
+                rx: jf.number_field(fields, "rx", 0.0),
+                ry: jf.number_field(fields, "ry", 0.0),
+                rz: jf.number_field(fields, "rz", 0.0)
+            }
+        case none:
+    end
+    return SubtractBox {
+        id: "",
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        sx: 16.0,
+        sy: 16.0,
+        sz: 16.0,
+        rx: 0.0,
+        ry: 0.0,
+        rz: 0.0
+    }
+end
+
+parse_terrain(fields: map[string, json.Value]) -> TerrainGrid
+    var t: TerrainGrid = empty_terrain()
+    t.cell_size = jf.number_field(fields, "cellSize", 16.0)
+    if t.cell_size <= 0.0
+        t.cell_size = jf.number_field(fields, "cell_size", 16.0)
+    end
+    t.width = jf.int_field(fields, "width", 0)
+    t.depth = jf.int_field(fields, "depth", 0)
+    t.r = jf.int_field(fields, "r", 100)
+    t.g = jf.int_field(fields, "g", 140)
+    t.b = jf.int_field(fields, "b", 80)
+    if some(arr) = maps.try_get(fields, "heights")
+        match arr
+            case Array(items):
+                const n: int = lists.len(items)
+                var i: int = 0
+                while i < n
+                    match items[i]
+                        case Number(value):
+                            lists.push(t.heights, math.round(value))
+                        case else:
+                            lists.push(t.heights, 0)
+                    end
+                    i = i + 1
+                end
+            case else:
+        end
+    end
+    return t
+end
+
+public parse_level_from_root(fields: map[string, json.Value]) -> LevelGeometry
+    var lvl: LevelGeometry = empty_level()
+    if some(arr) = maps.try_get(fields, "brushes")
+        match arr
+            case Array(items):
+                const n: int = lists.len(items)
+                var i: int = 0
+                while i < n
+                    lists.push(lvl.brushes, parse_brush(items[i]))
+                    i = i + 1
+                end
+            case else:
+        end
+    end
+    if some(arr2) = maps.try_get(fields, "subtracts")
+        match arr2
+            case Array(items):
+                const n2: int = lists.len(items)
+                var j: int = 0
+                while j < n2
+                    lists.push(lvl.subtracts, parse_subtract(items[j]))
+                    j = j + 1
+                end
+            case else:
+        end
+    end
+    if some(terr) = maps.try_get(fields, "terrain")
+        match jf.as_object(terr)
+            case some(tf):
+                lvl.terrain = parse_terrain(tf)
+            case none:
+        end
+    end
+    lvl.chunk_size = jf.number_field(fields, "chunk_size", 64.0)
+    lvl.chunks_enabled = jf.bool_field(fields, "chunks_enabled", false)
+    return lvl
+end
+
+public brush_count(lvl: LevelGeometry) -> int
+    return lists.len(lvl.brushes)
+end
+
+public subtract_count(lvl: LevelGeometry) -> int
+    return lists.len(lvl.subtracts)
+end
+
+brush_as_oriented(b: BrushBox) -> csg.OrientedBox
+    return csg.oriented_box(b.x, b.y, b.z, b.sx, b.sy, b.sz, b.rx, b.ry, b.rz)
+end
+
+subtract_as_oriented(s: SubtractBox) -> csg.OrientedBox
+    return csg.oriented_box(s.x, s.y, s.z, s.sx, s.sy, s.sz, s.rx, s.ry, s.rz)
+end
+
+build_cut_aabbs(lvl: LevelGeometry) -> list[csg.Aabb]
+    var cuts: list[csg.Aabb] = []
+    const ns: int = lists.len(lvl.subtracts)
+    var j: int = 0
+    while j < ns
+        lists.push(cuts, csg.oriented_box_to_aabb(subtract_as_oriented(lvl.subtracts[j])))
+        j = j + 1
+    end
+    return cuts
+end
+
+is_box_like_kind(kind: string) -> bool
+    return kind == "box" or kind == "plane" or kind == "ramp"
+end
+
+solid_from_brush_and_aabb(b: BrushBox, box: csg.Aabb) -> SolidPiece
+    return SolidPiece {
+        x: box.x,
+        y: box.y,
+        z: box.z,
+        sx: box.sx,
+        sy: box.sy,
+        sz: box.sz,
+        r: b.r,
+        g: b.g,
+        b: b.b,
+        a: b.a,
+        metallic: b.metallic,
+        roughness: b.roughness,
+        layer: b.layer,
+        collider: b.collider
+    }
+end
+
+solid_from_brush_pose(b: BrushBox) -> SolidPiece
+    return solid_from_brush_and_aabb(b, csg.aabb(b.x, b.y, b.z, b.sx, b.sy, b.sz))
+end
+
+append_carved_box_pieces(
+    out: list[SolidPiece],
+    b: BrushBox,
+    pieces: list[csg.Aabb]
+) -> void
+    const np: int = lists.len(pieces)
+    var pi: int = 0
+    while pi < np
+        lists.push(out, solid_from_brush_and_aabb(b, pieces[pi]))
+        pi = pi + 1
+    end
+end
+
+-- Box-like: multi-slab carve + L6 adjacent merge. Other kinds: original pose.
+append_brush_solids(out: list[SolidPiece], b: BrushBox, cuts: list[csg.Aabb]) -> void
+    -- L6: carve_merged reduces slab count when faces rejoin after multi-cut.
+    const pieces: list[csg.Aabb] = csg.carve_merged(
+        csg.oriented_box_to_aabb(brush_as_oriented(b)),
+        cuts
+    )
+    if lists.len(pieces) == 0
+        return
+    end
+    if is_box_like_kind(b.kind)
+        append_carved_box_pieces(out, b, pieces)
+        return
+    end
+    lists.push(out, solid_from_brush_pose(b))
+end
+
+terrain_column_solid(
+    terrain: TerrainGrid,
+    tx: int,
+    ty: int,
+    height_cells: int
+) -> SolidPiece
+    const cs: float = terrain.cell_size
+    const wh: float = float(height_cells) * cs
+    return SolidPiece {
+        x: float(tx) * cs + cs * 0.5,
+        y: wh * 0.5,
+        z: float(ty) * cs + cs * 0.5,
+        sx: cs,
+        sy: wh,
+        sz: cs,
+        r: terrain.r,
+        g: terrain.g,
+        b: terrain.b,
+        a: 255,
+        metallic: 0.0,
+        roughness: 0.95,
+        layer: 1,
+        collider: true
+    }
+end
+
+append_terrain_columns(out: list[SolidPiece], terrain: TerrainGrid) -> void
+    const tw: int = terrain.width
+    const td: int = terrain.depth
+    if tw <= 0 or td <= 0
+        return
+    end
+    const nh: int = lists.len(terrain.heights)
+    var ty: int = 0
+    while ty < td
+        var tx: int = 0
+        while tx < tw
+            const idx: int = ty * tw + tx
+            var h: int = 0
+            if idx < nh
+                h = terrain.heights[idx]
+            end
+            if h > 0
+                lists.push(out, terrain_column_solid(terrain, tx, ty, h))
+            end
+            tx = tx + 1
+        end
+        ty = ty + 1
+    end
+end
+
+public solid_count(lvl: LevelGeometry) -> int
+    return solids_count(lvl)
+end
+
+public collect_solids(lvl: LevelGeometry) -> list[SolidPiece]
+    var out: list[SolidPiece] = []
+    const cuts: list[csg.Aabb] = build_cut_aabbs(lvl)
+    const nb: int = lists.len(lvl.brushes)
+    var i: int = 0
+    while i < nb
+        append_brush_solids(out, lvl.brushes[i], cuts)
+        i = i + 1
+    end
+    append_terrain_columns(out, lvl.terrain)
+    return out
+end
+
+public solids_count(lvl: LevelGeometry) -> int
+    return lists.len(collect_solids(lvl))
+end
+
+public struct Vec3Pos
+    x: float
+    y: float
+    z: float
+end
+
+const AXIS_POS_X: int = 0
+const AXIS_NEG_X: int = 1
+const AXIS_POS_Y: int = 2
+const AXIS_NEG_Y: int = 3
+const AXIS_POS_Z: int = 4
+const AXIS_NEG_Z: int = 5
+
+solid_as_aabb(s: SolidPiece) -> csg.Aabb
+    return csg.aabb(s.x, s.y, s.z, s.sx, s.sy, s.sz)
+end
+
+-- Expand solid AABB by sphere radius (Minkowski sum for sphere–AABB).
+expanded_collision_bounds(s: SolidPiece, radius: float) -> csg.Bounds3
+    const b: csg.Bounds3 = csg.aabb_to_bounds(solid_as_aabb(s))
+    return csg.Bounds3 {
+        min_x: b.min_x - radius,
+        max_x: b.max_x + radius,
+        min_y: b.min_y - radius,
+        max_y: b.max_y + radius,
+        min_z: b.min_z - radius,
+        max_z: b.max_z + radius
+    }
+end
+
+point_inside_bounds(p: Vec3Pos, b: csg.Bounds3) -> bool
+    return p.x >= b.min_x and p.x <= b.max_x and p.y >= b.min_y and p.y <= b.max_y and p.z >= b.min_z and p.z <= b.max_z
+end
+
+shallowest_exit_axis(p: Vec3Pos, b: csg.Bounds3) -> int
+    const dx1: float = b.max_x - p.x
+    const dx0: float = p.x - b.min_x
+    const dy1: float = b.max_y - p.y
+    const dy0: float = p.y - b.min_y
+    const dz1: float = b.max_z - p.z
+    const dz0: float = p.z - b.min_z
+    var best: float = dx1
+    var axis: int = AXIS_POS_X
+    if dx0 < best
+        best = dx0
+        axis = AXIS_NEG_X
+    end
+    if dy1 < best
+        best = dy1
+        axis = AXIS_POS_Y
+    end
+    if dy0 < best
+        best = dy0
+        axis = AXIS_NEG_Y
+    end
+    if dz1 < best
+        best = dz1
+        axis = AXIS_POS_Z
+    end
+    if dz0 < best
+        axis = AXIS_NEG_Z
+    end
+    return axis
+end
+
+push_out_along_axis(p: Vec3Pos, b: csg.Bounds3, axis: int) -> Vec3Pos
+    match axis
+        case 0:
+            return Vec3Pos { x: b.max_x, y: p.y, z: p.z }
+        case 1:
+            return Vec3Pos { x: b.min_x, y: p.y, z: p.z }
+        case 2:
+            return Vec3Pos { x: p.x, y: b.max_y, z: p.z }
+        case 3:
+            return Vec3Pos { x: p.x, y: b.min_y, z: p.z }
+        case 4:
+            return Vec3Pos { x: p.x, y: p.y, z: b.max_z }
+        case 5:
+            return Vec3Pos { x: p.x, y: p.y, z: b.min_z }
+        case else:
+            return p
+    end
+end
+
+push_out_shallowest(p: Vec3Pos, b: csg.Bounds3) -> Vec3Pos
+    return push_out_along_axis(p, b, shallowest_exit_axis(p, b))
+end
+
+-- layer_mask 0 = all layers; else solid.layer must equal mask (or solid.layer 0 = world).
+solid_matches_layer_mask(s: SolidPiece, layer_mask: int) -> bool
+    if layer_mask == 0
+        return true
+    end
+    if s.layer == 0
+        return true
+    end
+    return s.layer == layer_mask
+end
+
+resolve_against_solid(p: Vec3Pos, s: SolidPiece, radius: float) -> Vec3Pos
+    if s.collider == false
+        return p
+    end
+    const bounds: csg.Bounds3 = expanded_collision_bounds(s, radius)
+    if point_inside_bounds(p, bounds) == false
+        return p
+    end
+    return push_out_shallowest(p, bounds)
+end
+
+resolve_sphere_iters(
+    p: Vec3Pos,
+    radius: float,
+    solids: list[SolidPiece],
+    layer_mask: int
+) -> Vec3Pos
+    var out: Vec3Pos = p
+    const n: int = lists.len(solids)
+    var iter: int = 0
+    while iter < 4
+        var moved: bool = false
+        var si: int = 0
+        while si < n
+            const s: SolidPiece = solids[si]
+            si = si + 1
+            if solid_matches_layer_mask(s, layer_mask) == false
+                continue
+            end
+            const before: Vec3Pos = out
+            out = resolve_against_solid(out, s, radius)
+            if out.x != before.x or out.y != before.y or out.z != before.z
+                moved = true
+            end
+        end
+        -- Early-out: no penetration resolved this pass → done.
+        if moved == false
+            return out
+        end
+        iter = iter + 1
+    end
+    return out
+end
+
+-- Sphere vs AABB resolve (player collision). All layers.
+public resolve_sphere(
+    px: float,
+    py: float,
+    pz: float,
+    radius: float,
+    solids: list[SolidPiece]
+) -> Vec3Pos
+    return resolve_sphere_on_layer(px, py, pz, radius, solids, 0)
+end
+
+-- Same as resolve_sphere, filtered by collision layer mask.
+public resolve_sphere_on_layer(
+    px: float,
+    py: float,
+    pz: float,
+    radius: float,
+    solids: list[SolidPiece],
+    layer_mask: int
+) -> Vec3Pos
+    return resolve_sphere_iters(
+        Vec3Pos { x: px, y: py, z: pz },
+        radius,
+        solids,
+        layer_mask
+    )
+end
+
+bounds_overlap(a: csg.Bounds3, b: csg.Bounds3) -> bool
+    return a.max_x >= b.min_x and a.min_x <= b.max_x and a.max_y >= b.min_y and a.min_y <= b.max_y and a.max_z >= b.min_z and a.min_z <= b.max_z
+end
+
+public solids_overlap(a: SolidPiece, b: SolidPiece) -> bool
+    if a.collider == false or b.collider == false
+        return false
+    end
+    return bounds_overlap(
+        csg.aabb_to_bounds(solid_as_aabb(a)),
+        csg.aabb_to_bounds(solid_as_aabb(b))
+    )
+end
+
+public parse_level_text(text: string) -> LevelGeometry
+    match json.parse(text)
+        case ok(root):
+            match jf.as_object(root)
+                case some(fields):
+                    return parse_level_from_root(fields)
+                case none:
+                    return empty_level()
+            end
+        case err(_):
+            return empty_level()
+    end
+    return empty_level()
+end
+
+public load_level(path: string) -> LevelGeometry
+    match fs.read_text(path)
+        case ok(text):
+            return parse_level_text(text)
+        case err(_):
+            return empty_level()
+    end
+    return empty_level()
+end

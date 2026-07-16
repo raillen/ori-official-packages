@@ -1,0 +1,73 @@
+module app.smoke_imguidialog
+
+imports
+    imguidialog.dialog = dlg
+    ori.io = io
+end
+
+-- Headless smoke: open/save path result, filter, cancel — no GUI.
+main()
+    var open_d: dlg.Dialog = dlg.create_open("Open", "/tmp", "txt")
+    open_d = dlg.open_ui(open_d)
+    if not dlg.is_open(open_d)
+        io.println("open_ui_fail")
+        return
+    end
+
+    open_d = dlg.confirm_path_for_test(open_d, "/tmp/ori_imguidialog_smoke.txt")
+    if not dlg.is_confirmed(open_d)
+        io.println("confirm_fail")
+        return
+    end
+    if dlg.is_open(open_d)
+        io.println("still_open_fail")
+        return
+    end
+    if dlg.result_path_of(open_d) != "/tmp/ori_imguidialog_smoke.txt"
+        io.println("path_fail")
+        return
+    end
+
+    -- Filter rejects wrong extension (dialog stays unconfirmed when open).
+    var filtered: dlg.Dialog = dlg.create_open("Open", "/tmp", "orl")
+    filtered = dlg.open_ui(filtered)
+    filtered = dlg.set_filename(filtered, "nope.txt")
+    filtered = dlg.confirm(filtered)
+    if dlg.is_confirmed(filtered)
+        io.println("filter_should_reject")
+        return
+    end
+    if not dlg.matches_filter("ok.orl", "orl")
+        io.println("filter_match_fail")
+        return
+    end
+    if dlg.matches_filter("bad.txt", "orl")
+        io.println("filter_mismatch_fail")
+        return
+    end
+
+    -- Save mode + cancel
+    var save_d: dlg.Dialog = dlg.create_save("Save", "/tmp", "out.orl", "orl")
+    save_d = dlg.open_ui(save_d)
+    if dlg.filename_of(save_d) != "out.orl"
+        io.println("default_name_fail")
+        return
+    end
+    save_d = dlg.cancel_for_test(save_d)
+    if not dlg.is_cancelled(save_d)
+        io.println("cancel_fail")
+        return
+    end
+    if dlg.result_path_of(save_d) != ""
+        io.println("cancel_path_fail")
+        return
+    end
+
+    -- Multi-ext filter
+    if not dlg.matches_filter("a.txt", "orl;txt")
+        io.println("multi_fail")
+        return
+    end
+
+    io.println("ok")
+end

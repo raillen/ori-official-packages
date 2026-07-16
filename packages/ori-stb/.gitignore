@@ -1,0 +1,16 @@
+# Ori ECO package
+*.o
+*.obj
+*.pdb
+*.exp
+*.lib
+*.exe
+*.dll
+/tmp/
+.DS_Store
+*.swp
+*~
+
+# Runtime-generated test/smoke PNGs
+tests/fixtures/tmp_gray.png
+tests/fixtures/smoke_gray.png

@@ -1,0 +1,82 @@
+module test.gizmo
+
+imports
+    imguizmo.gizmo = gz
+    ori.test = test
+end
+
+@test
+translate_milli()
+    gz.identity()
+    gz.set_translation_m(0, 0, 0)
+    gz.translate_m(100, 200, 300)
+    test.equal_int(gz.tx_m(), 100)
+    test.equal_int(gz.ty_m(), 200)
+    test.equal_int(gz.tz_m(), 300)
+    test.equal_int(gz.last_op(), gz.OP_TRANSLATE)
+end
+
+@test
+rotate_milli()
+    gz.identity()
+    gz.set_rotation_m(45000, 0, 90000)
+    test.equal_int(gz.rx_m(), 45000)
+    test.equal_int(gz.ry_m(), 0)
+    test.equal_int(gz.rz_m(), 90000)
+    gz.rotate_m(0, 15000, 0)
+    test.equal_int(gz.ry_m(), 15000)
+    test.equal_int(gz.last_op(), gz.OP_ROTATE)
+end
+
+@test
+scale_milli()
+    gz.identity()
+    test.equal_int(gz.sx_m(), 1000)
+    gz.set_scale_m(2000, 500, 1500)
+    test.equal_int(gz.sx_m(), 2000)
+    test.equal_int(gz.sy_m(), 500)
+    test.equal_int(gz.sz_m(), 1500)
+    gz.scale_m(100, 0, -500)
+    test.equal_int(gz.sx_m(), 2100)
+    test.equal_int(gz.sz_m(), 1000)
+    test.equal_int(gz.last_op(), gz.OP_SCALE)
+end
+
+@test
+matrix_milli_and_identity()
+    gz.identity()
+    -- identity: diag 1000, translation 0
+    test.equal_int(gz.matrix_m(0), 1000)
+    test.equal_int(gz.matrix_m(5), 1000)
+    test.equal_int(gz.matrix_m(10), 1000)
+    test.equal_int(gz.matrix_m(15), 1000)
+    test.equal_int(gz.matrix_m(12), 0)
+    gz.set_translation_m(1000, 2000, 3000)
+    gz.set_scale_m(2000, 2000, 2000)
+    test.equal_int(gz.matrix_m(12), 1000)
+    test.equal_int(gz.matrix_m(13), 2000)
+    test.equal_int(gz.matrix_m(14), 3000)
+    test.equal_int(gz.matrix_m(0), 2000)
+    gz.identity()
+    test.equal_int(gz.tx_m(), 0)
+    test.equal_int(gz.sx_m(), 1000)
+    test.equal_int(gz.rx_m(), 0)
+    test.equal_int(gz.last_op(), gz.OP_NONE)
+end
+
+@test
+manipulate_headless_and_ops()
+    gz.identity()
+    -- Headless Manipulate returns false; still records last_op.
+    test.is_false(gz.manipulate_translate())
+    test.equal_int(gz.last_op(), gz.OP_TRANSLATE)
+    test.is_false(gz.manipulate_rotate())
+    test.equal_int(gz.last_op(), gz.OP_ROTATE)
+    test.is_false(gz.manipulate_scale())
+    test.equal_int(gz.last_op(), gz.OP_SCALE)
+    -- Loaded shim for smoke/tests is headless primary.
+    test.is_false(gz.is_full())
+    -- Out-of-range matrix index is safe (0).
+    test.equal_int(gz.matrix_m(-1), 0)
+    test.equal_int(gz.matrix_m(16), 0)
+end

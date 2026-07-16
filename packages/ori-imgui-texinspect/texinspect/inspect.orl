@@ -1,0 +1,204 @@
+module texinspect.inspect
+
+-- Texture inspect session: texture id, size, zoom, channel mask, pan.
+-- Headless-safe state machine (G1). Product draw: texinspect.draw.
+
+import texinspect.zoom = zoom
+import texinspect.channels = ch
+
+public struct Inspect
+    texture_id: int
+    width: int
+    height: int
+    title: string
+    open: bool
+    zoom_milli: int
+    channel_mask: int
+    pan_x_milli: int
+    pan_y_milli: int
+end
+
+-- Create a closed inspector bound to a GPU/engine texture id (int).
+public create(texture_id: int, width: int, height: int) -> Inspect
+    return Inspect {
+        texture_id: texture_id,
+        width: width,
+        height: height,
+        title: "Texture Inspect",
+        open: false,
+        zoom_milli: zoom.ZOOM_1X_MILLI,
+        channel_mask: ch.CH_RGBA,
+        pan_x_milli: 0,
+        pan_y_milli: 0
+    }
+end
+
+public create_titled(texture_id: int, width: int, height: int, title: string) -> Inspect
+    var out: Inspect = create(texture_id, width, height)
+    out.title = title
+    return out
+end
+
+public set_texture(i: Inspect, texture_id: int, width: int, height: int) -> Inspect
+    var out: Inspect = i
+    out.texture_id = texture_id
+    out.width = width
+    out.height = height
+    return out
+end
+
+public texture_id_of(i: Inspect) -> int
+    return i.texture_id
+end
+
+public width_of(i: Inspect) -> int
+    return i.width
+end
+
+public height_of(i: Inspect) -> int
+    return i.height
+end
+
+public title_of(i: Inspect) -> string
+    return i.title
+end
+
+public set_title(i: Inspect, title: string) -> Inspect
+    var out: Inspect = i
+    out.title = title
+    return out
+end
+
+-- Show inspector window (state only until draw is called).
+public open_ui(i: Inspect) -> Inspect
+    var out: Inspect = i
+    out.open = true
+    return out
+end
+
+public close(i: Inspect) -> Inspect
+    var out: Inspect = i
+    out.open = false
+    return out
+end
+
+public is_open(i: Inspect) -> bool
+    return i.open
+end
+
+-- Zoom (milli). Delegates clamp to texinspect.zoom.
+public zoom_of(i: Inspect) -> zoom.Zoom
+    return zoom.create_milli(i.zoom_milli)
+end
+
+public zoom_milli_of(i: Inspect) -> int
+    return i.zoom_milli
+end
+
+public set_zoom(i: Inspect, z: zoom.Zoom) -> Inspect
+    var out: Inspect = i
+    out.zoom_milli = zoom.factor_milli(z)
+    return out
+end
+
+public set_zoom_milli(i: Inspect, milli: int) -> Inspect
+    return set_zoom(i, zoom.create_milli(milli))
+end
+
+public zoom_in(i: Inspect, step_milli: int) -> Inspect
+    const z: zoom.Zoom = zoom.zoom_in(zoom_of(i), step_milli)
+    return set_zoom(i, z)
+end
+
+public zoom_out(i: Inspect, step_milli: int) -> Inspect
+    const z: zoom.Zoom = zoom.zoom_out(zoom_of(i), step_milli)
+    return set_zoom(i, z)
+end
+
+public reset_zoom(i: Inspect) -> Inspect
+    return set_zoom(i, zoom.reset(zoom_of(i)))
+end
+
+public display_width(i: Inspect) -> int
+    return zoom.scaled_size(i.width, zoom_of(i))
+end
+
+public display_height(i: Inspect) -> int
+    return zoom.scaled_size(i.height, zoom_of(i))
+end
+
+-- Channels.
+public channels_of(i: Inspect) -> ch.Channels
+    return ch.create_mask(i.channel_mask)
+end
+
+public channel_mask_of(i: Inspect) -> int
+    return i.channel_mask
+end
+
+public set_channels(i: Inspect, c: ch.Channels) -> Inspect
+    var out: Inspect = i
+    out.channel_mask = ch.mask_of(c)
+    return out
+end
+
+public set_channel_mask(i: Inspect, mask: int) -> Inspect
+    return set_channels(i, ch.create_mask(mask))
+end
+
+public toggle_channel_r(i: Inspect) -> Inspect
+    return set_channels(i, ch.toggle_r(channels_of(i)))
+end
+
+public toggle_channel_g(i: Inspect) -> Inspect
+    return set_channels(i, ch.toggle_g(channels_of(i)))
+end
+
+public toggle_channel_b(i: Inspect) -> Inspect
+    return set_channels(i, ch.toggle_b(channels_of(i)))
+end
+
+public toggle_channel_a(i: Inspect) -> Inspect
+    return set_channels(i, ch.toggle_a(channels_of(i)))
+end
+
+public show_channel_r(i: Inspect) -> bool
+    return ch.show_r(channels_of(i))
+end
+
+public show_channel_g(i: Inspect) -> bool
+    return ch.show_g(channels_of(i))
+end
+
+public show_channel_b(i: Inspect) -> bool
+    return ch.show_b(channels_of(i))
+end
+
+public show_channel_a(i: Inspect) -> bool
+    return ch.show_a(channels_of(i))
+end
+
+-- Pan offset in milli-pixels (0 = top-left of texture space).
+public pan_x_milli_of(i: Inspect) -> int
+    return i.pan_x_milli
+end
+
+public pan_y_milli_of(i: Inspect) -> int
+    return i.pan_y_milli
+end
+
+public set_pan_milli(i: Inspect, x_milli: int, y_milli: int) -> Inspect
+    var out: Inspect = i
+    out.pan_x_milli = x_milli
+    out.pan_y_milli = y_milli
+    return out
+end
+
+public reset_pan(i: Inspect) -> Inspect
+    return set_pan_milli(i, 0, 0)
+end
+
+-- Headless: bind texture id for tests without a GPU frame.
+public bind_texture_for_test(i: Inspect, texture_id: int, width: int, height: int) -> Inspect
+    return set_texture(i, texture_id, width, height)
+end

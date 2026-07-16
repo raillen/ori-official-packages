@@ -1,0 +1,342 @@
+module game.anim_player
+
+-- Single-clip player for skeletal models (IQM/glTF) and procedural fallback
+-- clips for static meshes (e.g. Tripo OBJ without bones).
+-- `in_place`: skeletal zeros root XZ; procedural keeps root at origin.
+
+import game.draw3d = draw3d
+import game.color = color
+import ori.math = math
+import ori.math.vec3 = vec3
+
+public const CLIP_IDLE: int = 0
+public const CLIP_WALK: int = 1
+public const CLIP_SPIN: int = 2
+public const CLIP_BOW: int = 3
+public const PROCEDURAL_CLIP_COUNT: int = 4
+
+public struct ModelPose
+    position: vec3.Vec3
+    yaw_deg: float
+    pitch_deg: float
+    scale: float
+end
+
+public struct ClipPlayer
+    model: draw3d.ModelId
+    anims: draw3d.AnimSetId
+    clip: int
+    frame: int
+    playing: bool
+    valid: bool
+    skeletal: bool
+    in_place: bool
+    phase: float
+    root_x: float
+    root_z: float
+    facing_yaw: float
+    pose: ModelPose
+    -- Skeletal playback: advance by wall-clock time, not 1 anim-frame per render frame.
+    -- frame_accum holds fractional frames; anim_fps is target clip rate (e.g. 60).
+    frame_accum: float
+    anim_fps: float
+    -- When true, use UpdateModelAnimationBones + skinning vertex shader (GPU path).
+    gpu_skinning: bool
+end
+
+public create(model: draw3d.ModelId, anims: draw3d.AnimSetId, clip: int) -> ClipPlayer
+    var skeletal: bool = false
+    var ok: bool = false
+    var use_clip: int = clip
+    if model != 0 and anims != 0
+        if draw3d.model_animation_count(anims) > 0
+            skeletal = true
+            if draw3d.model_animation_count(anims) > clip and clip >= 0
+                ok = true
+            end
+        end
+    end
+    if model != 0 and not skeletal
+        ok = true
+        if use_clip < 0 or use_clip >= PROCEDURAL_CLIP_COUNT
+            use_clip = CLIP_IDLE
+        end
+    end
+    return ClipPlayer {
+        model: model,
+        anims: anims,
+        clip: use_clip,
+        frame: 0,
+        playing: ok,
+        valid: ok,
+        skeletal: skeletal,
+        in_place: true,
+        phase: 0.0,
+        root_x: 0.0,
+        root_z: 0.0,
+        facing_yaw: 0.0,
+        pose: ModelPose {
+            position: vec3.Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+            yaw_deg: 0.0,
+            pitch_deg: 0.0,
+            scale: 1.0
+        },
+        frame_accum: 0.0,
+        -- NlaTrack is ~140 frames / 2.375s ≈ 59 fps; 60 is the usual authoring rate.
+        anim_fps: 60.0,
+        gpu_skinning: false
+    }
+end
+
+public play(p: ClipPlayer) -> ClipPlayer
+    var out: ClipPlayer = p
+    if out.valid
+        out.playing = true
+    end
+    return out
+end
+
+public stop(p: ClipPlayer) -> ClipPlayer
+    var out: ClipPlayer = p
+    out.playing = false
+    return out
+end
+
+public set_clip(p: ClipPlayer, clip: int) -> ClipPlayer
+    var out: ClipPlayer = p
+    if out.skeletal
+        if out.anims != 0 and clip >= 0 and draw3d.model_animation_count(out.anims) > clip
+            out.clip = clip
+            out.frame = 0
+            out.phase = 0.0
+            out.frame_accum = 0.0
+        end
+    end
+    if not out.skeletal
+        if clip >= 0 and clip < PROCEDURAL_CLIP_COUNT
+            out.clip = clip
+            out.frame = 0
+            out.phase = 0.0
+            out.frame_accum = 0.0
+        end
+    end
+    return out
+end
+
+public set_anim_fps(p: ClipPlayer, fps: float) -> ClipPlayer
+    var out: ClipPlayer = p
+    if fps < 1.0
+        out.anim_fps = 1.0
+    else
+        out.anim_fps = fps
+    end
+    return out
+end
+
+-- Requires skinning shader already assigned to model materials.
+public set_gpu_skinning(p: ClipPlayer, enabled: bool) -> ClipPlayer
+    var out: ClipPlayer = p
+    if out.skeletal and enabled
+        out.gpu_skinning = true
+    else
+        out.gpu_skinning = false
+    end
+    return out
+end
+
+public is_gpu_skinning(p: ClipPlayer) -> bool
+    return p.gpu_skinning
+end
+
+public set_in_place(p: ClipPlayer, in_place: bool) -> ClipPlayer
+    var out: ClipPlayer = p
+    out.in_place = in_place
+    if in_place
+        out.root_x = 0.0
+        out.root_z = 0.0
+    end
+    return out
+end
+
+public toggle_in_place(p: ClipPlayer) -> ClipPlayer
+    return set_in_place(p, not p.in_place)
+end
+
+public is_valid(p: ClipPlayer) -> bool
+    return p.valid
+end
+
+public is_skeletal(p: ClipPlayer) -> bool
+    return p.skeletal
+end
+
+public is_in_place(p: ClipPlayer) -> bool
+    return p.in_place
+end
+
+public is_playing(p: ClipPlayer) -> bool
+    return p.playing
+end
+
+public clip_of(p: ClipPlayer) -> int
+    return p.clip
+end
+
+public pose_of(p: ClipPlayer) -> ModelPose
+    return p.pose
+end
+
+public clip_count(p: ClipPlayer) -> int
+    if p.skeletal
+        return draw3d.model_animation_count(p.anims)
+    end
+    return PROCEDURAL_CLIP_COUNT
+end
+
+public clip_label(clip: int) -> string
+    if clip == CLIP_IDLE
+        return "Idle"
+    end
+    if clip == CLIP_WALK
+        return "Walk"
+    end
+    if clip == CLIP_SPIN
+        return "Spin"
+    end
+    if clip == CLIP_BOW
+        return "Bow"
+    end
+    return "Clip"
+end
+
+-- dt in seconds. Advances skeletal frame or procedural phase and refreshes pose.
+-- Skeletal: time-based step so low render FPS does not slow the clip in wall-clock time.
+public tick(p: ClipPlayer, dt: float) -> ClipPlayer
+    var out: ClipPlayer = p
+    if not out.playing or not out.valid
+        out.pose = build_pose(out)
+        return out
+    end
+    if out.skeletal
+        var step: float = dt
+        if step < 0.0
+            step = 0.0
+        end
+        -- Cap dt so a long hitch does not skip an entire loop at once.
+        if step > 0.1
+            step = 0.1
+        end
+        out.frame_accum = out.frame_accum + step * out.anim_fps
+        const n: int = draw3d.model_animation_frame_count(out.anims, out.clip)
+        if n > 0
+            while out.frame_accum >= 1.0
+                out.frame_accum = out.frame_accum - 1.0
+                out.frame = out.frame + 1
+                if out.frame >= n
+                    out.frame = 0
+                end
+            end
+        end
+        -- Flat branches (S3 has no `else` after nested `if` without `elif`).
+        if out.gpu_skinning and out.in_place
+            draw3d.update_model_animation_bones_in_place(
+                out.model, out.anims, out.clip, out.frame
+            )
+        end
+        if out.gpu_skinning and not out.in_place
+            draw3d.update_model_animation_bones(
+                out.model, out.anims, out.clip, out.frame
+            )
+        end
+        if not out.gpu_skinning and out.in_place
+            draw3d.update_model_animation_in_place(
+                out.model, out.anims, out.clip, out.frame
+            )
+        end
+        if not out.gpu_skinning and not out.in_place
+            draw3d.update_model_animation(
+                out.model, out.anims, out.clip, out.frame
+            )
+        end
+        out.pose = ModelPose {
+            position: vec3.Vec3 { x: out.root_x, y: 0.0, z: out.root_z },
+            yaw_deg: out.facing_yaw,
+            pitch_deg: 0.0,
+            scale: 1.0
+        }
+        return out
+    end
+    out.phase = out.phase + dt
+    out = advance_procedural_root(out, dt)
+    out.pose = build_pose(out)
+    return out
+end
+
+advance_procedural_root(p: ClipPlayer, dt: float) -> ClipPlayer
+    var out: ClipPlayer = p
+    if out.in_place
+        return out
+    end
+    if out.clip == CLIP_WALK
+        const speed: float = 1.1
+        const rad: float = out.facing_yaw * 3.14159265 / 180.0
+        out.root_x = out.root_x + math.sin(rad) * speed * dt
+        out.root_z = out.root_z + math.cos(rad) * speed * dt
+        out.facing_yaw = out.facing_yaw + 25.0 * dt
+    end
+    if out.clip == CLIP_SPIN
+        out.facing_yaw = out.facing_yaw + 90.0 * dt
+    end
+    return out
+end
+
+build_pose(p: ClipPlayer) -> ModelPose
+    var bob: float = 0.0
+    var yaw: float = p.facing_yaw
+    var pitch: float = 0.0
+    var sx: float = p.root_x
+    var sy: float = 0.0
+    var sz: float = p.root_z
+    const t: float = p.phase
+    if p.clip == CLIP_IDLE
+        bob = math.sin(t * 2.2) * 0.02
+        yaw = p.facing_yaw + math.sin(t * 1.1) * 6.0
+    end
+    if p.clip == CLIP_WALK
+        bob = math.abs_float(math.sin(t * 8.0)) * 0.05
+        pitch = math.sin(t * 8.0) * 4.0
+        yaw = p.facing_yaw + math.sin(t * 4.0) * 3.0
+    end
+    if p.clip == CLIP_SPIN
+        yaw = p.facing_yaw + t * 120.0
+        bob = math.sin(t * 4.0) * 0.01
+    end
+    if p.clip == CLIP_BOW
+        pitch = (math.sin(t * 2.5) * 0.5 + 0.5) * 35.0
+        bob = -pitch * 0.002
+        sz = sz + pitch * 0.004
+    end
+    if p.in_place
+        sx = 0.0
+        sz = 0.0
+        if p.clip == CLIP_BOW
+            sz = pitch * 0.004
+        end
+    end
+    return ModelPose {
+        position: vec3.Vec3 { x: sx, y: sy + bob, z: sz },
+        yaw_deg: yaw,
+        pitch_deg: pitch,
+        scale: 1.0
+    }
+end
+
+public draw_posed(model: draw3d.ModelId, pose: ModelPose, tint: color.Color) -> void
+    const axis_y: vec3.Vec3 = vec3.Vec3 { x: 0.0, y: 1.0, z: 0.0 }
+    const scale: vec3.Vec3 = vec3.Vec3 {
+        x: pose.scale,
+        y: pose.scale,
+        z: pose.scale
+    }
+    draw3d.draw_model_ex(model, pose.position, axis_y, pose.yaw_deg, scale, tint)
+end

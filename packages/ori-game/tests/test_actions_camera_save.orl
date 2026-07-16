@@ -1,0 +1,48 @@
+module test.actions_camera_save
+
+imports
+    game.actions = actions
+    game.camera = cam
+    game.save = save
+    game.input = input
+    ori.math.vec2 = vec2
+    ori.test = test
+end
+
+@test
+action_bind_json()
+    var m: actions.ActionMap = actions.create()
+    m = actions.bind_key(m, "jump", input.KEY_SPACE)
+    m = actions.bind_key(m, "left", input.KEY_A)
+    test.equal_int(actions.key_of(m, "jump"), input.KEY_SPACE)
+    test.equal_int(actions.key_of(m, "left"), input.KEY_A)
+    const j: string = actions.to_json(m)
+    test.assert(j != "", "json non-empty")
+    test.assert(actions.save_json(m, "/tmp/ori_actions_test.json"), "save")
+end
+
+@test
+camera_limits_and_shake()
+    var c: cam.Camera2D = cam.create(
+        vec2.Vec2 { x: 0.0, y: 0.0 },
+        vec2.Vec2 { x: 0.0, y: 0.0 },
+        1.0
+    )
+    c = cam.set_limits(c, 0.0, 0.0, 10.0, 10.0)
+    c = cam.follow(c, vec2.Vec2 { x: 100.0, y: 100.0 }, 1.0)
+    test.assert(c.target.x <= 10.0, "clamp x")
+    test.assert(c.target.y <= 10.0, "clamp y")
+    c = cam.shake(c, 2.0, 0.5)
+    test.assert(c.shake_time > 0.0, "shake")
+    c = cam.update(c, 1.0)
+    test.assert(c.shake_time == 0.0, "shake done")
+end
+
+@test
+save_slots()
+    -- Flat /tmp path (no mkdir required).
+    const path: string = "/tmp/ori_save_slot0.json"
+    test.assert(save.save_json(path, "{\"hp\":3}"), "save slot")
+    test.equal_text(save.load_json(path), "{\"hp\":3}")
+    test.assert(save.has_slot("/tmp", "ori_save_slot0") or save.load_json(path) != "", "has")
+end

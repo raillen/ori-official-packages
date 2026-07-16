@@ -1,0 +1,84 @@
+module test.level_tools
+
+imports
+    game.ogame_level = level
+    game.ogame_level_tools = tools
+    ori.test = test
+end
+
+@test
+snap_value_grid()
+    test.assert(tools.snap_value(1.2, 1.0) == 1.0, "snap 1")
+    test.assert(tools.snap_value(1.6, 0.5) == 1.5, "snap 0.5")
+    test.assert(tools.snap_value(3.0, 0.0) == 3.0, "no snap")
+end
+
+@test
+extrude_pos_y_grows()
+    var b: level.BrushBox = level.BrushBox {
+        id: "b1",
+        kind: "box",
+        x: 0.0,
+        y: 8.0,
+        z: 0.0,
+        sx: 16.0,
+        sy: 16.0,
+        sz: 16.0,
+        rx: 0.0,
+        ry: 0.0,
+        rz: 0.0,
+        r: 100,
+        g: 100,
+        b: 100,
+        a: 255,
+        metallic: 0.0,
+        roughness: 0.8,
+        mesh_path: "",
+        albedo_path: "",
+        collider: true,
+        layer: 1
+    }
+    b = tools.extrude_brush_face(b, tools.AXIS_Y, tools.FACE_POS, 8.0, 1.0)
+    test.assert(b.sy == 24.0, "height grew")
+    test.assert(b.y == 12.0, "center moved +y/2")
+end
+
+@test
+extrude_level_at_index()
+    var lvl: level.LevelGeometry = level.empty_level()
+    lvl = tools.add_box_brush(lvl, "floor", 0.0, 0.0, 0.0, 32.0, 4.0, 32.0)
+    test.equal_int(level.brush_count(lvl), 1)
+    lvl = tools.extrude_brush_at(
+        lvl,
+        0,
+        tools.AXIS_Y,
+        tools.FACE_POS,
+        4.0,
+        1.0,
+        1.0
+    )
+    const b: level.BrushBox = lvl.brushes[0]
+    test.assert(b.sy >= 8.0, "extruded with snap")
+end
+
+@test
+clip_brush_halves_height()
+    var lvl: level.LevelGeometry = level.empty_level()
+    lvl = tools.add_box_brush(lvl, "box", 0.0, 8.0, 0.0, 16.0, 16.0, 16.0)
+    const h0: float = lvl.brushes[0].sy
+    lvl = tools.clip_brush_at(lvl, 0, tools.AXIS_Y, true, 0.0)
+    const h1: float = lvl.brushes[0].sy
+    test.assert(h1 == h0 * 0.5, "half height after clip")
+end
+
+@test
+terrain_raise_adds_solids()
+    var lvl: level.LevelGeometry = level.empty_level()
+    lvl = tools.create_terrain_grid(lvl, 4, 4, 8.0, 0)
+    test.equal_int(level.solids_count(lvl), 0)
+    lvl = tools.raise_terrain_height(lvl, 1, 1, 2)
+    test.assert(tools.terrain_height_at(lvl, 1, 1) == 2, "height 2")
+    test.assert(level.solids_count(lvl) >= 1, "terrain solid")
+end
+
+

@@ -1,0 +1,514 @@
+module game.ogame_level_tools
+
+-- Level author tools (E1): grid snap + face extrude/push-pull on brushes.
+-- Runtime only mutates LevelGeometry; shell panels emit these commands.
+
+import ori.list = lists
+import ori.math = math
+import game.ogame_level = level
+import game.ogame_level_csg = csg
+
+public const AXIS_X: int = 0
+public const AXIS_Y: int = 1
+public const AXIS_Z: int = 2
+
+public const FACE_POS: int = 1
+public const FACE_NEG: int = -1
+
+public const SNAP_025: float = 0.25
+public const SNAP_050: float = 0.5
+public const SNAP_100: float = 1.0
+
+-- Snap a world value to grid step (step <= 0 → no snap).
+public snap_value(v: float, step: float) -> float
+    if step <= 0.0
+        return v
+    end
+    return float(math.round(v / step)) * step
+end
+
+public snap_brush(b: level.BrushBox, step: float) -> level.BrushBox
+    var out: level.BrushBox = b
+    out.x = snap_value(out.x, step)
+    out.y = snap_value(out.y, step)
+    out.z = snap_value(out.z, step)
+    out.sx = snap_value(out.sx, step)
+    out.sy = snap_value(out.sy, step)
+    out.sz = snap_value(out.sz, step)
+    if out.sx < step
+        out.sx = step
+    end
+    if out.sy < step
+        out.sy = step
+    end
+    if out.sz < step
+        out.sz = step
+    end
+    return out
+end
+
+-- Push-pull one face along local axis.
+-- delta > 0 expands; delta < 0 shrinks (clamped to min_size).
+-- Center shifts so the opposite face stays put.
+public extrude_brush_face(
+    b: level.BrushBox,
+    axis: int,
+    face: int,
+    delta: float,
+    min_size: float
+) -> level.BrushBox
+    var out: level.BrushBox = b
+    var min_s: float = min_size
+    if min_s <= 0.0
+        min_s = 1.0
+    end
+    var face_sign: float = 1.0
+    if face < 0
+        face_sign = -1.0
+    end
+    if axis == AXIS_X
+        const old_s: float = out.sx
+        var new_s: float = old_s + delta
+        if new_s < min_s
+            new_s = min_s
+        end
+        const applied: float = new_s - old_s
+        out.sx = new_s
+        out.x = out.x + applied * 0.5 * face_sign
+    elif axis == AXIS_Y
+        const old_s: float = out.sy
+        var new_s: float = old_s + delta
+        if new_s < min_s
+            new_s = min_s
+        end
+        const applied: float = new_s - old_s
+        out.sy = new_s
+        out.y = out.y + applied * 0.5 * face_sign
+    else
+        const old_s: float = out.sz
+        var new_s: float = old_s + delta
+        if new_s < min_s
+            new_s = min_s
+        end
+        const applied: float = new_s - old_s
+        out.sz = new_s
+        out.z = out.z + applied * 0.5 * face_sign
+    end
+    return out
+end
+
+public set_brush_at(
+    lvl: level.LevelGeometry,
+    index: int,
+    brush: level.BrushBox
+) -> level.LevelGeometry
+    if index < 0 or index >= lists.len(lvl.brushes)
+        return lvl
+    end
+    var out: level.LevelGeometry = lvl
+    lists.set(out.brushes, index, brush)
+    return out
+end
+
+public extrude_brush_at(
+    lvl: level.LevelGeometry,
+    index: int,
+    axis: int,
+    face: int,
+    delta: float,
+    min_size: float,
+    snap_step: float
+) -> level.LevelGeometry
+    if index < 0 or index >= lists.len(lvl.brushes)
+        return lvl
+    end
+    var b: level.BrushBox = lvl.brushes[index]
+    b = extrude_brush_face(b, axis, face, delta, min_size)
+    if snap_step > 0.0
+        b = snap_brush(b, snap_step)
+    end
+    return set_brush_at(lvl, index, b)
+end
+
+public add_box_brush(
+    lvl: level.LevelGeometry,
+    id: string,
+    x: float,
+    y: float,
+    z: float,
+    sx: float,
+    sy: float,
+    sz: float
+) -> level.LevelGeometry
+    var out: level.LevelGeometry = lvl
+    var b: level.BrushBox = level.BrushBox {
+        id: id,
+        kind: "box",
+        x: x,
+        y: y,
+        z: z,
+        sx: sx,
+        sy: sy,
+        sz: sz,
+        rx: 0.0,
+        ry: 0.0,
+        rz: 0.0,
+        r: 144,
+        g: 202,
+        b: 249,
+        a: 255,
+        metallic: 0.0,
+        roughness: 0.8,
+        mesh_path: "",
+        albedo_path: "",
+        collider: true,
+        layer: 1
+    }
+    lists.push(out.brushes, b)
+    return out
+end
+
+public brush_index_of_id(lvl: level.LevelGeometry, id: string) -> int
+    const n: int = lists.len(lvl.brushes)
+    var i: int = 0
+    while i < n
+        if lvl.brushes[i].id == id
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+public brush_at(lvl: level.LevelGeometry, index: int) -> optional[level.BrushBox]
+    if index < 0 or index >= lists.len(lvl.brushes)
+        return none
+    end
+    return some(lvl.brushes[index])
+end
+
+-- L3: subtract box that carves solids via collect_solids CSG path.
+public add_subtract_box(
+    lvl: level.LevelGeometry,
+    id: string,
+    x: float,
+    y: float,
+    z: float,
+    sx: float,
+    sy: float,
+    sz: float
+) -> level.LevelGeometry
+    var out: level.LevelGeometry = lvl
+    const sub: level.SubtractBox = level.SubtractBox {
+        id: id,
+        x: x,
+        y: y,
+        z: z,
+        sx: sx,
+        sy: sy,
+        sz: sz,
+        rx: 0.0,
+        ry: 0.0,
+        rz: 0.0
+    }
+    lists.push(out.subtracts, sub)
+    return out
+end
+
+public subtract_count(lvl: level.LevelGeometry) -> int
+    return level.subtract_count(lvl)
+end
+
+-- L5 draft: block-terrain displacements (column heights → solids via collect_solids).
+
+public create_terrain_grid(
+    lvl: level.LevelGeometry,
+    width: int,
+    depth: int,
+    cell_size: float,
+    base_h: int
+) -> level.LevelGeometry
+    var out: level.LevelGeometry = lvl
+    var heights: list[int] = []
+    const total: int = width * depth
+    var i: int = 0
+    while i < total
+        lists.push(heights, base_h)
+        i = i + 1
+    end
+    out.terrain = level.TerrainGrid {
+        cell_size: cell_size,
+        width: width,
+        depth: depth,
+        heights: heights,
+        r: 100,
+        g: 140,
+        b: 80
+    }
+    return out
+end
+
+public set_terrain_height(
+    lvl: level.LevelGeometry,
+    ix: int,
+    iz: int,
+    height: int
+) -> level.LevelGeometry
+    var out: level.LevelGeometry = lvl
+    if ix < 0 or iz < 0 or ix >= out.terrain.width or iz >= out.terrain.depth
+        return out
+    end
+    const idx: int = iz * out.terrain.width + ix
+    if idx < 0 or idx >= lists.len(out.terrain.heights)
+        return out
+    end
+    var h: int = height
+    if h < 0
+        h = 0
+    end
+    lists.set(out.terrain.heights, idx, h)
+    return out
+end
+
+public raise_terrain_height(
+    lvl: level.LevelGeometry,
+    ix: int,
+    iz: int,
+    delta: int
+) -> level.LevelGeometry
+    if ix < 0 or iz < 0 or ix >= lvl.terrain.width or iz >= lvl.terrain.depth
+        return lvl
+    end
+    const idx: int = iz * lvl.terrain.width + ix
+    if idx < 0 or idx >= lists.len(lvl.terrain.heights)
+        return lvl
+    end
+    var h: int = lvl.terrain.heights[idx] + delta
+    if h < 0
+        h = 0
+    end
+    return set_terrain_height(lvl, ix, iz, h)
+end
+
+public terrain_height_at(lvl: level.LevelGeometry, ix: int, iz: int) -> int
+    if ix < 0 or iz < 0 or ix >= lvl.terrain.width or iz >= lvl.terrain.depth
+        return 0
+    end
+    const idx: int = iz * lvl.terrain.width + ix
+    if idx < 0 or idx >= lists.len(lvl.terrain.heights)
+        return 0
+    end
+    return lvl.terrain.heights[idx]
+end
+
+-- Soft “ramp” displacement: raise a line of cells.
+public raise_terrain_row(
+    lvl: level.LevelGeometry,
+    iz: int,
+    delta: int
+) -> level.LevelGeometry
+    var out: level.LevelGeometry = lvl
+    if out.terrain.width <= 0
+        return out
+    end
+    var ix: int = 0
+    while ix < out.terrain.width
+        out = raise_terrain_height(out, ix, iz, delta)
+        ix = ix + 1
+    end
+    return out
+end
+
+-- L4: clip brush with an axis-aligned plane through center of brush.
+-- axis: 0=X 1=Y 2=Z · keep_pos: true keeps the +axis half, false keeps -axis half.
+public clip_brush_at(
+    lvl: level.LevelGeometry,
+    index: int,
+    axis: int,
+    keep_pos: bool,
+    snap_step: float
+) -> level.LevelGeometry
+    if index < 0 or index >= lists.len(lvl.brushes)
+        return lvl
+    end
+    var b: level.BrushBox = lvl.brushes[index]
+    if axis == AXIS_X
+        const half: float = b.sx * 0.5
+        if keep_pos
+            b.x = b.x + half * 0.5
+        else
+            b.x = b.x - half * 0.5
+        end
+        b.sx = half
+    elif axis == AXIS_Y
+        const half_y: float = b.sy * 0.5
+        if keep_pos
+            b.y = b.y + half_y * 0.5
+        else
+            b.y = b.y - half_y * 0.5
+        end
+        b.sy = half_y
+    else
+        const half_z: float = b.sz * 0.5
+        if keep_pos
+            b.z = b.z + half_z * 0.5
+        else
+            b.z = b.z - half_z * 0.5
+        end
+        b.sz = half_z
+    end
+    if snap_step > 0.0
+        b = snap_brush(b, snap_step)
+    end
+    return set_brush_at(lvl, index, b)
+end
+
+-- L6: clip brush against a world-space axis plane (not only center half).
+public clip_brush_world_plane(
+    lvl: level.LevelGeometry,
+    index: int,
+    axis: int,
+    plane: float,
+    keep_pos: bool,
+    snap_step: float
+) -> level.LevelGeometry
+    if index < 0 or index >= lists.len(lvl.brushes)
+        return lvl
+    end
+    var b: level.BrushBox = lvl.brushes[index]
+    const solid: csg.Aabb = csg.oriented_box_to_aabb(csg.oriented_box(
+        b.x, b.y, b.z, b.sx, b.sy, b.sz, b.rx, b.ry, b.rz
+    ))
+    const clip: csg.AxisPlaneClip = csg.axis_plane_clip(axis, plane, keep_pos)
+    const clipped: csg.Aabb = csg.clip_aabb_axis_plane(solid, clip)
+    if csg.aabb_volume(clipped) <= 0.0
+        -- Fully cut away → shrink to minimum snap cube at plane.
+        if axis == AXIS_X
+            b.x = plane
+            b.sx = snap_step
+            if b.sx < 0.25
+                b.sx = 0.25
+            end
+        elif axis == AXIS_Y
+            b.y = plane
+            b.sy = snap_step
+            if b.sy < 0.25
+                b.sy = 0.25
+            end
+        else
+            b.z = plane
+            b.sz = snap_step
+            if b.sz < 0.25
+                b.sz = 0.25
+            end
+        end
+    else
+        b.x = clipped.x
+        b.y = clipped.y
+        b.z = clipped.z
+        b.sx = clipped.sx
+        b.sy = clipped.sy
+        b.sz = clipped.sz
+        b.rx = 0.0
+        b.ry = 0.0
+        b.rz = 0.0
+    end
+    if snap_step > 0.0
+        b = snap_brush(b, snap_step)
+    end
+    return set_brush_at(lvl, index, b)
+end
+
+-- L6: replace selected brush with its intersection vs an AABB volume.
+public intersect_brush_with_box(
+    lvl: level.LevelGeometry,
+    index: int,
+    vx: float,
+    vy: float,
+    vz: float,
+    vsx: float,
+    vsy: float,
+    vsz: float,
+    snap_step: float
+) -> level.LevelGeometry
+    if index < 0 or index >= lists.len(lvl.brushes)
+        return lvl
+    end
+    var b: level.BrushBox = lvl.brushes[index]
+    const solid: csg.Aabb = csg.oriented_box_to_aabb(csg.oriented_box(
+        b.x, b.y, b.z, b.sx, b.sy, b.sz, b.rx, b.ry, b.rz
+    ))
+    const vol: csg.Aabb = csg.aabb(vx, vy, vz, vsx, vsy, vsz)
+    const inter: csg.Aabb = csg.aabb_intersect(solid, vol)
+    if csg.aabb_volume(inter) <= 0.0
+        return lvl
+    end
+    b.x = inter.x
+    b.y = inter.y
+    b.z = inter.z
+    b.sx = inter.sx
+    b.sy = inter.sy
+    b.sz = inter.sz
+    b.rx = 0.0
+    b.ry = 0.0
+    b.rz = 0.0
+    if snap_step > 0.0
+        b = snap_brush(b, snap_step)
+    end
+    return set_brush_at(lvl, index, b)
+end
+
+-- L6 diagnostics: solid count after collect (already uses carve_merged).
+public solids_after_csg(lvl: level.LevelGeometry) -> int
+    return level.solids_count(lvl)
+end
+
+-- Raw carve piece count without merge (for before/after UI).
+public carve_piece_count_raw(lvl: level.LevelGeometry, brush_index: int) -> int
+    if brush_index < 0 or brush_index >= lists.len(lvl.brushes)
+        return 0
+    end
+    const b: level.BrushBox = lvl.brushes[brush_index]
+    var cuts: list[csg.Aabb] = []
+    const ns: int = lists.len(lvl.subtracts)
+    var si: int = 0
+    while si < ns
+        const s: level.SubtractBox = lvl.subtracts[si]
+        lists.push(cuts, csg.oriented_box_to_aabb(csg.oriented_box(
+            s.x, s.y, s.z, s.sx, s.sy, s.sz, s.rx, s.ry, s.rz
+        )))
+        si = si + 1
+    end
+    const raw: list[csg.Aabb] = csg.carve(
+        csg.oriented_box_to_aabb(csg.oriented_box(
+            b.x, b.y, b.z, b.sx, b.sy, b.sz, b.rx, b.ry, b.rz
+        )),
+        cuts
+    )
+    return lists.len(raw)
+end
+
+public carve_piece_count_merged(lvl: level.LevelGeometry, brush_index: int) -> int
+    if brush_index < 0 or brush_index >= lists.len(lvl.brushes)
+        return 0
+    end
+    const b: level.BrushBox = lvl.brushes[brush_index]
+    var cuts: list[csg.Aabb] = []
+    const ns: int = lists.len(lvl.subtracts)
+    var si: int = 0
+    while si < ns
+        const s: level.SubtractBox = lvl.subtracts[si]
+        lists.push(cuts, csg.oriented_box_to_aabb(csg.oriented_box(
+            s.x, s.y, s.z, s.sx, s.sy, s.sz, s.rx, s.ry, s.rz
+        )))
+        si = si + 1
+    end
+    const merged: list[csg.Aabb] = csg.carve_merged(
+        csg.oriented_box_to_aabb(csg.oriented_box(
+            b.x, b.y, b.z, b.sx, b.sy, b.sz, b.rx, b.ry, b.rz
+        )),
+        cuts
+    )
+    return lists.len(merged)
+end
+

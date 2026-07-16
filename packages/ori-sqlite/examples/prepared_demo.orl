@@ -1,0 +1,79 @@
+module app.prepared_demo
+
+imports
+    sqlite.db = sql
+    ori.io = io
+end
+
+main()
+    var db: sql.Db = sql.open("/tmp/ori_sqlite_prepared.db")
+    if not sql.is_open(db)
+        io.print("open_failed")
+        return
+    end
+    if not sql.exec_ok(db, "CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY, name TEXT, qty INTEGER)")
+        io.print("create_failed")
+        sql.close(db)
+        return
+    end
+    sql.exec_ok(db, "DELETE FROM items")
+
+    var ins: sql.Stmt = sql.prepare(db, "INSERT INTO items(name, qty) VALUES(?, ?)")
+    if not sql.is_prepared(ins)
+        io.print("prepare_insert_failed")
+        sql.close(db)
+        return
+    end
+    sql.bind_text(ins, 1, "apple")
+    sql.bind_int(ins, 2, 3)
+    if sql.step(ins) != sql.STEP_DONE
+        io.print("insert1_failed")
+        sql.finalize(ins)
+        sql.close(db)
+        return
+    end
+    sql.reset(ins)
+    sql.clear_bindings(ins)
+    sql.bind_text(ins, 1, "banana")
+    sql.bind_int(ins, 2, 7)
+    if sql.step(ins) != sql.STEP_DONE
+        io.print("insert2_failed")
+        sql.finalize(ins)
+        sql.close(db)
+        return
+    end
+    sql.finalize(ins)
+
+    var sel: sql.Stmt = sql.prepare(db, "SELECT name, qty FROM items WHERE qty > ? ORDER BY name")
+    if not sql.is_prepared(sel)
+        io.print("prepare_select_failed")
+        sql.close(db)
+        return
+    end
+    sql.bind_int(sel, 1, 2)
+    var rows: int = 0
+    var sum_qty: int = 0
+    var first_name: string = ""
+    while sql.step(sel) == sql.STEP_ROW
+        const name: string = sql.column_text(sel, 0)
+        const qty: int = sql.column_int(sel, 1)
+        if rows == 0
+            first_name = name
+        end
+        sum_qty = sum_qty + qty
+        rows = rows + 1
+    end
+    sql.finalize(sel)
+
+    const json: string = sql.query_all_json(db, "SELECT name, qty FROM items ORDER BY name")
+    sql.close(db)
+
+    -- apple + banana, sum 10, first apple; json contains both names
+    if rows == 2 and sum_qty == 10 and first_name == "apple"
+        if json != "[]"
+            io.print("ok")
+            return
+        end
+    end
+    io.print("fail")
+end

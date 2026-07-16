@@ -1,0 +1,109 @@
+module test.test_harness
+
+imports
+    imgui.test_harness = th
+    ori.test = test
+end
+
+-- Pure Ori harness: headless, no window / no host.
+
+@test
+register_and_query_by_label()
+    var h: th.Harness = th.create()
+    test.equal_int(th.item_count(h), 0)
+    test.assert(not th.exists(h, "Save"), "missing")
+    h = th.register_button(h, "Save")
+    h = th.register_window(h, "Inspector", false)
+    h = th.register_checkbox(h, "Visible", true)
+    test.equal_int(th.item_count(h), 3)
+    test.assert(th.exists(h, "Save"), "save exists")
+    test.assert(th.query_by_label(h, "Inspector"), "query window")
+    test.equal_int(th.kind_of(h, "Save"), th.KIND_BUTTON)
+    test.equal_int(th.kind_of(h, "Inspector"), th.KIND_WINDOW)
+    test.equal_int(th.kind_of(h, "Visible"), th.KIND_CHECKBOX)
+    test.assert(th.is_checked(h, "Visible"), "checkbox seed")
+    test.assert(not th.is_open(h, "Inspector"), "window closed")
+    test.equal_int(th.kind_of(h, "nope"), -1)
+    test.equal_text(th.label_at(h, 0), "Save")
+    h = th.clear(h)
+    test.equal_int(th.item_count(h), 0)
+end
+
+@test
+simulate_click_button_counts()
+    var h: th.Harness = th.create()
+    h = th.register_button(h, "OK")
+    test.equal_int(th.click_count_of(h, "OK"), 0)
+    h = th.click(h, "OK")
+    test.equal_int(th.click_count_of(h, "OK"), 1)
+    test.equal_text(th.last_action_of(h), "click")
+    test.equal_text(th.last_label_of(h), "OK")
+    h = th.click(h, "OK")
+    h = th.click(h, "OK")
+    test.equal_int(th.click_count_of(h, "OK"), 3)
+    -- Missing label does not invent an item.
+    h = th.click(h, "Missing")
+    test.equal_text(th.last_action_of(h), "click_miss")
+    test.equal_int(th.item_count(h), 1)
+    -- Disabled blocks click.
+    h = th.set_enabled(h, "OK", false)
+    h = th.click(h, "OK")
+    test.equal_text(th.last_action_of(h), "click_blocked")
+    test.equal_int(th.click_count_of(h, "OK"), 3)
+end
+
+@test
+simulate_open_close_window_and_menu()
+    var h: th.Harness = th.create()
+    h = th.register_window(h, "Settings", false)
+    h = th.register_menu(h, "File", false)
+    h = th.register_header(h, "Transform", false)
+    test.assert(not th.is_open(h, "Settings"), "settings closed")
+    h = th.open_item(h, "Settings")
+    test.assert(th.is_open(h, "Settings"), "settings open")
+    test.equal_text(th.last_action_of(h), "open")
+    h = th.close_item(h, "Settings")
+    test.assert(not th.is_open(h, "Settings"), "settings closed again")
+    -- Click opens a closed window.
+    h = th.click(h, "Settings")
+    test.assert(th.is_open(h, "Settings"), "click opens")
+    test.equal_int(th.click_count_of(h, "Settings"), 1)
+    h = th.open_item(h, "File")
+    h = th.open_item(h, "Transform")
+    test.assert(th.is_open(h, "File"), "menu open")
+    test.assert(th.is_open(h, "Transform"), "header open")
+    -- Button cannot open.
+    h = th.register_button(h, "Nope")
+    h = th.open_item(h, "Nope")
+    test.equal_text(th.last_action_of(h), "open_unsupported")
+end
+
+@test
+checkbox_toggle_and_frame_lifecycle()
+    var h: th.Harness = th.create()
+    h = th.register_checkbox(h, "Wireframe", false)
+    h = th.register_menu_item(h, "Show Grid", false)
+    test.assert(not th.is_checked(h, "Wireframe"), "off")
+    h = th.click(h, "Wireframe")
+    test.assert(th.is_checked(h, "Wireframe"), "toggled on")
+    test.equal_int(th.click_count_of(h, "Wireframe"), 1)
+    h = th.click(h, "Wireframe")
+    test.assert(not th.is_checked(h, "Wireframe"), "toggled off")
+    h = th.set_checked(h, "Wireframe", true)
+    test.assert(th.is_checked(h, "Wireframe"), "set_checked")
+    h = th.click(h, "Show Grid")
+    test.assert(th.is_checked(h, "Show Grid"), "menu item checked")
+    test.equal_int(th.frame_of(h), 0)
+    h = th.begin_frame(h)
+    h = th.begin_frame(h)
+    test.equal_int(th.frame_of(h), 2)
+    h = th.unregister(h, "Show Grid")
+    test.assert(not th.exists(h, "Show Grid"), "unregistered")
+    test.equal_int(th.item_count(h), 1)
+    -- Hidden blocks click.
+    h = th.set_visible(h, "Wireframe", false)
+    const before: int = th.click_count_of(h, "Wireframe")
+    h = th.click(h, "Wireframe")
+    test.equal_text(th.last_action_of(h), "click_blocked")
+    test.equal_int(th.click_count_of(h, "Wireframe"), before)
+end

@@ -1,0 +1,12 @@
+[package]
+name = "jolt"
+version = "0.2.0"
+entry = "jolt/dynamics.orl"
+ori_version = "0.3.0"
+description = "Jolt Physics 3D bindings for Ori (milli-unit C ABI)"
+license = "MIT"
+native_libs = ["ori_jolt_shim", "Jolt"]
+
+# Optional: `jolt.debug_draw` uses `game.draw3d` (link raylib only in visual demos).
+[dependencies]
+ori_game = { path = "../ori-game", version = "0.3.0" }

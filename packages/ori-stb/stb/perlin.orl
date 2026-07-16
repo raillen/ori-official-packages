@@ -1,0 +1,16 @@
+module stb.perlin
+
+extern c
+    public ori_stb_perlin_m(x_m: int, y_m: int, z_m: int) -> int
+    public ori_stb_perlin2_m(x_m: int, y_m: int) -> int
+end
+
+-- Classic Perlin; args/return in milli units (value typically -1000..1000).
+
+public noise2_m(x_m: int, y_m: int) -> int
+    return ori_stb_perlin2_m(x_m, y_m)
+end
+
+public noise3_m(x_m: int, y_m: int, z_m: int) -> int
+    return ori_stb_perlin_m(x_m, y_m, z_m)
+end

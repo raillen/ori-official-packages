@@ -1,0 +1,283 @@
+module game.draw3d
+
+import raylib = rl
+import game.color = color
+import game.camera3d = cam3
+import ori.math.vec3 = vec3
+import ori.mem = mem
+
+public alias ModelId = int
+public alias TextureId = int
+
+public draw_cube(pos: vec3.Vec3, width: float, height: float, length: float, c: color.Color) -> void
+    rl.ori_rl_DrawCube(pos.x, pos.y, pos.z, width, height, length, c.r, c.g, c.b, c.a)
+end
+
+public draw_cube_wires(pos: vec3.Vec3, width: float, height: float, length: float, c: color.Color) -> void
+    rl.ori_rl_DrawCubeWires(pos.x, pos.y, pos.z, width, height, length, c.r, c.g, c.b, c.a)
+end
+
+public draw_sphere(center: vec3.Vec3, radius: float, c: color.Color) -> void
+    rl.ori_rl_DrawSphere(center.x, center.y, center.z, radius, c.r, c.g, c.b, c.a)
+end
+
+public draw_sphere_wires(
+    center: vec3.Vec3,
+    radius: float,
+    rings: int,
+    slices: int,
+    c: color.Color
+) -> void
+    rl.ori_rl_DrawSphereWires(center.x, center.y, center.z, radius, rings, slices, c.r, c.g, c.b, c.a)
+end
+
+public draw_plane(center_pos: vec3.Vec3, size_x: float, size_y: float, c: color.Color) -> void
+    rl.ori_rl_DrawPlane(center_pos.x, center_pos.y, center_pos.z, size_x, size_y, c.r, c.g, c.b, c.a)
+end
+
+public draw_grid(slices: int, spacing: float) -> void
+    rl.ori_rl_DrawGrid(slices, spacing)
+end
+
+public draw_cylinder(
+    pos: vec3.Vec3,
+    radius_top: float,
+    radius_bottom: float,
+    height: float,
+    slices: int,
+    c: color.Color
+) -> void
+    rl.ori_rl_DrawCylinder(
+        pos.x, pos.y, pos.z,
+        radius_top, radius_bottom, height, slices,
+        c.r, c.g, c.b, c.a
+    )
+end
+
+public draw_cylinder_wires(
+    pos: vec3.Vec3,
+    radius_top: float,
+    radius_bottom: float,
+    height: float,
+    slices: int,
+    c: color.Color
+) -> void
+    rl.ori_rl_DrawCylinderWires(
+        pos.x, pos.y, pos.z,
+        radius_top, radius_bottom, height, slices,
+        c.r, c.g, c.b, c.a
+    )
+end
+
+public draw_capsule(
+    start_pos: vec3.Vec3,
+    end_pos: vec3.Vec3,
+    radius: float,
+    slices: int,
+    rings: int,
+    c: color.Color
+) -> void
+    rl.ori_rl_DrawCapsule(
+        start_pos.x, start_pos.y, start_pos.z,
+        end_pos.x, end_pos.y, end_pos.z,
+        radius, slices, rings,
+        c.r, c.g, c.b, c.a
+    )
+end
+
+public draw_capsule_wires(
+    start_pos: vec3.Vec3,
+    end_pos: vec3.Vec3,
+    radius: float,
+    slices: int,
+    rings: int,
+    c: color.Color
+) -> void
+    rl.ori_rl_DrawCapsuleWires(
+        start_pos.x, start_pos.y, start_pos.z,
+        end_pos.x, end_pos.y, end_pos.z,
+        radius, slices, rings,
+        c.r, c.g, c.b, c.a
+    )
+end
+
+public draw_ray(origin: vec3.Vec3, direction: vec3.Vec3, c: color.Color) -> void
+    rl.ori_rl_DrawRay(
+        origin.x, origin.y, origin.z,
+        direction.x, direction.y, direction.z,
+        c.r, c.g, c.b, c.a
+    )
+end
+
+public draw_line_3d(start: vec3.Vec3, end_pos: vec3.Vec3, c: color.Color) -> void
+    rl.ori_rl_DrawLine3D(
+        start.x, start.y, start.z,
+        end_pos.x, end_pos.y, end_pos.z,
+        c.r, c.g, c.b, c.a
+    )
+end
+
+public draw_triangle_3d(v1: vec3.Vec3, v2: vec3.Vec3, v3: vec3.Vec3, c: color.Color) -> void
+    rl.ori_rl_DrawTriangle3D(
+        v1.x, v1.y, v1.z,
+        v2.x, v2.y, v2.z,
+        v3.x, v3.y, v3.z,
+        c.r, c.g, c.b, c.a
+    )
+end
+
+public alias MeshId = int
+
+public draw_mesh(mesh: MeshId, pos: vec3.Vec3, c: color.Color) -> void
+    rl.ori_rl_DrawMesh(mesh, pos.x, pos.y, pos.z, c.r, c.g, c.b, c.a)
+end
+
+public unload_mesh(mesh: MeshId) -> void
+    rl.ori_rl_UnloadMesh(mesh)
+end
+
+public load_model_from_mesh(mesh: MeshId) -> ModelId
+    return rl.ori_rl_LoadModelFromMeshId(mesh)
+end
+
+public load_model(path: string) -> ModelId
+    return rl.ori_rl_LoadModel(mem.string_as_ptr(path))
+end
+
+public unload_model(model: ModelId) -> void
+    rl.ori_rl_UnloadModel(model)
+end
+
+public draw_model(model: ModelId, pos: vec3.Vec3, scale: float, tint: color.Color) -> void
+    rl.ori_rl_DrawModel(model, pos.x, pos.y, pos.z, scale, tint.r, tint.g, tint.b, tint.a)
+end
+
+public draw_model_wires(model: ModelId, pos: vec3.Vec3, scale: float, tint: color.Color) -> void
+    rl.ori_rl_DrawModelWires(model, pos.x, pos.y, pos.z, scale, tint.r, tint.g, tint.b, tint.a)
+end
+
+-- Billboard faces the given camera (pass game.camera3d.Camera3D).
+public draw_billboard(
+    cam: cam3.Camera3D,
+    texture: TextureId,
+    pos: vec3.Vec3,
+    scale: float,
+    tint: color.Color
+) -> void
+    rl.ori_rl_DrawBillboard(
+        cam.position.x, cam.position.y, cam.position.z,
+        cam.target.x, cam.target.y, cam.target.z,
+        cam.up.x, cam.up.y, cam.up.z,
+        cam.fovy, cam.projection,
+        texture,
+        pos.x, pos.y, pos.z, scale,
+        tint.r, tint.g, tint.b, tint.a
+    )
+end
+
+public draw_model_ex(
+    model: ModelId,
+    pos: vec3.Vec3,
+    axis: vec3.Vec3,
+    angle: float,
+    scale: vec3.Vec3,
+    tint: color.Color
+) -> void
+    rl.ori_rl_DrawModelEx(
+        model,
+        pos.x, pos.y, pos.z,
+        axis.x, axis.y, axis.z,
+        angle,
+        scale.x, scale.y, scale.z,
+        tint.r, tint.g, tint.b, tint.a
+    )
+end
+
+public alias AnimSetId = int
+
+public set_model_diffuse_texture(model: ModelId, texture: int) -> void
+    rl.ori_rl_SetModelDiffuseTexture(model, texture)
+end
+
+public load_model_animations(path: string) -> AnimSetId
+    return rl.ori_rl_LoadModelAnimations(mem.string_as_ptr(path))
+end
+
+public model_animation_count(anim_set: AnimSetId) -> int
+    return rl.ori_rl_ModelAnimationCount(anim_set)
+end
+
+public update_model_animation(
+    model: ModelId,
+    anim_set: AnimSetId,
+    anim_index: int,
+    frame: int
+) -> void
+    rl.ori_rl_UpdateModelAnimation(model, anim_set, anim_index, frame)
+end
+
+-- Skeletal: zero root bone XZ translation so the clip does not walk away.
+public update_model_animation_in_place(
+    model: ModelId,
+    anim_set: AnimSetId,
+    anim_index: int,
+    frame: int
+) -> void
+    rl.ori_rl_UpdateModelAnimationInPlace(model, anim_set, anim_index, frame)
+end
+
+-- GPU skinning: only boneMatrices; vertex shader deforms (requires skinning shader on materials).
+public update_model_animation_bones(
+    model: ModelId,
+    anim_set: AnimSetId,
+    anim_index: int,
+    frame: int
+) -> void
+    rl.ori_rl_UpdateModelAnimationBones(model, anim_set, anim_index, frame)
+end
+
+public update_model_animation_bones_in_place(
+    model: ModelId,
+    anim_set: AnimSetId,
+    anim_index: int,
+    frame: int
+) -> void
+    rl.ori_rl_UpdateModelAnimationBonesInPlace(model, anim_set, anim_index, frame)
+end
+
+public model_supports_gpu_skinning(model: ModelId) -> bool
+    return rl.ori_rl_ModelSupportsGpuSkinning(model) != 0
+end
+
+public model_set_all_materials_shader(model: ModelId, shader: int) -> void
+    rl.ori_rl_ModelSetAllMaterialsShader(model, shader)
+end
+
+public unload_model_animations(anim_set: AnimSetId) -> void
+    rl.ori_rl_UnloadModelAnimations(anim_set)
+end
+
+public model_animation_frame_count(anim_set: AnimSetId, anim_index: int) -> int
+    return rl.ori_rl_ModelAnimationFrameCount(anim_set, anim_index)
+end
+
+-- Advance animation by dt (seconds) using integer frame storage in the caller.
+public next_animation_frame(
+    anim_set: AnimSetId,
+    anim_index: int,
+    frame: int,
+    fps: int
+) -> int
+    const n: int = rl.ori_rl_ModelAnimationFrameCount(anim_set, anim_index)
+    if n <= 0
+        return 0
+    end
+    var f: int = frame + 1
+    if fps <= 0
+        f = frame + 1
+    end
+    if f >= n
+        return 0
+    end
+    return f
+end

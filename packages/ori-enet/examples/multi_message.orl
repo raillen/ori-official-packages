@@ -1,0 +1,83 @@
+module app.multi_message
+
+-- Loopback: client sends three reliable messages; server echoes count.
+
+imports
+    enet.host = enet
+    ori.io = io
+end
+
+const port: int = 27778
+const channels: int = 1
+const max_iters: int = 500
+
+main()
+    if not enet.initialize_ok()
+        io.print("init_fail")
+        return
+    end
+
+    var server: enet.Host = enet.create_server(port, 4, channels)
+    var client: enet.Host = enet.create_client(1, channels)
+    if not enet.is_valid(server) or not enet.is_valid(client)
+        io.print("host_fail")
+        enet.deinitialize()
+        return
+    end
+
+    var remote: enet.Peer = enet.connect(client, "127.0.0.1", port, channels)
+    if not enet.peer_is_valid(remote)
+        io.print("connect_fail")
+        enet.destroy(client)
+        enet.destroy(server)
+        enet.deinitialize()
+        return
+    end
+
+    var server_peer: enet.Peer = enet.Peer { id: 0 - 1 }
+    var client_ok: bool = false
+    var received: int = 0
+    var sent: int = 0
+    var i: int = 0
+    while i < max_iters
+        const se: int = enet.service(server, 5)
+        if se == enet.EVENT_CONNECT
+            server_peer = enet.event_peer()
+        end
+        if se == enet.EVENT_RECEIVE
+            const msg: string = enet.packet_text()
+            enet.destroy_packet()
+            if msg == "m1" or msg == "m2" or msg == "m3"
+                received = received + 1
+            end
+        end
+
+        const ce: int = enet.service(client, 5)
+        if ce == enet.EVENT_CONNECT
+            client_ok = true
+            enet.send_text(remote, "m1", 0, true)
+            enet.send_text(remote, "m2", 0, true)
+            enet.send_text(remote, "m3", 0, true)
+            sent = 3
+            enet.flush(client)
+        end
+
+        if client_ok and received >= 3
+            break
+        end
+        i = i + 1
+    end
+
+    const peers: int = enet.host_peer_count(server)
+    const sent_bytes: int = enet.host_total_sent(client)
+    enet.disconnect_now(remote)
+    enet.destroy(client)
+    enet.destroy(server)
+    enet.deinitialize()
+
+    if client_ok and sent == 3 and received >= 3 and peers >= 0 and sent_bytes >= 0
+        io.print("ok")
+        return
+    end
+    io.print("fail")
+end

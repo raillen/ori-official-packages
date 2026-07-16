@@ -1,0 +1,109 @@
+module freetype.text
+
+-- LTR metrics helpers (single codepoints + kerning pairs).
+-- Complex scripts / full strings → harfbuzz.shape.
+
+import freetype.face = ft
+import ori.list = lists
+
+public struct GlyphMetrics
+    codepoint: int
+    glyph_index: int
+    advance_m: int
+    bearing_x: int
+    bearing_y: int
+    width: int
+    height: int
+end
+
+public struct FaceMetrics
+    ascender_m: int
+    descender_m: int
+    height_m: int
+    units_per_em: int
+    has_kerning: bool
+end
+
+public measure_char(face: ft.FaceId, codepoint: int) -> GlyphMetrics
+    const gi: int = ft.char_index(face, codepoint)
+    if not ft.render_char(face, codepoint)
+        return GlyphMetrics {
+            codepoint: codepoint,
+            glyph_index: gi,
+            advance_m: 0,
+            bearing_x: 0,
+            bearing_y: 0,
+            width: 0,
+            height: 0
+        }
+    end
+    return GlyphMetrics {
+        codepoint: codepoint,
+        glyph_index: gi,
+        advance_m: ft.advance_m(),
+        bearing_x: ft.bearing_x(),
+        bearing_y: ft.bearing_y(),
+        width: ft.bitmap_width(),
+        height: ft.bitmap_height()
+    }
+end
+
+public face_metrics(face: ft.FaceId) -> FaceMetrics
+    return FaceMetrics {
+        ascender_m: ft.ascender_m(face),
+        descender_m: ft.descender_m(face),
+        height_m: ft.height_m(face),
+        units_per_em: ft.units_per_em(face),
+        has_kerning: ft.has_kerning(face)
+    }
+end
+
+public line_height_m(face: ft.FaceId) -> int
+    return ft.height_m(face)
+end
+
+-- Advance for a fixed list of Unicode scalars (caller builds the list).
+public measure_codepoints_advance_m(face: ft.FaceId, codepoints: list[int]) -> int
+    var sum: int = 0
+    var prev_gi: int = 0
+    var i: int = 0
+    while i < lists.len(codepoints)
+        const cp: int = codepoints[i]
+        const gi: int = ft.char_index(face, cp)
+        if ft.has_kerning(face) and prev_gi != 0 and gi != 0
+            sum = sum + ft.kerning_x_m(face, prev_gi, gi)
+        end
+        if ft.render_char(face, cp)
+            sum = sum + ft.advance_m()
+        end
+        prev_gi = gi
+        i = i + 1
+    end
+    return sum
+end
+
+-- Measure each codepoint → list[GlyphMetrics] (includes per-glyph kerning into advance of glyph i).
+public measure_codepoints(face: ft.FaceId, codepoints: list[int]) -> list[GlyphMetrics]
+    var out: list[GlyphMetrics] = []
+    var prev_gi: int = 0
+    var i: int = 0
+    while i < lists.len(codepoints)
+        const cp: int = codepoints[i]
+        var gm: GlyphMetrics = measure_char(face, cp)
+        if ft.has_kerning(face) and prev_gi != 0 and gm.glyph_index != 0
+            gm = GlyphMetrics {
+                codepoint: gm.codepoint,
+                glyph_index: gm.glyph_index,
+                advance_m: gm.advance_m + ft.kerning_x_m(face, prev_gi, gm.glyph_index),
+                bearing_x: gm.bearing_x,
+                bearing_y: gm.bearing_y,
+                width: gm.width,
+                height: gm.height
+            }
+        end
+        lists.push(out, gm)
+        prev_gi = gm.glyph_index
+        i = i + 1
+    end
+    return out
+end

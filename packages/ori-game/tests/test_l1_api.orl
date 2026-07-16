@@ -1,0 +1,25 @@
+module tests.l1_api
+
+-- Pure aliases only (no raylib link). L1 wrappers + 3D are covered by
+-- `ori check` on game/* and smoke compile of examples/hello_3d.orl.
+
+imports
+    ori.test = test
+    game.ids = ids
+end
+
+@test
+handle_aliases()
+    const t: ids.TextureId = 0
+    const m: ids.ModelId = 1
+    const s: ids.SoundId = 2
+    const music: ids.MusicId = 3
+    const font: ids.FontId = 4
+    const e: ids.EntityId = 7
+    test.assert(t == 0, "texture")
+    test.assert(m == 1, "model")
+    test.assert(s == 2, "sound")
+    test.assert(music == 3, "music")
+    test.assert(font == 4, "font")
+    test.assert(e == 7, "entity")
+end

@@ -1,0 +1,51 @@
+module stb.rect_pack
+
+extern c
+    public ori_stb_pack_begin(count: int) -> int
+    public ori_stb_pack_add(w: int, h: int) -> int
+    public ori_stb_pack_run(atlas_w: int, atlas_h: int) -> int
+    public ori_stb_pack_x(i: int) -> int
+    public ori_stb_pack_y(i: int) -> int
+    public ori_stb_pack_w(i: int) -> int
+    public ori_stb_pack_h(i: int) -> int
+    public ori_stb_pack_was(i: int) -> int
+    public ori_stb_pack_count() -> int
+end
+
+-- init session for up to `count` rects (max 64)
+public begin_pack(count: int) -> bool
+    return ori_stb_pack_begin(count) == 0
+end
+
+public add_rect(w: int, h: int) -> bool
+    return ori_stb_pack_add(w, h) == 0
+end
+
+-- pack into atlas; returns number of successfully packed rects
+public run(atlas_w: int, atlas_h: int) -> int
+    return ori_stb_pack_run(atlas_w, atlas_h)
+end
+
+public rect_x(i: int) -> int
+    return ori_stb_pack_x(i)
+end
+
+public rect_y(i: int) -> int
+    return ori_stb_pack_y(i)
+end
+
+public rect_w(i: int) -> int
+    return ori_stb_pack_w(i)
+end
+
+public rect_h(i: int) -> int
+    return ori_stb_pack_h(i)
+end
+
+public was_packed(i: int) -> bool
+    return ori_stb_pack_was(i) != 0
+end
+
+public rect_count() -> int
+    return ori_stb_pack_count()
+end

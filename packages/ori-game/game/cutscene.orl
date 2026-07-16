@@ -1,0 +1,124 @@
+module game.cutscene
+
+-- Lightweight step runner: wait / dialogue-line / marker.
+
+import ori.list = lists
+
+public const STEP_WAIT: int = 1
+public const STEP_DIALOGUE: int = 2
+public const STEP_MARKER: int = 3
+
+public struct Step
+    kind: int
+    duration: float
+    text: string
+end
+
+public struct Runner
+    steps: list[Step]
+    index: int
+    elapsed: float
+    active: bool
+    last_marker: string
+end
+
+public create() -> Runner
+    return Runner {
+        steps: [],
+        index: 0,
+        elapsed: 0.0,
+        active: false,
+        last_marker: ""
+    }
+end
+
+public add_wait(r: Runner, seconds: float) -> Runner
+    var out: Runner = r
+    lists.push(out.steps, Step { kind: STEP_WAIT, duration: seconds, text: "" })
+    return out
+end
+
+public add_dialogue(r: Runner, text: string) -> Runner
+    var out: Runner = r
+    lists.push(out.steps, Step { kind: STEP_DIALOGUE, duration: 0.0, text: text })
+    return out
+end
+
+public add_marker(r: Runner, name: string) -> Runner
+    var out: Runner = r
+    lists.push(out.steps, Step { kind: STEP_MARKER, duration: 0.0, text: name })
+    return out
+end
+
+public start(r: Runner) -> Runner
+    var out: Runner = r
+    out.index = 0
+    out.elapsed = 0.0
+    out.active = lists.len(out.steps) > 0
+    out.last_marker = ""
+    return out
+end
+
+-- Advance markers immediately; wait accumulates dt.
+public tick(r: Runner, dt: float) -> Runner
+    var out: Runner = r
+    if not out.active
+        return out
+    end
+    var remain: float = dt
+    var guard: int = 0
+    while out.active and guard < 32
+        guard = guard + 1
+        if out.index >= lists.len(out.steps)
+            out.active = false
+            return out
+        end
+        const step: Step = out.steps[out.index]
+        if step.kind == STEP_MARKER
+            out.last_marker = step.text
+            out.index = out.index + 1
+            out.elapsed = 0.0
+        elif step.kind == STEP_DIALOGUE
+            return out
+        else
+            out.elapsed = out.elapsed + remain
+            remain = 0.0
+            if out.elapsed >= step.duration
+                out.index = out.index + 1
+                out.elapsed = 0.0
+            else
+                return out
+            end
+        end
+    end
+    if out.index >= lists.len(out.steps)
+        out.active = false
+    end
+    return out
+end
+
+public advance_dialogue(r: Runner) -> Runner
+    var out: Runner = r
+    if not out.active or out.index >= lists.len(out.steps)
+        return out
+    end
+    if out.steps[out.index].kind == STEP_DIALOGUE
+        out.index = out.index + 1
+        out.elapsed = 0.0
+        if out.index >= lists.len(out.steps)
+            out.active = false
+        end
+    end
+    return out
+end
+
+public current_text(r: Runner) -> string
+    if not r.active or r.index >= lists.len(r.steps)
+        return ""
+    end
+    return r.steps[r.index].text
+end
+
+public is_active(r: Runner) -> bool
+    return r.active
+end

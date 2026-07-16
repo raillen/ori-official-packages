@@ -1,0 +1,143 @@
+module test.ogame_level
+
+imports
+    game.ogame_level = level
+    game.ogame_level_csg = csg
+    game.ogame_alarms = alarms
+    ori.list = lists
+    ori.test = test
+end
+
+@test
+level_parse_counts()
+    const raw: string = "{\"brushes\":[{\"id\":\"b1\",\"kind\":\"box\",\"x\":0.0,\"y\":0.0,\"z\":0.0,\"sx\":32.0,\"sy\":16.0,\"sz\":32.0,\"r\":100,\"g\":100,\"b\":100},{\"id\":\"b2\",\"kind\":\"box\",\"x\":100.0,\"y\":0.0,\"z\":0.0,\"sx\":16.0,\"sy\":16.0,\"sz\":16.0}],\"subtracts\":[{\"id\":\"s1\",\"x\":0.0,\"y\":0.0,\"z\":0.0,\"sx\":40.0,\"sy\":20.0,\"sz\":40.0}]}"
+    const lvl: level.LevelGeometry = level.parse_level_text(raw)
+    test.equal_int(level.brush_count(lvl), 2)
+    test.equal_int(level.subtract_count(lvl), 1)
+    -- b1 fully covered by subtract → 0 pieces; b2 survives → 1 solid
+    test.equal_int(level.solid_count(lvl), 1)
+end
+
+@test
+level_solids_and_terrain()
+    const raw: string = "{\"brushes\":[{\"id\":\"b1\",\"kind\":\"box\",\"x\":50.0,\"y\":8.0,\"z\":50.0,\"sx\":16.0,\"sy\":16.0,\"sz\":16.0,\"collider\":true,\"layer\":1}],\"subtracts\":[],\"terrain\":{\"cellSize\":16.0,\"width\":2,\"depth\":2,\"heights\":[1,0,2,0],\"r\":80,\"g\":120,\"b\":60}}"
+    const lvl: level.LevelGeometry = level.parse_level_text(raw)
+    test.equal_int(level.brush_count(lvl), 1)
+    -- 1 brush + 2 terrain columns (heights 1 and 2)
+    const n: int = level.solids_count(lvl)
+    test.equal_int(n, 3)
+end
+
+@test
+csg_partial_carve_multi_piece()
+    -- Box 32x16x32 minus inner 8x20x8 through center → multiple remaining slabs
+    const solid: csg.Aabb = csg.aabb(0.0, 0.0, 0.0, 32.0, 16.0, 32.0)
+    var cuts: list[csg.Aabb] = []
+    lists.push(cuts, csg.aabb(0.0, 0.0, 0.0, 8.0, 20.0, 8.0))
+    const pieces: list[csg.Aabb] = csg.carve(solid, cuts)
+    const n: int = lists.len(pieces)
+    test.assert(n >= 4, "partial carve should yield multiple AABBs")
+    test.assert(n <= 6, "single AABB cut yields at most 6 slabs")
+end
+
+@test
+csg_oriented_world_aabb_grows()
+    -- Rotated 45° about Y expands XZ footprint beyond original size
+    const box: csg.OrientedBox = csg.oriented_box(0.0, 0.0, 0.0, 10.0, 10.0, 10.0, 0.0, 45.0, 0.0)
+    const a: csg.Aabb = csg.oriented_box_to_aabb(box)
+    test.assert(a.sx > 10.0, "rotated box world AABB sx > unrotated")
+    test.assert(a.sz > 10.0, "rotated box world AABB sz > unrotated")
+end
+
+@test
+csg_bounds_roundtrip()
+    const a: csg.Aabb = csg.aabb(1.0, 2.0, 3.0, 4.0, 6.0, 8.0)
+    const b: csg.Bounds3 = csg.aabb_to_bounds(a)
+    const back: csg.Aabb = csg.bounds_to_aabb(b)
+    test.assert(csg.bounds_is_empty(b) == false, "non-empty bounds")
+    test.assert(math_abs_near(back.x, a.x), "center x")
+    test.assert(math_abs_near(back.sx, a.sx), "size x")
+end
+
+math_abs_near(a: float, b: float) -> bool
+    const d: float = a - b
+    if d < 0.0
+        return 0.0 - d < 0.0001
+    end
+    return d < 0.0001
+end
+
+@test
+csg_multi_cut_n_boxes()
+    const solid: csg.Aabb = csg.aabb(0.0, 0.0, 0.0, 40.0, 20.0, 40.0)
+    var cuts: list[csg.Aabb] = []
+    lists.push(cuts, csg.aabb(-10.0, 0.0, 0.0, 8.0, 24.0, 8.0))
+    lists.push(cuts, csg.aabb(10.0, 0.0, 0.0, 8.0, 24.0, 8.0))
+    const pieces: list[csg.Aabb] = csg.carve(solid, cuts)
+    test.assert(lists.len(pieces) >= 2, "two cuts produce multi-piece result")
+end
+
+@test
+resolve_sphere_pushes_out()
+    var solids: list[level.SolidPiece] = []
+    lists.push(solids, level.SolidPiece {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        sx: 20.0,
+        sy: 20.0,
+        sz: 20.0,
+        r: 100,
+        g: 100,
+        b: 100,
+        a: 255,
+        metallic: 0.0,
+        roughness: 0.8,
+        layer: 1,
+        collider: true
+    })
+    -- Sphere center inside solid near +X face
+    const out: level.Vec3Pos = level.resolve_sphere(2.0, 0.0, 0.0, 2.0, solids)
+    test.assert(out.x >= 10.0 or out.x <= -10.0 or out.y >= 10.0 or out.y <= -10.0 or out.z >= 10.0 or out.z <= -10.0, "resolve should push sphere outside expanded AABB")
+end
+
+@test
+resolve_sphere_respects_layer_mask()
+    var solids: list[level.SolidPiece] = []
+    lists.push(solids, level.SolidPiece {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        sx: 20.0,
+        sy: 20.0,
+        sz: 20.0,
+        r: 100,
+        g: 100,
+        b: 100,
+        a: 255,
+        metallic: 0.0,
+        roughness: 0.8,
+        layer: 2,
+        collider: true
+    })
+    -- Mask layer 1 ignores solid on layer 2 → center unchanged
+    const out: level.Vec3Pos = level.resolve_sphere_on_layer(2.0, 0.0, 0.0, 2.0, solids, 1)
+    test.assert(out.x == 2.0 and out.y == 0.0 and out.z == 0.0, "wrong layer must not push")
+end
+
+@test
+engine_test_scene_has_floor()
+    const raw: string = "{\"brushes\":[{\"id\":\"brush_floor\",\"kind\":\"box\",\"x\":0.0,\"y\":0.0,\"z\":0.0,\"sx\":200.0,\"sy\":2.0,\"sz\":200.0,\"collider\":true,\"layer\":1}],\"subtracts\":[],\"instances\":[]}"
+    const lvl: level.LevelGeometry = level.parse_level_text(raw)
+    test.equal_int(level.brush_count(lvl), 1)
+    test.assert(level.solids_count(lvl) >= 1, "floor produces solids")
+end
+
+@test
+alarms_tick_and_fire()
+    var bank: alarms.AlarmBank = alarms.empty_bank()
+    bank = alarms.set_alarm(bank, 0, 50)
+    test.equal_int(alarms.get_alarm(bank, 0), 50)
+    const fires: int = alarms.fire_count_after_tick(bank, 100)
+    test.equal_int(fires, 1)
+end

@@ -1,0 +1,74 @@
+module test.gltf
+
+imports
+    game.gltf = gltf
+    ori.test = test
+end
+
+@test
+load_minimal_triangle()
+    test.assert(gltf.load_file("tests/fixtures/minimal.gltf"), "load minimal.gltf")
+    test.assert(gltf.mesh_count() > 0, "mesh_count")
+    test.assert(gltf.node_count() > 0, "node_count")
+    test.assert(gltf.material_count() > 0, "material_count")
+    test.equal_int(gltf.mesh0_vertex_count(), 3)
+    test.equal_int(gltf.mesh_primitive_count(0), 1)
+    test.equal_int(gltf.mesh_vertex_count(0, 0), 3)
+    test.equal_int(gltf.mesh_index_count(0, 0), 3)
+    test.assert(gltf.mesh_has_position(0, 0), "has POSITION")
+    test.assert(gltf.mesh_has_normal(0, 0), "has NORMAL")
+    gltf.free()
+end
+
+@test
+load_missing_fails()
+    test.assert(not gltf.load_file("tests/fixtures/does_not_exist.gltf"), "missing")
+    test.equal_int(gltf.mesh_count(), 0)
+    test.assert(not gltf.export_mesh(0, 0), "export without document fails")
+end
+
+@test
+export_interleaved_mesh()
+    test.assert(gltf.load_file("tests/fixtures/minimal.gltf"), "load")
+    test.assert(gltf.export_mesh(0, 0), "export mesh 0 prim 0")
+    test.equal_int(gltf.export_vertex_count(), 3)
+    test.equal_int(gltf.export_index_count(), 3)
+    test.equal_int(gltf.export_float_count(), 18)
+    -- positions: (0,0,0), (1,0,0), (0,1,0)
+    test.equal_int(gltf.export_pos_m(0, 0), 0)
+    test.equal_int(gltf.export_pos_m(0, 1), 0)
+    test.equal_int(gltf.export_pos_m(0, 2), 0)
+    test.equal_int(gltf.export_pos_m(1, 0), 1000)
+    test.equal_int(gltf.export_pos_m(1, 1), 0)
+    test.equal_int(gltf.export_pos_m(1, 2), 0)
+    test.equal_int(gltf.export_pos_m(2, 0), 0)
+    test.equal_int(gltf.export_pos_m(2, 1), 1000)
+    test.equal_int(gltf.export_pos_m(2, 2), 0)
+    -- normals all (0,0,1)
+    test.equal_int(gltf.export_normal_m(0, 0), 0)
+    test.equal_int(gltf.export_normal_m(0, 1), 0)
+    test.equal_int(gltf.export_normal_m(0, 2), 1000)
+    test.equal_int(gltf.export_normal_m(2, 2), 1000)
+    test.equal_int(gltf.export_index(0), 0)
+    test.equal_int(gltf.export_index(1), 1)
+    test.equal_int(gltf.export_index(2), 2)
+    test.assert(gltf.export_floats_ptr() != 0, "floats ptr")
+    test.assert(gltf.export_indices_ptr() != 0, "indices ptr")
+    -- sum of milli floats: positions 2000 + normals 3000 = 5000
+    test.equal_int(gltf.export_sum_m(), 5000)
+    gltf.free()
+    test.equal_int(gltf.export_vertex_count(), 0)
+end
+
+@test
+node_trs_and_material()
+    test.assert(gltf.load_file("tests/fixtures/minimal.gltf"), "load")
+    test.assert(gltf.node_has_translation(0), "has_translation")
+    test.equal_int(gltf.node_translation_m(0, 0), 1500)
+    test.equal_int(gltf.node_translation_m(0, 1), 2000)
+    test.equal_int(gltf.node_translation_m(0, 2), -500)
+    test.equal_int(gltf.node_scale_m(0, 0), 2000)
+    test.equal_int(gltf.material_base_color_m(0, 0), 500)
+    test.equal_int(gltf.material_base_color_m(0, 1), 250)
+    gltf.free()
+end

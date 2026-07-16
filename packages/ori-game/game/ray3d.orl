@@ -1,0 +1,101 @@
+module game.ray3d
+
+-- R3: mouse ray + collision queries (sphere / AABB / ground plane).
+-- Hit results are read after a successful hit_* call.
+
+import raylib = rl
+import game.camera3d = cam3
+import game.color = color
+import ori.math.vec3 = vec3
+import ori.math.vec2 = vec2
+
+public struct Ray3
+    origin: vec3.Vec3
+    direction: vec3.Vec3
+end
+
+public struct Hit3
+    point: vec3.Vec3
+    normal: vec3.Vec3
+    distance: float
+end
+
+public mouse_ray(mouse: vec2.Vec2, cam: cam3.Camera3D) -> Ray3
+    const pos: vec3.Vec3 = cam3.position_of(cam)
+    const target: vec3.Vec3 = cam3.target_of(cam)
+    const up: vec3.Vec3 = cam3.up_of(cam)
+    rl.ori_rl_GetMouseRay(
+        mouse.x, mouse.y,
+        pos.x, pos.y, pos.z,
+        target.x, target.y, target.z,
+        up.x, up.y, up.z,
+        cam3.fovy_of(cam),
+        cam3.projection_of(cam)
+    )
+    return Ray3 {
+        origin: vec3.Vec3 {
+            x: rl.ori_rl_LastRayOx(),
+            y: rl.ori_rl_LastRayOy(),
+            z: rl.ori_rl_LastRayOz()
+        },
+        direction: vec3.Vec3 {
+            x: rl.ori_rl_LastRayDx(),
+            y: rl.ori_rl_LastRayDy(),
+            z: rl.ori_rl_LastRayDz()
+        }
+    }
+end
+
+public last_hit() -> Hit3
+    return Hit3 {
+        point: vec3.Vec3 {
+            x: rl.ori_rl_LastHitX(),
+            y: rl.ori_rl_LastHitY(),
+            z: rl.ori_rl_LastHitZ()
+        },
+        normal: vec3.Vec3 {
+            x: rl.ori_rl_LastHitNx(),
+            y: rl.ori_rl_LastHitNy(),
+            z: rl.ori_rl_LastHitNz()
+        },
+        distance: rl.ori_rl_LastHitDist()
+    }
+end
+
+public hit_sphere(ray: Ray3, center: vec3.Vec3, radius: float) -> bool
+    return rl.ori_rl_RayHitSphere(
+        ray.origin.x, ray.origin.y, ray.origin.z,
+        ray.direction.x, ray.direction.y, ray.direction.z,
+        center.x, center.y, center.z,
+        radius
+    )
+end
+
+public hit_box(
+    ray: Ray3,
+    min_c: vec3.Vec3,
+    max_c: vec3.Vec3
+) -> bool
+    return rl.ori_rl_RayHitBox(
+        ray.origin.x, ray.origin.y, ray.origin.z,
+        ray.direction.x, ray.direction.y, ray.direction.z,
+        min_c.x, min_c.y, min_c.z,
+        max_c.x, max_c.y, max_c.z
+    )
+end
+
+public hit_ground(ray: Ray3, ground_y: float) -> bool
+    return rl.ori_rl_RayHitGround(
+        ray.origin.x, ray.origin.y, ray.origin.z,
+        ray.direction.x, ray.direction.y, ray.direction.z,
+        ground_y
+    )
+end
+
+public draw_bounding_box(min_c: vec3.Vec3, max_c: vec3.Vec3, c: color.Color) -> void
+    rl.ori_rl_DrawBoundingBox(
+        min_c.x, min_c.y, min_c.z,
+        max_c.x, max_c.y, max_c.z,
+        c.r, c.g, c.b, c.a
+    )
+end

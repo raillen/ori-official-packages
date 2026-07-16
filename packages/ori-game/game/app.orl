@@ -1,0 +1,134 @@
+module game.app
+
+import ori.mem = mem
+import ori.math.vec2 = vec2
+import raylib = rl
+
+public alias UpdateFn = func(float) -> void
+public alias DrawFn = func() -> void
+
+-- raylib ConfigFlags (subset) — int for Ori const; cast at call site.
+public const FLAG_WINDOW_RESIZABLE: int = 4
+public const FLAG_WINDOW_MAXIMIZED: int = 1024
+public const FLAG_VSYNC_HINT: int = 64
+
+public run_window(
+    title: string,
+    width: int,
+    height: int,
+    update: UpdateFn,
+    draw: DrawFn
+) -> void
+    const title_ptr: int = mem.string_as_ptr(title)
+    -- Maximize / drag edges need RESIZABLE (before InitWindow).
+    rl.ori_rl_SetConfigFlags(FLAG_WINDOW_RESIZABLE)
+    rl.ori_rl_InitWindow(width, height, title_ptr)
+    rl.ori_rl_SetTargetFPS(60)
+    while not rl.ori_rl_WindowShouldClose()
+        const dt: float = rl.ori_rl_GetFrameTime()
+        update(dt)
+        rl.ori_rl_BeginDrawing()
+        rl.ori_rl_ClearBackground(20, 24, 32, 255)
+        draw()
+        rl.ori_rl_EndDrawing()
+    end
+    rl.ori_rl_CloseWindow()
+end
+
+public run_window_clear(
+    title: string,
+    width: int,
+    height: int,
+    clear_r: int,
+    clear_g: int,
+    clear_b: int,
+    update: UpdateFn,
+    draw: DrawFn
+) -> void
+    const title_ptr: int = mem.string_as_ptr(title)
+    rl.ori_rl_SetConfigFlags(FLAG_WINDOW_RESIZABLE)
+    rl.ori_rl_InitWindow(width, height, title_ptr)
+    rl.ori_rl_SetTargetFPS(60)
+    while not rl.ori_rl_WindowShouldClose()
+        const dt: float = rl.ori_rl_GetFrameTime()
+        update(dt)
+        rl.ori_rl_BeginDrawing()
+        rl.ori_rl_ClearBackground(clear_r, clear_g, clear_b, 255)
+        draw()
+        rl.ori_rl_EndDrawing()
+    end
+    rl.ori_rl_CloseWindow()
+end
+
+-- Manual loop escape hatch (when run_window is too high-level).
+public init_window(title: string, width: int, height: int) -> void
+    rl.ori_rl_InitWindow(width, height, mem.string_as_ptr(title))
+end
+
+public close_window() -> void
+    rl.ori_rl_CloseWindow()
+end
+
+public window_should_close() -> bool
+    return rl.ori_rl_WindowShouldClose()
+end
+
+public set_target_fps(fps: int) -> void
+    rl.ori_rl_SetTargetFPS(fps)
+end
+
+public fps() -> int
+    return rl.ori_rl_GetFPS()
+end
+
+public frame_time() -> float
+    return rl.ori_rl_GetFrameTime()
+end
+
+public time() -> float
+    return rl.ori_rl_GetTime()
+end
+
+public set_config_flags(flags: int) -> void
+    rl.ori_rl_SetConfigFlags(flags)
+end
+
+public toggle_fullscreen() -> void
+    rl.ori_rl_ToggleFullscreen()
+end
+
+public screen_width() -> int
+    return rl.ori_rl_GetScreenWidth()
+end
+
+public screen_height() -> int
+    return rl.ori_rl_GetScreenHeight()
+end
+
+public screen_size() -> vec2.Vec2
+    return vec2.Vec2 {
+        x: float(rl.ori_rl_GetScreenWidth()),
+        y: float(rl.ori_rl_GetScreenHeight())
+    }
+end
+
+public set_exit_key(key: int) -> void
+    rl.ori_rl_SetExitKey(key)
+end
+
+public begin_drawing() -> void
+    rl.ori_rl_BeginDrawing()
+end
+
+public end_drawing() -> void
+    rl.ori_rl_EndDrawing()
+end
+
+-- Studio C5: open file path with OS default app (editor for .orl).
+public open_path(path: string) -> void
+    rl.ori_rl_OpenPath(mem.string_as_ptr(path))
+end
+
+public open_url(url: string) -> void
+    rl.ori_rl_OpenURL(mem.string_as_ptr(url))
+end

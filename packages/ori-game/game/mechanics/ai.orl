@@ -1,0 +1,60 @@
+module game.mechanics.ai
+
+import ori.math.vec2 = vec2
+
+public chase(self_pos: vec2.Vec2, target: vec2.Vec2, speed: float, dt: float) -> vec2.Vec2
+    const dx: float = target.x - self_pos.x
+    const dy: float = target.y - self_pos.y
+    const dist_sq: float = dx * dx + dy * dy
+    if dist_sq <= 0.0001
+        return self_pos
+    end
+    const inv: float = speed * dt / (dist_sq + 1.0)
+    return vec2.Vec2 { x: self_pos.x + dx * inv, y: self_pos.y + dy * inv }
+end
+
+public flee(self_pos: vec2.Vec2, threat: vec2.Vec2, speed: float, dt: float) -> vec2.Vec2
+    const dx: float = self_pos.x - threat.x
+    const dy: float = self_pos.y - threat.y
+    const dist_sq: float = dx * dx + dy * dy
+    const inv: float = speed * dt / (dist_sq + 1.0)
+    return vec2.Vec2 { x: self_pos.x + dx * inv, y: self_pos.y + dy * inv }
+end
+
+public in_aggro(self_pos: vec2.Vec2, target: vec2.Vec2, radius: float) -> bool
+    const dx: float = target.x - self_pos.x
+    const dy: float = target.y - self_pos.y
+    return dx * dx + dy * dy <= radius * radius
+end
+
+public struct Patrol
+    a: vec2.Vec2
+    b: vec2.Vec2
+    going_to_b: bool
+end
+
+public create_patrol(a: vec2.Vec2, b: vec2.Vec2) -> Patrol
+    return Patrol { a: a, b: b, going_to_b: true }
+end
+
+public patrol_step(p: Patrol, pos: vec2.Vec2, speed: float, dt: float, arrive_eps: float) -> Patrol
+    var out: Patrol = p
+    var target: vec2.Vec2 = out.a
+    if out.going_to_b
+        target = out.b
+    end
+    const dx: float = target.x - pos.x
+    const dy: float = target.y - pos.y
+    const dist_sq: float = dx * dx + dy * dy
+    if dist_sq <= arrive_eps * arrive_eps
+        out.going_to_b = not out.going_to_b
+    end
+    return out
+end
+
+public patrol_target(p: Patrol) -> vec2.Vec2
+    if p.going_to_b
+        return p.b
+    end
+    return p.a
+end

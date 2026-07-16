@@ -1,0 +1,31 @@
+module app.particles_demo
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.particles = particles
+    ori.math.vec2 = vec2
+end
+
+var em: particles.Emitter = particles.create_emitter()
+
+on_update(dt: float) -> void
+    if input.mouse_down(input.MOUSE_LEFT)
+        const pos: vec2.Vec2 = input.mouse_pos()
+        em = particles.emit(em, pos, vec2.Vec2 { x: -40.0, y: -80.0 }, 0.8, 4.0, color.ORANGE)
+        em = particles.emit(em, pos, vec2.Vec2 { x: 40.0, y: -90.0 }, 0.7, 3.0, color.YELLOW)
+        em = particles.emit(em, pos, vec2.Vec2 { x: 0.0, y: -100.0 }, 0.9, 5.0, color.RED)
+    end
+    em = particles.update(em, dt)
+end
+
+on_draw() -> void
+    particles.draw_all(em)
+    draw.draw_text("Hold LMB to emit", vec2.Vec2 { x: 10.0, y: 10.0 }, 18, color.WHITE)
+end
+
+main()
+    app.run_window("Particles Demo", 640, 360, on_update, on_draw)
+end

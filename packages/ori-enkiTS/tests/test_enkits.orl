@@ -1,0 +1,71 @@
+module test.enkits
+
+imports
+    enkits.tasks = enki
+    ori.test = test
+end
+
+@test
+parallel_for_matches_serial()
+    test.assert(enki.init(4), "init")
+    test.assert(enki.num_threads() >= 2, "threads>=2")
+    const n: int = 5000
+    test.equal_int(enki.parallel_for_sum(n, 64), enki.serial_sum(n))
+    test.assert(enki.last_range_runs() >= 1, "ran ranges")
+    enki.shutdown()
+    test.assert(not enki.is_initialized(), "shutdown clears")
+end
+
+@test
+add_task_then_wait()
+    test.assert(enki.init(2), "init")
+    const n: int = 3000
+    test.assert(enki.add_range_sum(n, 32), "add")
+    enki.wait_scheduled_range()
+    test.assert(enki.is_range_complete(), "complete")
+    test.equal_int(enki.last_sum(), enki.serial_sum(n))
+    enki.shutdown()
+end
+
+@test
+n_independent_tasks()
+    test.assert(enki.init(4), "init")
+    const n: int = 256
+    test.equal_int(enki.run_n_tasks(n), enki.serial_sum(n))
+    test.equal_int(enki.tasks_completed(), n)
+    enki.wait_all()
+    enki.shutdown()
+end
+
+@test
+stress_many_tasks()
+    test.assert(enki.init(4), "init")
+    const n: int = 1024
+    var i: int = 0
+    while i < 4
+        test.equal_int(enki.run_n_tasks(n), enki.serial_sum(n))
+        test.equal_int(enki.tasks_completed(), n)
+        test.equal_int(enki.parallel_for_sum(n * 2, 8), enki.serial_sum(n * 2))
+        i = i + 1
+    end
+    enki.shutdown()
+    -- Re-init after clean shutdown.
+    test.assert(enki.init(0), "re-init default")
+    test.assert(enki.num_threads() >= 1, "hw threads")
+    test.equal_int(enki.parallel_sum(100), enki.serial_sum(100))
+    enki.shutdown()
+    enki.shutdown()
+    test.assert(not enki.is_initialized(), "double shutdown ok")
+end
+
+@test
+serial_and_edge()
+    test.equal_int(enki.serial_sum(100), 4950)
+    test.equal_int(enki.serial_sum(0), 0)
+    test.equal_int(enki.serial_sum(-1), 0)
+    -- Without init, parallel paths are no-ops.
+    test.assert(not enki.is_initialized(), "no init")
+    test.equal_int(enki.parallel_sum(50), 0)
+    test.equal_int(enki.run_n_tasks(10), 0)
+    test.equal_int(enki.num_threads(), 0)
+end

@@ -1,0 +1,339 @@
+module imgui.timeline
+
+-- Pure Ori animation timeline (product surface — sequencer G1).
+-- Choice: pure Ori, not C++ ImSequencer / separate ori-imsequencer package.
+-- G1: multi-track list, playhead milli, key CRUD, step + lerp sample.
+
+import ori.list = lists
+
+public struct Key
+    time_milli: int
+    value_milli: int
+end
+
+public struct Track
+    name: string
+    keys: list[Key]
+end
+
+public struct Timeline
+    tracks: list[Track]
+    playhead_milli: int
+    duration_milli: int
+    playing: bool
+end
+
+-- Lifecycle -----------------------------------------------------------------
+
+public create(duration_milli: int) -> Timeline
+    var d: int = duration_milli
+    if d < 0
+        d = 0
+    end
+    return Timeline {
+        tracks: [],
+        playhead_milli: 0,
+        duration_milli: d,
+        playing: false
+    }
+end
+
+public set_duration(tl: Timeline, duration_milli: int) -> Timeline
+    var out: Timeline = tl
+    var d: int = duration_milli
+    if d < 0
+        d = 0
+    end
+    out.duration_milli = d
+    if out.playhead_milli > d
+        out.playhead_milli = d
+    end
+    return out
+end
+
+public duration(tl: Timeline) -> int
+    return tl.duration_milli
+end
+
+public playhead(tl: Timeline) -> int
+    return tl.playhead_milli
+end
+
+public is_playing(tl: Timeline) -> bool
+    return tl.playing
+end
+
+-- Tracks --------------------------------------------------------------------
+
+public add_track(tl: Timeline, name: string) -> Timeline
+    var out: Timeline = tl
+    lists.push(out.tracks, Track { name: name, keys: [] })
+    return out
+end
+
+public remove_track(tl: Timeline, track: int) -> Timeline
+    var out: Timeline = tl
+    if track < 0 or track >= lists.len(out.tracks)
+        return out
+    end
+    lists.remove(out.tracks, track)
+    return out
+end
+
+public track_count(tl: Timeline) -> int
+    return lists.len(tl.tracks)
+end
+
+public track_name(tl: Timeline, track: int) -> string
+    if track < 0 or track >= lists.len(tl.tracks)
+        return ""
+    end
+    return tl.tracks[track].name
+end
+
+public rename_track(tl: Timeline, track: int, name: string) -> Timeline
+    var out: Timeline = tl
+    if track < 0 or track >= lists.len(out.tracks)
+        return out
+    end
+    var tr: Track = out.tracks[track]
+    tr.name = name
+    lists.set(out.tracks, track, tr)
+    return out
+end
+
+-- Keys (CRUD) ---------------------------------------------------------------
+
+-- Insert sorted by time_milli (stable for equal times: after existing equals).
+public add_key(tl: Timeline, track: int, time_milli: int, value_milli: int) -> Timeline
+    var out: Timeline = tl
+    if track < 0 or track >= lists.len(out.tracks)
+        return out
+    end
+    var tr: Track = out.tracks[track]
+    const k: Key = Key { time_milli: time_milli, value_milli: value_milli }
+    const n: int = lists.len(tr.keys)
+    var insert_at: int = n
+    var i: int = 0
+    while i < n
+        if tr.keys[i].time_milli > time_milli
+            insert_at = i
+            i = n
+        else
+            i = i + 1
+        end
+    end
+    if insert_at >= n
+        lists.push(tr.keys, k)
+    else
+        -- Rebuild with insert (list has no insert-at; rebuild keeps order).
+        var rebuilt: list[Key] = []
+        var j: int = 0
+        while j < n
+            if j == insert_at
+                lists.push(rebuilt, k)
+            end
+            lists.push(rebuilt, tr.keys[j])
+            j = j + 1
+        end
+        tr.keys = rebuilt
+    end
+    lists.set(out.tracks, track, tr)
+    return out
+end
+
+public remove_key(tl: Timeline, track: int, key_index: int) -> Timeline
+    var out: Timeline = tl
+    if track < 0 or track >= lists.len(out.tracks)
+        return out
+    end
+    var tr: Track = out.tracks[track]
+    if key_index < 0 or key_index >= lists.len(tr.keys)
+        return out
+    end
+    lists.remove(tr.keys, key_index)
+    lists.set(out.tracks, track, tr)
+    return out
+end
+
+public set_key(tl: Timeline, track: int, key_index: int, time_milli: int, value_milli: int) -> Timeline
+    var out: Timeline = tl
+    if track < 0 or track >= lists.len(out.tracks)
+        return out
+    end
+    var tr: Track = out.tracks[track]
+    if key_index < 0 or key_index >= lists.len(tr.keys)
+        return out
+    end
+    lists.set(tr.keys, key_index, Key { time_milli: time_milli, value_milli: value_milli })
+    lists.set(out.tracks, track, tr)
+    -- Re-sort after time edit so sample order stays valid.
+    return sort_track_keys(out, track)
+end
+
+public get_key(tl: Timeline, track: int, key_index: int) -> Key
+    if track < 0 or track >= lists.len(tl.tracks)
+        return Key { time_milli: 0, value_milli: 0 }
+    end
+    const tr: Track = tl.tracks[track]
+    if key_index < 0 or key_index >= lists.len(tr.keys)
+        return Key { time_milli: 0, value_milli: 0 }
+    end
+    return tr.keys[key_index]
+end
+
+public key_count(tl: Timeline, track: int) -> int
+    if track < 0 or track >= lists.len(tl.tracks)
+        return 0
+    end
+    return lists.len(tl.tracks[track].keys)
+end
+
+-- First key with exact time_milli, or -1.
+public find_key_at(tl: Timeline, track: int, time_milli: int) -> int
+    if track < 0 or track >= lists.len(tl.tracks)
+        return -1
+    end
+    const tr: Track = tl.tracks[track]
+    var i: int = 0
+    while i < lists.len(tr.keys)
+        if tr.keys[i].time_milli == time_milli
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+-- Playhead ------------------------------------------------------------------
+
+public play(tl: Timeline) -> Timeline
+    var out: Timeline = tl
+    out.playing = true
+    return out
+end
+
+public pause(tl: Timeline) -> Timeline
+    var out: Timeline = tl
+    out.playing = false
+    return out
+end
+
+public seek(tl: Timeline, time_milli: int) -> Timeline
+    var out: Timeline = tl
+    var t: int = time_milli
+    if t < 0
+        t = 0
+    end
+    if t > out.duration_milli
+        t = out.duration_milli
+    end
+    out.playhead_milli = t
+    return out
+end
+
+public tick(tl: Timeline, dt_milli: int) -> Timeline
+    var out: Timeline = tl
+    if not out.playing
+        return out
+    end
+    out.playhead_milli = out.playhead_milli + dt_milli
+    if out.playhead_milli >= out.duration_milli
+        out.playhead_milli = out.duration_milli
+        out.playing = false
+    end
+    if out.playhead_milli < 0
+        out.playhead_milli = 0
+    end
+    return out
+end
+
+-- Sample --------------------------------------------------------------------
+
+-- Step sample: last key with time <= playhead (0 if none).
+public sample(tl: Timeline, track: int) -> int
+    if track < 0 or track >= lists.len(tl.tracks)
+        return 0
+    end
+    const tr: Track = tl.tracks[track]
+    var best: int = 0
+    var found: bool = false
+    var si: int = 0
+    while si < lists.len(tr.keys)
+        const k: Key = tr.keys[si]
+        if k.time_milli <= tl.playhead_milli
+            best = k.value_milli
+            found = true
+        end
+        si = si + 1
+    end
+    if not found and lists.len(tr.keys) > 0
+        return tr.keys[0].value_milli
+    end
+    return best
+end
+
+-- Linear lerp between surrounding keys at playhead (milli).
+public sample_lerp(tl: Timeline, track: int) -> int
+    if track < 0 or track >= lists.len(tl.tracks)
+        return 0
+    end
+    const tr: Track = tl.tracks[track]
+    const n: int = lists.len(tr.keys)
+    if n == 0
+        return 0
+    end
+    if n == 1
+        return tr.keys[0].value_milli
+    end
+    const t: int = tl.playhead_milli
+    if t <= tr.keys[0].time_milli
+        return tr.keys[0].value_milli
+    end
+    if t >= tr.keys[n - 1].time_milli
+        return tr.keys[n - 1].value_milli
+    end
+    var i: int = 0
+    while i < n - 1
+        const a: Key = tr.keys[i]
+        const b: Key = tr.keys[i + 1]
+        if t >= a.time_milli and t <= b.time_milli
+            const dt: int = b.time_milli - a.time_milli
+            if dt == 0
+                return a.value_milli
+            end
+            const u: int = ((t - a.time_milli) * 1000) / dt
+            return a.value_milli + ((b.value_milli - a.value_milli) * u) / 1000
+        end
+        i = i + 1
+    end
+    return tr.keys[n - 1].value_milli
+end
+
+-- Internals -----------------------------------------------------------------
+
+sort_track_keys(tl: Timeline, track: int) -> Timeline
+    var out: Timeline = tl
+    if track < 0 or track >= lists.len(out.tracks)
+        return out
+    end
+    var tr: Track = out.tracks[track]
+    const n: int = lists.len(tr.keys)
+    if n <= 1
+        return out
+    end
+    -- Simple insertion sort by time_milli (track key counts stay small).
+    var i: int = 1
+    while i < n
+        const cur: Key = tr.keys[i]
+        var j: int = i
+        while j > 0 and tr.keys[j - 1].time_milli > cur.time_milli
+            lists.set(tr.keys, j, tr.keys[j - 1])
+            j = j - 1
+        end
+        lists.set(tr.keys, j, cur)
+        i = i + 1
+    end
+    lists.set(out.tracks, track, tr)
+    return out
+end

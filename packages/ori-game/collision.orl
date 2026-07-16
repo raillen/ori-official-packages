@@ -1,0 +1,29 @@
+module game.collision
+
+import ori.math.vec2 = vec2
+import game.shape = shape
+
+public rects_overlap(a: shape.Rectangle, b: shape.Rectangle) -> bool
+    return a.x < b.x + b.width
+       and a.x + a.width > b.x
+       and a.y < b.y + b.height
+       and a.y + a.height > b.y
+end
+
+public point_in_rect(p: vec2.Vec2, r: shape.Rectangle) -> bool
+    return p.x >= r.x and p.x <= r.x + r.width
+       and p.y >= r.y and p.y <= r.y + r.height
+end
+
+public circles_overlap(a: shape.Circle, b: shape.Circle) -> bool
+    const dx: float = a.center.x - b.center.x
+    const dy: float = a.center.y - b.center.y
+    const r: float = a.radius + b.radius
+    return dx * dx + dy * dy <= r * r
+end
+
+public point_in_circle(p: vec2.Vec2, c: shape.Circle) -> bool
+    const dx: float = p.x - c.center.x
+    const dy: float = p.y - c.center.y
+    return dx * dx + dy * dy <= c.radius * c.radius
+end

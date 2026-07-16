@@ -1,0 +1,152 @@
+module imguidialog.draw
+
+-- Product draw for imguidialog.dialog using imgui.ui (path-dep ori-imgui).
+-- Call only inside an active ImGui frame. Headless CI uses dialog test hooks only.
+
+import imguidialog.dialog = dlg
+import imgui.ui = ui
+import ori.fs = fs
+import ori.list = lists
+import ori.path = path
+import ori.string = str
+
+join2(a: string, b: string) -> string
+    var parts: list[string] = []
+    lists.push(parts, a)
+    lists.push(parts, b)
+    return path.join(parts)
+end
+
+accept_entry(dir: string, name: string, filter_ext: string) -> bool
+    if name == "."
+        return false
+    end
+    if name == ".."
+        return false
+    end
+    if filter_ext == ""
+        return true
+    end
+    const full: string = join2(dir, name)
+    match fs.is_dir(full)
+        case ok(is_d):
+            if is_d
+                return true
+            end
+            return dlg.matches_filter(name, filter_ext)
+        case err(_):
+            return dlg.matches_filter(name, filter_ext)
+    end
+    return true
+end
+
+list_entries(dir: string, filter_ext: string) -> list[string]
+    var entries: list[string] = []
+    match fs.list_dir(dir)
+        case ok(items):
+            const n: int = lists.len(items)
+            var i: int = 0
+            while i < n
+                const name: string = items[i]
+                if accept_entry(dir, name, filter_ext)
+                    lists.push(entries, name)
+                end
+                i = i + 1
+            end
+        case err(_):
+    end
+    return entries
+end
+
+apply_entry_click(out: dlg.Dialog, name: string, is_directory: bool, full: string) -> dlg.Dialog
+    if is_directory
+        var next: dlg.Dialog = dlg.set_dir(out, full)
+        next = dlg.set_filename(next, "")
+        return next
+    end
+    return dlg.set_filename(out, name)
+end
+
+draw_save_footer(out: dlg.Dialog) -> dlg.Dialog
+    ui.text(str.concat("File: ", dlg.filename_of(out)))
+    if ui.button("Save")
+        return dlg.confirm(out)
+    end
+    return out
+end
+
+draw_open_footer(out: dlg.Dialog) -> dlg.Dialog
+    if dlg.filename_of(out) != ""
+        ui.text(str.concat("Selected: ", dlg.filename_of(out)))
+    end
+    if ui.button("Open")
+        return dlg.confirm(out)
+    end
+    return out
+end
+
+-- Draw open/save window; returns updated dialog. No-op when not open.
+public draw(d: dlg.Dialog) -> dlg.Dialog
+    if not dlg.is_open(d)
+        return d
+    end
+    var out: dlg.Dialog = d
+    const title: string = d.title
+    ui.set_next_window_size(520, 400)
+    if not ui.begin_window(title)
+        return out
+    end
+
+    ui.text(dlg.dir_of(out))
+    if ui.button("Up")
+        const parent: string = path.parent(dlg.dir_of(out))
+        if parent != ""
+            if parent != dlg.dir_of(out)
+                out = dlg.set_dir(out, parent)
+                out = dlg.set_filename(out, "")
+            end
+        end
+    end
+    ui.same_line()
+    if ui.button("Cancel")
+        out = dlg.cancel(out)
+        ui.end_window()
+        return out
+    end
+    ui.separator()
+
+    const entries: list[string] = list_entries(dlg.dir_of(out), dlg.filter_of(out))
+    if ui.begin_child("imguidialog_entries", 0, 240, true)
+        const n: int = lists.len(entries)
+        var i: int = 0
+        while i < n
+            const name: string = entries[i]
+            const full: string = join2(dlg.dir_of(out), name)
+            var is_directory: bool = false
+            match fs.is_dir(full)
+                case ok(is_d):
+                    is_directory = is_d
+                case err(_):
+            end
+            var label: string = name
+            if is_directory
+                label = str.concat("[dir] ", name)
+            end
+            const selected: bool = dlg.filename_of(out) == name
+            if ui.selectable(label, selected)
+                out = apply_entry_click(out, name, is_directory, full)
+            end
+            i = i + 1
+        end
+        ui.end_child()
+    end
+
+    if dlg.mode_of(out) == dlg.MODE_SAVE
+        out = draw_save_footer(out)
+    end
+    if dlg.mode_of(out) == dlg.MODE_OPEN
+        out = draw_open_footer(out)
+    end
+    ui.end_window()
+    return out
+end

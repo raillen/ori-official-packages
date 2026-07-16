@@ -1,0 +1,109 @@
+# platforms — Plataformas Móveis
+
+Módulo com mecânicas de plataformas que se movem.
+
+## MovingPlatform
+
+Plataforma que se move entre pontos.
+
+```ori
+struct MovingPlatform
+    path: list<Vec2>
+    speed: float = 50.0
+    current_idx: int = 0
+    next_idx: int = 1
+    paused: bool = false
+    pause_duration: float = 0.0
+    pause_timer: float = 0.0
+    carry_entities: bool = true
+    ping_pong: bool = true
+    loop: bool = false
+    direction: int = 1
+end
+```
+
+**Campos:**
+- `path` — Lista de pontos por onde a plataforma se move
+- `speed` — Velocidade em pixels/segundo
+- `carry_entities` — Entidades em cima se movem junto
+- `ping_pong` — Vai e volta entre os pontos
+- `loop` — Volta ao início após chegar ao fim
+
+## Funções
+
+### create_platform
+
+Cria uma nova plataforma.
+
+```ori
+func create_platform(path: list<Vec2>, speed: float) -> MovingPlatform
+```
+
+### tick_platform
+
+Atualiza a posição da plataforma.
+
+```ori
+func tick_platform(p: MovingPlatform, dt: float) -> Vec2
+```
+
+**Retorna:** Nova posição da plataforma.
+
+### set_speed
+
+Altera a velocidade.
+
+```ori
+func set_speed(p: MovingPlatform, speed: float) -> void
+```
+
+### pause_platform
+
+Pausa a plataforma.
+
+```ori
+func pause_platform(p: MovingPlatform) -> void
+```
+
+### resume_platform
+
+Retoma a plataforma.
+
+```ori
+func resume_platform(p: MovingPlatform) -> void
+```
+
+### reverse_platform
+
+Inverte a direção.
+
+```ori
+func reverse_platform(p: MovingPlatform) -> void
+```
+
+**Exemplo — Plataforma vertical:**
+```ori
+var path = list<vec2.Vec2>()
+path.add(vec2.Vec2(x: 200.0, y: 300.0))
+path.add(vec2.Vec2(x: 200.0, y: 100.0))
+
+var platform = platforms.create_platform(path, 50.0)
+
+-- No update:
+var pos = platforms.tick_platform(platform, dt)
+platform_rect.x = pos.x
+platform_rect.y = pos.y
+```
+
+**Exemplo — Plataforma circular:**
+```ori
+var path = list<vec2.Vec2>()
+path.add(vec2.Vec2(x: 400.0, y: 200.0))
+path.add(vec2.Vec2(x: 500.0, y: 200.0))
+path.add(vec2.Vec2(x: 500.0, y: 300.0))
+path.add(vec2.Vec2(x: 400.0, y: 300.0))
+
+var platform = platforms.create_platform(path, 80.0)
+platform.ping_pong = false
+platform.loop = true
+```

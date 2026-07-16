@@ -1,0 +1,11 @@
+[package]
+name = "implot3d"
+version = "0.1.0"
+entry = "implot3d/charts.orl"
+ori_version = "0.3.0"
+description = "ImPlot3D for Ori (3D Dear ImGui plots)"
+license = "MIT"
+native_libs = ["ori_implot3d_shim"]
+# Path-dep product: sibling ori-imgui (ImGui context) + ori-implot (2D ecosystem).
+# Draw APIs: headless bookkeeping always. Product FULL static is libori_implot3d_full.a
+# (link with ori-imgui ImGui context). Does not alter GLFW-only imgui build.

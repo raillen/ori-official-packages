@@ -1,0 +1,54 @@
+module app.gamepad_demo
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.shape = shape
+    ori.math.vec2 = vec2
+end
+
+var px: float = 320.0
+var py: float = 180.0
+var status: string = "No gamepad (keyboard: arrows)"
+
+on_update(dt: float) -> void
+    var ax: float = 0.0
+    var ay: float = 0.0
+    if input.gamepad_available(0)
+        status = "Gamepad 0 connected"
+        ax = input.gamepad_axis(0, input.GAMEPAD_AXIS_LEFT_X)
+        ay = input.gamepad_axis(0, input.GAMEPAD_AXIS_LEFT_Y)
+        if input.gamepad_button_down(0, input.GAMEPAD_BUTTON_RIGHT_FACE_DOWN)
+            status = "Gamepad: A/cross held"
+        end
+    else
+        status = "No gamepad (keyboard: arrows)"
+        if input.key_down(input.KEY_RIGHT)
+            ax = 1.0
+        end
+        if input.key_down(input.KEY_LEFT)
+            ax = -1.0
+        end
+        if input.key_down(input.KEY_DOWN)
+            ay = 1.0
+        end
+        if input.key_down(input.KEY_UP)
+            ay = -1.0
+        end
+    end
+    px = px + ax * 220.0 * dt
+    py = py + ay * 220.0 * dt
+end
+
+on_draw() -> void
+    draw.draw_circle(vec2.Vec2 { x: px, y: py }, 18.0, color.ORANGE)
+    draw.draw_text("Gamepad demo", vec2.Vec2 { x: 10.0, y: 10.0 }, 22, color.WHITE)
+    draw.draw_text(status, vec2.Vec2 { x: 10.0, y: 40.0 }, 16, color.LIGHTGRAY)
+    draw.draw_rect(shape.rect(10.0, 70.0, 200.0, 8.0), color.DARKGRAY)
+end
+
+main()
+    app.run_window("Gamepad Demo", 640, 360, on_update, on_draw)
+end

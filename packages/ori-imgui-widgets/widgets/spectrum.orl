@@ -1,0 +1,248 @@
+module widgets.spectrum
+
+-- Spectrum / theme color helpers (headless product surface).
+-- Channels are 0..255; packed RGBA is 0xAARRGGBB as int (alpha high).
+-- Style load MVP: dark / light / classic / spectrum accent presets.
+
+public struct ColorRgba
+    r: int
+    g: int
+    b: int
+    a: int
+end
+
+public struct Theme
+    name: string
+    primary: ColorRgba
+    accent: ColorRgba
+    background: ColorRgba
+    text: ColorRgba
+    muted: ColorRgba
+    -- Avoid reserved words success/warning/error as field names.
+    ok_color: ColorRgba
+    warn_color: ColorRgba
+    err_color: ColorRgba
+end
+
+clamp_channel(v: int) -> int
+    if v < 0
+        return 0
+    end
+    if v > 255
+        return 255
+    end
+    return v
+end
+
+public rgba(r: int, g: int, b: int, a: int) -> ColorRgba
+    return ColorRgba {
+        r: clamp_channel(r),
+        g: clamp_channel(g),
+        b: clamp_channel(b),
+        a: clamp_channel(a)
+    }
+end
+
+public rgb(r: int, g: int, b: int) -> ColorRgba
+    return rgba(r, g, b, 255)
+end
+
+public pack_rgba(c: ColorRgba) -> int
+    -- 0xAARRGGBB
+    return (clamp_channel(c.a) * 16777216)
+        + (clamp_channel(c.r) * 65536)
+        + (clamp_channel(c.g) * 256)
+        + clamp_channel(c.b)
+end
+
+public unpack_rgba(packed: int) -> ColorRgba
+    var v: int = packed
+    if v < 0
+        v = 0
+    end
+    const a: int = (v / 16777216) % 256
+    const r: int = (v / 65536) % 256
+    const g: int = (v / 256) % 256
+    const b: int = v % 256
+    return ColorRgba { r: r, g: g, b: b, a: a }
+end
+
+public equal_color(a: ColorRgba, b: ColorRgba) -> bool
+    return a.r == b.r and a.g == b.g and a.b == b.b and a.a == b.a
+end
+
+-- Linear blend; t_milli 0..1000 (0 = a, 1000 = b).
+public lerp_color(a: ColorRgba, b: ColorRgba, t_milli: int) -> ColorRgba
+    var t: int = t_milli
+    if t < 0
+        t = 0
+    end
+    if t > 1000
+        t = 1000
+    end
+    const inv: int = 1000 - t
+    return ColorRgba {
+        r: clamp_channel((a.r * inv + b.r * t) / 1000),
+        g: clamp_channel((a.g * inv + b.g * t) / 1000),
+        b: clamp_channel((a.b * inv + b.b * t) / 1000),
+        a: clamp_channel((a.a * inv + b.a * t) / 1000)
+    }
+end
+
+-- Spectrum gradient sample: hue 0..1000 across a fixed ROYGBIV-ish ramp.
+public spectrum_color_at(t_milli: int) -> ColorRgba
+    var t: int = t_milli
+    if t < 0
+        t = 0
+    end
+    if t > 1000
+        t = 1000
+    end
+    -- 6 segments of ~166 milli each
+    const seg: int = 166
+    if t < seg
+        return lerp_color(rgb(255, 0, 0), rgb(255, 128, 0), (t * 1000) / seg)
+    end
+    if t < seg * 2
+        const u: int = ((t - seg) * 1000) / seg
+        return lerp_color(rgb(255, 128, 0), rgb(255, 255, 0), u)
+    end
+    if t < seg * 3
+        const u: int = ((t - seg * 2) * 1000) / seg
+        return lerp_color(rgb(255, 255, 0), rgb(0, 200, 0), u)
+    end
+    if t < seg * 4
+        const u: int = ((t - seg * 3) * 1000) / seg
+        return lerp_color(rgb(0, 200, 0), rgb(0, 180, 255), u)
+    end
+    if t < seg * 5
+        const u: int = ((t - seg * 4) * 1000) / seg
+        return lerp_color(rgb(0, 180, 255), rgb(40, 40, 220), u)
+    end
+    const u: int = ((t - seg * 5) * 1000) / (1000 - seg * 5)
+    return lerp_color(rgb(40, 40, 220), rgb(180, 0, 200), u)
+end
+
+public load_dark() -> Theme
+    return Theme {
+        name: "dark",
+        primary: rgb(80, 140, 255),
+        accent: rgb(255, 160, 40),
+        background: rgb(30, 30, 34),
+        text: rgb(230, 230, 235),
+        muted: rgb(140, 140, 150),
+        ok_color: rgb(70, 190, 110),
+        warn_color: rgb(230, 180, 40),
+        err_color: rgb(230, 70, 70)
+    }
+end
+
+public load_light() -> Theme
+    return Theme {
+        name: "light",
+        primary: rgb(40, 100, 220),
+        accent: rgb(220, 120, 20),
+        background: rgb(245, 245, 248),
+        text: rgb(20, 20, 24),
+        muted: rgb(110, 110, 120),
+        ok_color: rgb(30, 150, 70),
+        warn_color: rgb(190, 140, 20),
+        err_color: rgb(200, 40, 40)
+    }
+end
+
+public load_classic() -> Theme
+    return Theme {
+        name: "classic",
+        primary: rgb(100, 100, 200),
+        accent: rgb(180, 100, 100),
+        background: rgb(50, 50, 60),
+        text: rgb(220, 220, 220),
+        muted: rgb(150, 150, 160),
+        ok_color: rgb(80, 180, 100),
+        warn_color: rgb(200, 170, 50),
+        err_color: rgb(210, 80, 80)
+    }
+end
+
+-- Accent pulled from spectrum ramp at mid-hue; otherwise dark base.
+public load_spectrum() -> Theme
+    var t: Theme = load_dark()
+    t.name = "spectrum"
+    t.primary = spectrum_color_at(300)
+    t.accent = spectrum_color_at(700)
+    return t
+end
+
+public name_of(t: Theme) -> string
+    return t.name
+end
+
+public primary_of(t: Theme) -> ColorRgba
+    return t.primary
+end
+
+public accent_of(t: Theme) -> ColorRgba
+    return t.accent
+end
+
+public background_of(t: Theme) -> ColorRgba
+    return t.background
+end
+
+public text_of(t: Theme) -> ColorRgba
+    return t.text
+end
+
+public muted_of(t: Theme) -> ColorRgba
+    return t.muted
+end
+
+public ok_color_of(t: Theme) -> ColorRgba
+    return t.ok_color
+end
+
+public warn_color_of(t: Theme) -> ColorRgba
+    return t.warn_color
+end
+
+public err_color_of(t: Theme) -> ColorRgba
+    return t.err_color
+end
+
+public set_primary(t: Theme, c: ColorRgba) -> Theme
+    var out: Theme = t
+    out.primary = c
+    return out
+end
+
+public set_accent(t: Theme, c: ColorRgba) -> Theme
+    var out: Theme = t
+    out.accent = c
+    return out
+end
+
+public with_name(t: Theme, name: string) -> Theme
+    var out: Theme = t
+    out.name = name
+    return out
+end
+
+-- Load by style id: 0=dark, 1=light, 2=classic, 3=spectrum (unknown → dark).
+public const STYLE_DARK: int = 0
+public const STYLE_LIGHT: int = 1
+public const STYLE_CLASSIC: int = 2
+public const STYLE_SPECTRUM: int = 3
+
+public load_style(style_id: int) -> Theme
+    if style_id == STYLE_LIGHT
+        return load_light()
+    end
+    if style_id == STYLE_CLASSIC
+        return load_classic()
+    end
+    if style_id == STYLE_SPECTRUM
+        return load_spectrum()
+    end
+    return load_dark()
+end

@@ -1,0 +1,123 @@
+module game.world_physics
+
+-- Optional physics on World entities (F).
+-- Default: pure Ori gravity + integrate (no flecs, no mandatory ECO).
+-- body_handle: optional ECO id (box2d/jolt) for games that path-dep solvers.
+
+import ori.list = lists
+import game.world = world
+
+public struct PhysicsBodyComp
+    mass: float
+    use_gravity: bool
+    gravity_scale: float
+    body_handle: int
+end
+
+-- Parallel host (same pattern as ScriptHost — avoid dual aggregate return).
+public struct PhysicsHost
+    entity_ids: list[world.EntityId]
+    bodies: list[PhysicsBodyComp]
+end
+
+public empty_host() -> PhysicsHost
+    var ids: list[world.EntityId] = []
+    var bodies: list[PhysicsBodyComp] = []
+    return PhysicsHost { entity_ids: ids, bodies: bodies }
+end
+
+public empty_body() -> PhysicsBodyComp
+    return PhysicsBodyComp {
+        mass: 1.0,
+        use_gravity: true,
+        gravity_scale: 1.0,
+        body_handle: 0
+    }
+end
+
+host_index(host: PhysicsHost, id: world.EntityId) -> int
+    const n: int = lists.len(host.entity_ids)
+    var i: int = 0
+    while i < n
+        if host.entity_ids[i] == id
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+public attach(
+    host: PhysicsHost,
+    id: world.EntityId,
+    body: PhysicsBodyComp
+) -> PhysicsHost
+    var out: PhysicsHost = host
+    const idx: int = host_index(out, id)
+    if idx >= 0
+        lists.set(out.bodies, idx, body)
+        return out
+    end
+    lists.push(out.entity_ids, id)
+    lists.push(out.bodies, body)
+    return out
+end
+
+public detach(host: PhysicsHost, id: world.EntityId) -> PhysicsHost
+    const idx: int = host_index(host, id)
+    if idx < 0
+        return host
+    end
+    var out: PhysicsHost = host
+    lists.remove(out.entity_ids, idx)
+    lists.remove(out.bodies, idx)
+    return out
+end
+
+public has_body(host: PhysicsHost, id: world.EntityId) -> bool
+    return host_index(host, id) >= 0
+end
+
+public body_of(host: PhysicsHost, id: world.EntityId) -> PhysicsBodyComp
+    const idx: int = host_index(host, id)
+    if idx < 0
+        return empty_body()
+    end
+    return host.bodies[idx]
+end
+
+public body_count(host: PhysicsHost) -> int
+    return lists.len(host.entity_ids)
+end
+
+-- Apply gravity into velocity and ensure has_velocity for attached entities.
+-- Order suggestion: input → scripts → physics → move → collision.
+public apply_gravity(
+    w: world.World,
+    host: PhysicsHost,
+    gravity_y: float,
+    dt: float
+) -> world.World
+    var out: world.World = w
+    const n: int = lists.len(host.entity_ids)
+    var i: int = 0
+    while i < n
+        const id: world.EntityId = host.entity_ids[i]
+        const body: PhysicsBodyComp = host.bodies[i]
+        const idx: int = world.index_of_id(out, id)
+        if idx >= 0 and body.use_gravity and body.mass > 0.0
+            var e: world.Entity = out.entities[idx]
+            if e.alive
+                const g: float = gravity_y * body.gravity_scale
+                if e.has_velocity == false
+                    e.velocity = world.empty_velocity()
+                    e.has_velocity = true
+                end
+                e.velocity.vy = e.velocity.vy + g * dt
+                out.entities[idx] = e
+            end
+        end
+        i = i + 1
+    end
+    return out
+end

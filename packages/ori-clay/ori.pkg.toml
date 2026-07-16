@@ -1,0 +1,8 @@
+[package]
+name = "clay"
+version = "0.2.0"
+entry = "clay/layout.orl"
+ori_version = "0.3.0"
+description = "Clay immediate-mode UI layout bindings for Ori (headless)"
+license = "MIT"
+native_libs = ["ori_clay_shim"]

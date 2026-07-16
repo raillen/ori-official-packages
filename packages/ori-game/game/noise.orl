@@ -1,0 +1,67 @@
+module game.noise
+
+-- Thin glue: FastNoiseLite via package `noise` (`noise.fnl`).
+-- Path-dep `noise` on ori_game; links `ori_noise_shim`.
+-- Milli-int coordinates and samples (1000 = 1.0).
+
+import noise.fnl = fnl
+
+public init() -> void
+    fnl.init()
+end
+
+public set_seed(seed: int) -> void
+    fnl.set_seed(seed)
+end
+
+public set_frequency_m(freq_m: int) -> void
+    fnl.set_frequency_m(freq_m)
+end
+
+public use_open_simplex() -> void
+    fnl.use_open_simplex()
+end
+
+public use_perlin() -> void
+    fnl.use_perlin()
+end
+
+public use_cellular() -> void
+    fnl.use_cellular()
+end
+
+public use_value() -> void
+    fnl.use_value()
+end
+
+public use_fractal_none() -> void
+    fnl.use_fractal_none()
+end
+
+public use_fractal_fbm() -> void
+    fnl.use_fractal_fbm()
+end
+
+public use_fractal_ridged() -> void
+    fnl.use_fractal_ridged()
+end
+
+public set_octaves(octaves: int) -> void
+    fnl.set_octaves(octaves)
+end
+
+public set_lacunarity_m(lac_m: int) -> void
+    fnl.set_lacunarity_m(lac_m)
+end
+
+public set_gain_m(gain_m: int) -> void
+    fnl.set_gain_m(gain_m)
+end
+
+public get2_m(x_m: int, y_m: int) -> int
+    return fnl.get2_m(x_m, y_m)
+end
+
+public get3_m(x_m: int, y_m: int, z_m: int) -> int
+    return fnl.get3_m(x_m, y_m, z_m)
+end

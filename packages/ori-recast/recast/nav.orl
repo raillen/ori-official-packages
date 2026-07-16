@@ -1,0 +1,151 @@
+module recast.nav
+
+-- Recast Navigation (Recast + Detour) for Ori — navmesh product surface.
+-- Positions and sizes use milli-units (meters × 1000).
+-- agent_radius_m <= 0 uses default 300 (0.3 m).
+
+extern c
+    public ori_recast_mesh_clear() -> int
+    public ori_recast_mesh_add_vertex(x_m: int, y_m: int, z_m: int) -> int
+    public ori_recast_mesh_add_triangle(i0: int, i1: int, i2: int) -> int
+    public ori_recast_mesh_vertex_count() -> int
+    public ori_recast_mesh_triangle_count() -> int
+    public ori_recast_build_mesh(cell_size_m: int, agent_radius_m: int) -> int
+    public ori_recast_build_plane(width_m: int, depth_m: int, cell_size_m: int) -> int
+    public ori_recast_build_plane_ex(width_m: int, depth_m: int, cell_size_m: int, agent_radius_m: int) -> int
+    public ori_recast_find_path(sx: int, sy: int, sz: int, ex: int, ey: int, ez: int) -> int
+    public ori_recast_waypoint_count() -> int
+    public ori_recast_waypoint_x(i: int) -> int
+    public ori_recast_waypoint_y(i: int) -> int
+    public ori_recast_waypoint_z(i: int) -> int
+    public ori_recast_find_nearest(x: int, y: int, z: int) -> int
+    public ori_recast_nearest_x() -> int
+    public ori_recast_nearest_y() -> int
+    public ori_recast_nearest_z() -> int
+    public ori_recast_raycast(sx: int, sy: int, sz: int, ex: int, ey: int, ez: int) -> int
+    public ori_recast_raycast_t_m() -> int
+    public ori_recast_raycast_hit_x() -> int
+    public ori_recast_raycast_hit_y() -> int
+    public ori_recast_raycast_hit_z() -> int
+    public ori_recast_is_ready() -> int
+    public ori_recast_destroy() -> void
+end
+
+-- Staging triangle soup -------------------------------------------------------
+
+public mesh_clear() -> void
+    ori_recast_mesh_clear()
+end
+
+-- Append vertex (milli). Returns 0-based index, or -1 on overflow.
+public mesh_add_vertex(x_m: int, y_m: int, z_m: int) -> int
+    return ori_recast_mesh_add_vertex(x_m, y_m, z_m)
+end
+
+-- Append triangle by indices. Returns true on success.
+public mesh_add_triangle(i0: int, i1: int, i2: int) -> bool
+    return ori_recast_mesh_add_triangle(i0, i1, i2) == 0
+end
+
+public mesh_vertex_count() -> int
+    return ori_recast_mesh_vertex_count()
+end
+
+public mesh_triangle_count() -> int
+    return ori_recast_mesh_triangle_count()
+end
+
+-- Build navmesh from staged soup. agent_radius_m <= 0 → default 300.
+public build_mesh(cell_size_m: int, agent_radius_m: int) -> bool
+    return ori_recast_build_mesh(cell_size_m, agent_radius_m) == 0
+end
+
+-- Flat plane helpers ----------------------------------------------------------
+
+-- Build a flat walkable plane [0,width]×[0,depth] at y=0 (two triangles).
+-- Args are milli-meters. Default agent radius 0.3 m.
+public build_plane(width_m: int, depth_m: int, cell_size_m: int) -> bool
+    return ori_recast_build_plane(width_m, depth_m, cell_size_m) == 0
+end
+
+-- Same with explicit agent radius (milli; <=0 → default).
+public build_plane_ex(width_m: int, depth_m: int, cell_size_m: int, agent_radius_m: int) -> bool
+    return ori_recast_build_plane_ex(width_m, depth_m, cell_size_m, agent_radius_m) == 0
+end
+
+-- Path query ------------------------------------------------------------------
+
+-- Find path start→end (milli). Returns waypoint count; 0 on failure.
+public find_path(sx: int, sy: int, sz: int, ex: int, ey: int, ez: int) -> int
+    return ori_recast_find_path(sx, sy, sz, ex, ey, ez)
+end
+
+public waypoint_count() -> int
+    return ori_recast_waypoint_count()
+end
+
+public waypoint_x(i: int) -> int
+    return ori_recast_waypoint_x(i)
+end
+
+public waypoint_y(i: int) -> int
+    return ori_recast_waypoint_y(i)
+end
+
+public waypoint_z(i: int) -> int
+    return ori_recast_waypoint_z(i)
+end
+
+-- Nearest poly ----------------------------------------------------------------
+
+-- Snap point to nearest walkable poly. Returns true if a poly was found.
+public find_nearest(x: int, y: int, z: int) -> bool
+    return ori_recast_find_nearest(x, y, z) != 0
+end
+
+public nearest_x() -> int
+    return ori_recast_nearest_x()
+end
+
+public nearest_y() -> int
+    return ori_recast_nearest_y()
+end
+
+public nearest_z() -> int
+    return ori_recast_nearest_z()
+end
+
+-- Raycast ---------------------------------------------------------------------
+
+-- Navmesh surface raycast start→end (milli).
+-- Returns: -1 fail, 0 clear (no wall), 1 wall hit.
+public raycast(sx: int, sy: int, sz: int, ex: int, ey: int, ez: int) -> int
+    return ori_recast_raycast(sx, sy, sz, ex, ey, ez)
+end
+
+-- Hit parameter in milli (0..1000; 1000 = reached end).
+public raycast_t_m() -> int
+    return ori_recast_raycast_t_m()
+end
+
+public raycast_hit_x() -> int
+    return ori_recast_raycast_hit_x()
+end
+
+public raycast_hit_y() -> int
+    return ori_recast_raycast_hit_y()
+end
+
+public raycast_hit_z() -> int
+    return ori_recast_raycast_hit_z()
+end
+
+-- Lifetime --------------------------------------------------------------------
+
+public is_ready() -> bool
+    return ori_recast_is_ready() != 0
+end
+
+public destroy() -> void
+    ori_recast_destroy()
+end

@@ -1,0 +1,66 @@
+module app.light_bank_demo
+
+imports
+    game.app = app
+    game.draw = draw
+    game.draw3d = draw3d
+    game.camera3d = cam3
+    game.color = color
+    game.shader = shader
+    game.light = light
+    game.light_bank = bank
+    ori.math.vec2 = vec2
+    ori.math.vec3 = vec3
+end
+
+var cam: cam3.Camera3D = cam3.create_perspective(
+    vec3.Vec3 { x: 5.0, y: 4.0, z: 6.0 },
+    vec3.Vec3 { x: 0.0, y: 0.5, z: 0.0 },
+    45.0
+)
+var sh: shader.ShaderId = 0
+var lights: bank.Bank = bank.create(0)
+var ready: bool = false
+
+ensure() -> void
+    if ready
+        return
+    end
+    ready = true
+    sh = shader.load("assets/shaders/lit_bank.vs", "assets/shaders/lit_bank.fs")
+    lights = bank.create(sh)
+    lights = bank.sun_default(lights)
+    lights = bank.set_slot(
+        lights,
+        1,
+        light.create_point(vec3.Vec3 { x: 2.0, y: 2.0, z: 1.0 }, color.ORANGE, 0.8)
+    )
+end
+
+on_update(_dt: float) -> void
+    ensure()
+end
+
+on_draw() -> void
+    ensure()
+    if sh != 0
+        bank.upload_all(lights)
+        shader.begin_mode(sh)
+    end
+    cam3.begin_mode(cam)
+    draw3d.draw_grid(12, 1.0)
+    draw3d.draw_cube(vec3.Vec3 { x: 0.0, y: 0.5, z: 0.0 }, 1.0, 1.0, 1.0, color.RED)
+    draw3d.draw_sphere(vec3.Vec3 { x: 2.0, y: 0.5, z: 0.0 }, 0.5, color.BLUE)
+    cam3.end_mode()
+    if sh != 0
+        shader.end_mode()
+    end
+    draw.draw_text("light_bank_demo (4 slots)", vec2.Vec2 { x: 10.0, y: 10.0 }, 18, color.WHITE)
+end
+
+main()
+    app.run_window("Light Bank", 800, 450, on_update, on_draw)
+    if sh != 0
+        shader.unload(sh)
+    end
+end

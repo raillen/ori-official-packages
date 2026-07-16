@@ -1,0 +1,71 @@
+module test.stb
+
+imports
+    stb.image = img
+    stb.perlin = perlin
+    stb.rect_pack = rp
+    ori.test = test
+end
+
+@test
+perlin3_range()
+    const a: int = perlin.noise3_m(0, 0, 0)
+    const b: int = perlin.noise3_m(1500, 2500, 500)
+    test.assert(a >= -2000 and a <= 2000, "a range")
+    test.assert(b >= -2000 and b <= 2000, "b range")
+end
+
+@test
+perlin2_range()
+    const a: int = perlin.noise2_m(0, 0)
+    const b: int = perlin.noise2_m(3000, 7000)
+    test.assert(a >= -2000 and a <= 2000, "a2 range")
+    test.assert(b >= -2000 and b <= 2000, "b2 range")
+    -- 2D equals 3D with z=0
+    test.equal_int(perlin.noise2_m(1234, 5678), perlin.noise3_m(1234, 5678, 0))
+end
+
+@test
+rect_pack_two()
+    test.assert(rp.begin_pack(2), "begin")
+    test.assert(rp.add_rect(40, 40), "r0")
+    test.assert(rp.add_rect(40, 40), "r1")
+    test.equal_int(rp.run(128, 128), 2)
+    test.assert(rp.was_packed(0), "p0")
+    test.assert(rp.was_packed(1), "p1")
+    test.equal_int(rp.rect_w(0), 40)
+    test.equal_int(rp.rect_h(1), 40)
+    test.equal_int(rp.rect_count(), 2)
+    -- positions non-negative
+    test.assert(rp.rect_x(0) >= 0 and rp.rect_y(0) >= 0, "xy0")
+end
+
+@test
+rect_pack_tight_fail()
+    -- single rect larger than atlas should not pack
+    test.assert(rp.begin_pack(1), "begin tight")
+    test.assert(rp.add_rect(64, 64), "big")
+    test.equal_int(rp.run(32, 32), 0)
+    test.assert(not rp.was_packed(0), "not packed")
+end
+
+@test
+image_load_missing()
+    test.assert(not img.load("tests/fixtures/__missing_no_such__.png", 1), "missing")
+    test.equal_int(img.width(), 0)
+    test.equal_int(img.height(), 0)
+end
+
+@test
+image_write_load_roundtrip()
+    const path: string = "tests/fixtures/tmp_gray.png"
+    test.assert(img.write_solid_gray_png(path, 4, 3, 200), "write")
+    test.assert(img.load(path, 1), "load")
+    test.equal_int(img.width(), 4)
+    test.equal_int(img.height(), 3)
+    test.equal_int(img.channels(), 1)
+    test.equal_int(img.pixel_sum(), 4 * 3 * 200)
+    test.assert(img.pixels_ptr() != 0, "pixels")
+    img.free()
+    test.equal_int(img.width(), 0)
+end

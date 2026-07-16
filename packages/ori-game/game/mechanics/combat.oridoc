@@ -1,0 +1,148 @@
+# combat — Sistema de Combate
+
+Módulo com funções de vida, knockback, knockdown e cooldowns.
+
+## Health
+
+Sistema de vida.
+
+```ori
+struct Health
+    current: int
+    maximum: int
+    invincible: bool = false
+    invincible_timer: float = 0.0
+end
+```
+
+### take_damage
+
+Aplica dano à entidade.
+
+```ori
+func take_damage(h: Health, amount: int) -> bool
+```
+
+**Retorna:** `true` se o dano foi aplicado, `false` se invencível.
+
+### heal
+
+Cura a entidade.
+
+```ori
+func heal(h: Health, amount: int) -> void
+```
+
+### is_alive
+
+Verifica se a entidade está viva.
+
+```ori
+func is_alive(h: Health) -> bool
+```
+
+### set_invincible
+
+Torna a entidade invencível por um tempo.
+
+```ori
+func set_invincible(h: Health, duration: float) -> void
+```
+
+## KnockbackConfig
+
+Configuração de knockback.
+
+```ori
+struct KnockbackConfig
+    force: float = 300.0
+    duration: float = 0.3
+    stun: float = 0.0
+end
+```
+
+### apply_knockback
+
+Aplica knockback a uma entidade.
+
+```ori
+func apply_knockback(e: Entity, dir: Vec2, config: KnockbackConfig) -> void
+```
+
+## KnockdownState
+
+Estado de knockdown.
+
+```ori
+struct KnockdownState
+    is_down: bool = false
+    timer: float = 0.0
+    recovery_time: float = 0.5
+end
+```
+
+### apply_knockdown
+
+Aplica knockdown a uma entidade.
+
+```ori
+func apply_knockdown(state: KnockdownState, duration: float) -> void
+```
+
+### is_knocked_down
+
+Verifica se a entidade está no chão.
+
+```ori
+func is_knocked_down(state: KnockdownState) -> bool
+```
+
+## Cooldown
+
+Cooldown para habilidades.
+
+```ori
+struct Cooldown
+    duration: float
+    remaining: float = 0.0
+    ready: bool = true
+end
+```
+
+### use_cooldown
+
+Usa o cooldown (retorna false se não disponível).
+
+```ori
+func use_cooldown(c: Cooldown) -> bool
+```
+
+### tick_cooldown
+
+Atualiza o cooldown.
+
+```ori
+func tick_cooldown(c: Cooldown, dt: float) -> void
+```
+
+**Exemplo — Ataque com Cooldown:**
+```ori
+var attack_cd = combat.Cooldown(duration: 0.5)
+
+-- No update:
+if input.key_pressed(32) and combat.use_cooldown(attack_cd)
+    -- Atacar
+    io.print("Ataque!")
+end
+combat.tick_cooldown(attack_cd, dt)
+```
+
+**Exemplo — Sistema de Vida:**
+```ori
+var hp = combat.Health(current: 100, maximum: 100)
+
+combat.take_damage(hp, 25)
+if not combat.is_alive(hp)
+    io.print("Morreu!")
+end
+```

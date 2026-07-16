@@ -1,0 +1,139 @@
+module imguizmo.gizmo
+
+-- ImGuizmo for Ori. TRS matrix helpers always; FULL Manipulate needs ImGui frame.
+
+extern c
+    public ori_gizmo_identity() -> void
+    public ori_gizmo_set_translation_m(x_m: int, y_m: int, z_m: int) -> void
+    public ori_gizmo_tx_m() -> int
+    public ori_gizmo_ty_m() -> int
+    public ori_gizmo_tz_m() -> int
+    public ori_gizmo_translate_m(dx_m: int, dy_m: int, dz_m: int) -> void
+    public ori_gizmo_set_rotation_m(x_m: int, y_m: int, z_m: int) -> void
+    public ori_gizmo_rx_m() -> int
+    public ori_gizmo_ry_m() -> int
+    public ori_gizmo_rz_m() -> int
+    public ori_gizmo_rotate_m(dx_m: int, dy_m: int, dz_m: int) -> void
+    public ori_gizmo_set_scale_m(x_m: int, y_m: int, z_m: int) -> void
+    public ori_gizmo_sx_m() -> int
+    public ori_gizmo_sy_m() -> int
+    public ori_gizmo_sz_m() -> int
+    public ori_gizmo_scale_m(dx_m: int, dy_m: int, dz_m: int) -> void
+    public ori_gizmo_matrix_m(index: int) -> int
+    public ori_gizmo_set_matrix_m(index: int, value_m: int) -> void
+    public ori_gizmo_last_op() -> int
+    public ori_gizmo_is_full_build() -> int
+    public ori_gizmo_manipulate_translate() -> int
+    public ori_gizmo_manipulate_rotate() -> int
+    public ori_gizmo_manipulate_scale() -> int
+    public ori_gizmo_set_view_m(index: int, value_m: int) -> void
+    public ori_gizmo_set_proj_m(index: int, value_m: int) -> void
+end
+
+-- last_op / manipulate bookkeeping
+public const OP_NONE: int = 0
+public const OP_TRANSLATE: int = 1
+public const OP_ROTATE: int = 2
+public const OP_SCALE: int = 3
+
+public identity() -> void
+    ori_gizmo_identity()
+end
+
+public set_translation_m(x_m: int, y_m: int, z_m: int) -> void
+    ori_gizmo_set_translation_m(x_m, y_m, z_m)
+end
+
+public tx_m() -> int
+    return ori_gizmo_tx_m()
+end
+
+public ty_m() -> int
+    return ori_gizmo_ty_m()
+end
+
+public tz_m() -> int
+    return ori_gizmo_tz_m()
+end
+
+public translate_m(dx_m: int, dy_m: int, dz_m: int) -> void
+    ori_gizmo_translate_m(dx_m, dy_m, dz_m)
+end
+
+public set_rotation_m(x_m: int, y_m: int, z_m: int) -> void
+    ori_gizmo_set_rotation_m(x_m, y_m, z_m)
+end
+
+public rx_m() -> int
+    return ori_gizmo_rx_m()
+end
+
+public ry_m() -> int
+    return ori_gizmo_ry_m()
+end
+
+public rz_m() -> int
+    return ori_gizmo_rz_m()
+end
+
+public rotate_m(dx_m: int, dy_m: int, dz_m: int) -> void
+    ori_gizmo_rotate_m(dx_m, dy_m, dz_m)
+end
+
+public set_scale_m(x_m: int, y_m: int, z_m: int) -> void
+    ori_gizmo_set_scale_m(x_m, y_m, z_m)
+end
+
+public sx_m() -> int
+    return ori_gizmo_sx_m()
+end
+
+public sy_m() -> int
+    return ori_gizmo_sy_m()
+end
+
+public sz_m() -> int
+    return ori_gizmo_sz_m()
+end
+
+public scale_m(dx_m: int, dy_m: int, dz_m: int) -> void
+    ori_gizmo_scale_m(dx_m, dy_m, dz_m)
+end
+
+-- Column-major 4x4 element as milli-float (0..15).
+public matrix_m(index: int) -> int
+    return ori_gizmo_matrix_m(index)
+end
+
+public set_matrix_m(index: int, value_m: int) -> void
+    ori_gizmo_set_matrix_m(index, value_m)
+end
+
+public last_op() -> int
+    return ori_gizmo_last_op()
+end
+
+public is_full() -> bool
+    return ori_gizmo_is_full_build() == 1
+end
+
+-- FULL: real ImGuizmo Manipulate; headless: records last_op, returns false.
+public manipulate_translate() -> bool
+    return ori_gizmo_manipulate_translate() == 1
+end
+
+public manipulate_rotate() -> bool
+    return ori_gizmo_manipulate_rotate() == 1
+end
+
+public manipulate_scale() -> bool
+    return ori_gizmo_manipulate_scale() == 1
+end
+
+public set_view_m(index: int, value_m: int) -> void
+    ori_gizmo_set_view_m(index, value_m)
+end
+
+public set_proj_m(index: int, value_m: int) -> void
+    ori_gizmo_set_proj_m(index, value_m)
+end

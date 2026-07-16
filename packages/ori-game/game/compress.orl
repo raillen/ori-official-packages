@@ -1,0 +1,96 @@
+module game.compress
+
+-- Thin glue: LZ4 + miniz compress/decompress for optional asset pipelines.
+-- Path-deps `lz4` / `miniz` on ori_game; links shims only when this module is used.
+-- Prefixed re-exports avoid last-segment collision between packages.
+
+import lz4.codec = lz
+import miniz.deflate = mz
+
+-- LZ4 block -------------------------------------------------------------------
+
+public lz4_compress_bound(src_nbytes: int) -> int
+    return lz.compress_bound(src_nbytes)
+end
+
+public lz4_compress_text(text: string) -> int
+    return lz.compress_text(text)
+end
+
+public lz4_decompress(src_ptr: int, src_nbytes: int, max_out: int) -> int
+    return lz.decompress(src_ptr, src_nbytes, max_out)
+end
+
+public lz4_out_len() -> int
+    return lz.out_len()
+end
+
+public lz4_out_ptr() -> int
+    return lz.out_ptr()
+end
+
+public lz4_out_byte(i: int) -> int
+    return lz.out_byte(i)
+end
+
+public lz4_out_sum() -> int
+    return lz.out_sum()
+end
+
+public lz4_roundtrip_len(text: string) -> int
+    return lz.roundtrip_len(text)
+end
+
+public lz4_stream_compress_text(text: string, chunk_size: int) -> int
+    return lz.stream_compress_text(text, chunk_size)
+end
+
+public lz4_stream_roundtrip_len(text: string, chunk_size: int) -> int
+    return lz.stream_roundtrip_len(text, chunk_size)
+end
+
+-- miniz deflate / CRC / zip ---------------------------------------------------
+
+public mz_compress_text(text: string, level: int) -> int
+    return mz.compress_text(text, level)
+end
+
+public mz_decompress(src_ptr: int, src_nbytes: int, max_out: int) -> int
+    return mz.decompress(src_ptr, src_nbytes, max_out)
+end
+
+public mz_out_len() -> int
+    return mz.out_len()
+end
+
+public mz_out_ptr() -> int
+    return mz.out_ptr()
+end
+
+public mz_out_byte(i: int) -> int
+    return mz.out_byte(i)
+end
+
+public mz_out_sum() -> int
+    return mz.out_sum()
+end
+
+public mz_roundtrip_len(text: string) -> int
+    return mz.roundtrip_len(text)
+end
+
+public mz_crc32_text(text: string) -> int
+    return mz.crc32_text(text)
+end
+
+public mz_zip_create_entry(name: string, text: string, level: int) -> int
+    return mz.zip_create_entry(name, text, level)
+end
+
+public mz_zip_extract_last(name: string) -> int
+    return mz.zip_extract_last(name)
+end
+
+public mz_zip_roundtrip_len(name: string, text: string) -> int
+    return mz.zip_roundtrip_len(name, text)
+end

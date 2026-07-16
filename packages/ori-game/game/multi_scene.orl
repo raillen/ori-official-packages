@@ -1,0 +1,152 @@
+module game.multi_scene
+
+-- Multi-scene catalog (F): named scene paths + active index.
+-- Switch rebuilds World via game.world.spawn_scene_path (no live state keep).
+
+import ori.list = lists
+import game.world = world
+import game.ogame_spawn = spawn
+
+public struct SceneSlot
+    name: string
+    path: string
+end
+
+public struct SceneSet
+    slots: list[SceneSlot]
+    active: int
+end
+
+public empty_set() -> SceneSet
+    var slots: list[SceneSlot] = []
+    return SceneSet { slots: slots, active: -1 }
+end
+
+public add_slot(ss: SceneSet, name: string, path: string) -> SceneSet
+    var out: SceneSet = ss
+    lists.push(out.slots, SceneSlot { name: name, path: path })
+    if out.active < 0
+        out.active = 0
+    end
+    return out
+end
+
+public slot_count(ss: SceneSet) -> int
+    return lists.len(ss.slots)
+end
+
+public active_index(ss: SceneSet) -> int
+    return ss.active
+end
+
+public active_name(ss: SceneSet) -> string
+    if ss.active < 0 or ss.active >= lists.len(ss.slots)
+        return ""
+    end
+    return ss.slots[ss.active].name
+end
+
+public active_path(ss: SceneSet) -> string
+    if ss.active < 0 or ss.active >= lists.len(ss.slots)
+        return ""
+    end
+    return ss.slots[ss.active].path
+end
+
+public set_active(ss: SceneSet, index: int) -> SceneSet
+    var out: SceneSet = ss
+    if index < 0 or index >= lists.len(out.slots)
+        return out
+    end
+    out.active = index
+    return out
+end
+
+public set_active_by_name(ss: SceneSet, name: string) -> SceneSet
+    const n: int = lists.len(ss.slots)
+    var i: int = 0
+    while i < n
+        if ss.slots[i].name == name
+            return set_active(ss, i)
+        end
+        i = i + 1
+    end
+    return ss
+end
+
+-- Load the active scene into a fresh World (catalog required).
+public load_active_world(
+    ss: SceneSet,
+    catalog: spawn.EntityCatalog
+) -> world.WorldResult
+    const path: string = active_path(ss)
+    if path == ""
+        return err("multi_scene: no active scene path")
+    end
+    return world.spawn_scene_path(world.empty_world(), catalog, path)
+end
+
+public next_slot(ss: SceneSet) -> SceneSet
+    const n: int = lists.len(ss.slots)
+    if n == 0
+        return ss
+    end
+    var out: SceneSet = ss
+    out.active = (out.active + 1) % n
+    return out
+end
+
+-- R6.3: runtime stack (push/pop path); host reloads World from top path.
+public struct SceneStack
+    paths: list[string]
+end
+
+public empty_stack() -> SceneStack
+    var p: list[string] = []
+    return SceneStack { paths: p }
+end
+
+public stack_push(st: SceneStack, path: string) -> SceneStack
+    var out: SceneStack = st
+    lists.push(out.paths, path)
+    return out
+end
+
+public stack_pop(st: SceneStack) -> SceneStack
+    const n: int = lists.len(st.paths)
+    if n == 0
+        return st
+    end
+    var out: SceneStack = empty_stack()
+    var i: int = 0
+    while i < n - 1
+        lists.push(out.paths, st.paths[i])
+        i = i + 1
+    end
+    return out
+end
+
+public stack_top(st: SceneStack) -> string
+    const n: int = lists.len(st.paths)
+    if n == 0
+        return ""
+    end
+    return st.paths[n - 1]
+end
+
+public stack_depth(st: SceneStack) -> int
+    return lists.len(st.paths)
+end
+
+public prev_slot(ss: SceneSet) -> SceneSet
+    const n: int = lists.len(ss.slots)
+    if n == 0
+        return ss
+    end
+    var out: SceneSet = ss
+    out.active = out.active - 1
+    if out.active < 0
+        out.active = n - 1
+    end
+    return out
+end

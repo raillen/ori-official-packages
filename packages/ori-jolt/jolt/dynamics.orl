@@ -1,0 +1,401 @@
+module jolt.dynamics
+
+-- Jolt Physics for Ori (S3). FFI uses milli-units (meters×1000, µs dt).
+-- See jolt.units. Real dynamics: libori_jolt_shim.a + libJolt.a; stub for CI.
+-- Wave 4: last_hit body, friction/restitution, object layers, angular/torque, floor.
+
+extern c
+    public ori_jolt_create_system(gravity_x_m: int, gravity_y_m: int, gravity_z_m: int) -> int
+    public ori_jolt_destroy_system(system: int) -> void
+    public ori_jolt_system_is_valid(system: int) -> int
+    public ori_jolt_set_gravity(system: int, gx_m: int, gy_m: int, gz_m: int) -> void
+    public ori_jolt_step(system: int, dt_micros: int, collision_steps: int) -> void
+
+    public ori_jolt_create_static_box(system: int, x_m: int, y_m: int, z_m: int, half_x_m: int, half_y_m: int, half_z_m: int) -> int
+    public ori_jolt_create_dynamic_box(system: int, x_m: int, y_m: int, z_m: int, half_x_m: int, half_y_m: int, half_z_m: int, density_m: int) -> int
+    public ori_jolt_create_static_sphere(system: int, x_m: int, y_m: int, z_m: int, radius_m: int) -> int
+    public ori_jolt_create_dynamic_sphere(system: int, x_m: int, y_m: int, z_m: int, radius_m: int, density_m: int) -> int
+    public ori_jolt_create_dynamic_capsule(system: int, x_m: int, y_m: int, z_m: int, half_height_m: int, radius_m: int, density_m: int) -> int
+    public ori_jolt_create_static_floor(system: int, y_m: int) -> int
+    public ori_jolt_destroy_body(body: int) -> void
+    public ori_jolt_body_is_valid(body: int) -> int
+
+    public ori_jolt_body_x_m(body: int) -> int
+    public ori_jolt_body_y_m(body: int) -> int
+    public ori_jolt_body_z_m(body: int) -> int
+    public ori_jolt_body_vx_m(body: int) -> int
+    public ori_jolt_body_vy_m(body: int) -> int
+    public ori_jolt_body_vz_m(body: int) -> int
+    public ori_jolt_body_wx_m(body: int) -> int
+    public ori_jolt_body_wy_m(body: int) -> int
+    public ori_jolt_body_wz_m(body: int) -> int
+    public ori_jolt_body_qw_m(body: int) -> int
+    public ori_jolt_body_qx_m(body: int) -> int
+    public ori_jolt_body_qy_m(body: int) -> int
+    public ori_jolt_body_qz_m(body: int) -> int
+
+    public ori_jolt_set_linear_velocity(body: int, vx_m: int, vy_m: int, vz_m: int) -> void
+    public ori_jolt_add_impulse(body: int, ix_m: int, iy_m: int, iz_m: int) -> void
+    public ori_jolt_add_torque(body: int, tx_m: int, ty_m: int, tz_m: int) -> void
+    public ori_jolt_set_position(body: int, x_m: int, y_m: int, z_m: int) -> void
+
+    public ori_jolt_set_friction(body: int, friction_m: int) -> void
+    public ori_jolt_set_restitution(body: int, restitution_m: int) -> void
+    public ori_jolt_get_friction_m(body: int) -> int
+    public ori_jolt_get_restitution_m(body: int) -> int
+
+    public ori_jolt_set_body_layer(body: int, layer: int) -> void
+    public ori_jolt_get_body_layer(body: int) -> int
+    public ori_jolt_set_layer_mask(system: int, layer: int, mask: int) -> void
+    public ori_jolt_get_layer_mask(system: int, layer: int) -> int
+
+    public ori_jolt_raycast(
+        system: int,
+        ox_m: int, oy_m: int, oz_m: int,
+        dx_m: int, dy_m: int, dz_m: int,
+        max_dist_m: int
+    ) -> int
+    public ori_jolt_last_hit_x_m() -> int
+    public ori_jolt_last_hit_y_m() -> int
+    public ori_jolt_last_hit_z_m() -> int
+    public ori_jolt_last_hit_frac_m() -> int
+    public ori_jolt_last_hit_body() -> int
+    public ori_jolt_body_count_live() -> int
+
+    public ori_jolt_create_fixed_constraint(system: int, body_a: int, body_b: int) -> int
+    public ori_jolt_create_distance_constraint(system: int, body_a: int, body_b: int, min_m: int, max_m: int) -> int
+    public ori_jolt_create_hinge_constraint(system: int, body_a: int, body_b: int, ax_m: int, ay_m: int, az_m: int) -> int
+    public ori_jolt_destroy_constraint(constraint: int) -> void
+    public ori_jolt_constraint_is_valid(constraint: int) -> int
+
+    public ori_jolt_create_character(system: int, x_m: int, y_m: int, z_m: int, radius_m: int, half_height_m: int) -> int
+    public ori_jolt_destroy_character(character: int) -> void
+    public ori_jolt_character_is_valid(character: int) -> int
+    public ori_jolt_character_set_velocity(character: int, vx_m: int, vy_m: int, vz_m: int) -> void
+    public ori_jolt_character_jump(character: int, speed_m: int) -> void
+    public ori_jolt_character_x_m(character: int) -> int
+    public ori_jolt_character_y_m(character: int) -> int
+    public ori_jolt_character_z_m(character: int) -> int
+    public ori_jolt_character_on_ground(character: int) -> int
+
+    public ori_jolt_create_vehicle(system: int, x_m: int, y_m: int, z_m: int, half_x_m: int, half_y_m: int, half_z_m: int) -> int
+    public ori_jolt_destroy_vehicle(vehicle: int) -> void
+    public ori_jolt_vehicle_is_valid(vehicle: int) -> int
+    public ori_jolt_vehicle_set_input(vehicle: int, throttle_m: int, steer_m: int, brake_m: int) -> void
+    public ori_jolt_vehicle_chassis(vehicle: int) -> int
+end
+
+-- Fixed object-layer ids (Wave 4). 0 static-ish, 1 dynamic, 2–3 free.
+public layer_static() -> int
+    return 0
+end
+
+public layer_dynamic() -> int
+    return 1
+end
+
+public layer_player() -> int
+    return 2
+end
+
+public layer_debris() -> int
+    return 3
+end
+
+public struct System
+    id: int
+end
+
+public struct Body
+    id: int
+end
+
+public struct Constraint
+    id: int
+end
+
+public struct Character
+    id: int
+end
+
+public struct Vehicle
+    id: int
+end
+
+public create_system(gravity_x_m: int, gravity_y_m: int, gravity_z_m: int) -> System
+    return System { id: ori_jolt_create_system(gravity_x_m, gravity_y_m, gravity_z_m) }
+end
+
+public destroy_system(s: System) -> void
+    ori_jolt_destroy_system(s.id)
+end
+
+public is_valid(s: System) -> bool
+    return ori_jolt_system_is_valid(s.id) != 0
+end
+
+public set_gravity(s: System, gx_m: int, gy_m: int, gz_m: int) -> void
+    ori_jolt_set_gravity(s.id, gx_m, gy_m, gz_m)
+end
+
+public step(s: System, dt_micros: int) -> void
+    ori_jolt_step(s.id, dt_micros, 1)
+end
+
+public step_collisions(s: System, dt_micros: int, collision_steps: int) -> void
+    ori_jolt_step(s.id, dt_micros, collision_steps)
+end
+
+public create_static_box(
+    s: System, x_m: int, y_m: int, z_m: int, half_x_m: int, half_y_m: int, half_z_m: int
+) -> Body
+    return Body {
+        id: ori_jolt_create_static_box(s.id, x_m, y_m, z_m, half_x_m, half_y_m, half_z_m)
+    }
+end
+
+public create_dynamic_box(
+    s: System, x_m: int, y_m: int, z_m: int, half_x_m: int, half_y_m: int, half_z_m: int, density_m: int
+) -> Body
+    return Body {
+        id: ori_jolt_create_dynamic_box(s.id, x_m, y_m, z_m, half_x_m, half_y_m, half_z_m, density_m)
+    }
+end
+
+public create_static_sphere(s: System, x_m: int, y_m: int, z_m: int, radius_m: int) -> Body
+    return Body { id: ori_jolt_create_static_sphere(s.id, x_m, y_m, z_m, radius_m) }
+end
+
+public create_dynamic_sphere(
+    s: System, x_m: int, y_m: int, z_m: int, radius_m: int, density_m: int
+) -> Body
+    return Body { id: ori_jolt_create_dynamic_sphere(s.id, x_m, y_m, z_m, radius_m, density_m) }
+end
+
+public create_dynamic_capsule(
+    s: System, x_m: int, y_m: int, z_m: int, half_height_m: int, radius_m: int, density_m: int
+) -> Body
+    return Body {
+        id: ori_jolt_create_dynamic_capsule(s.id, x_m, y_m, z_m, half_height_m, radius_m, density_m)
+    }
+end
+
+-- Static floor / plane helper: top surface at y_m (milli-m).
+public create_static_floor(s: System, y_m: int) -> Body
+    return Body { id: ori_jolt_create_static_floor(s.id, y_m) }
+end
+
+public destroy_body(b: Body) -> void
+    ori_jolt_destroy_body(b.id)
+end
+
+public body_is_valid(b: Body) -> bool
+    return ori_jolt_body_is_valid(b.id) != 0
+end
+
+public body_x_m(b: Body) -> int
+    return ori_jolt_body_x_m(b.id)
+end
+
+public body_y_m(b: Body) -> int
+    return ori_jolt_body_y_m(b.id)
+end
+
+public body_z_m(b: Body) -> int
+    return ori_jolt_body_z_m(b.id)
+end
+
+public body_vx_m(b: Body) -> int
+    return ori_jolt_body_vx_m(b.id)
+end
+
+public body_vy_m(b: Body) -> int
+    return ori_jolt_body_vy_m(b.id)
+end
+
+public body_vz_m(b: Body) -> int
+    return ori_jolt_body_vz_m(b.id)
+end
+
+public body_wx_m(b: Body) -> int
+    return ori_jolt_body_wx_m(b.id)
+end
+
+public body_wy_m(b: Body) -> int
+    return ori_jolt_body_wy_m(b.id)
+end
+
+public body_wz_m(b: Body) -> int
+    return ori_jolt_body_wz_m(b.id)
+end
+
+public set_linear_velocity(b: Body, vx_m: int, vy_m: int, vz_m: int) -> void
+    ori_jolt_set_linear_velocity(b.id, vx_m, vy_m, vz_m)
+end
+
+public add_impulse(b: Body, ix_m: int, iy_m: int, iz_m: int) -> void
+    ori_jolt_add_impulse(b.id, ix_m, iy_m, iz_m)
+end
+
+public add_torque(b: Body, tx_m: int, ty_m: int, tz_m: int) -> void
+    ori_jolt_add_torque(b.id, tx_m, ty_m, tz_m)
+end
+
+public set_position(b: Body, x_m: int, y_m: int, z_m: int) -> void
+    ori_jolt_set_position(b.id, x_m, y_m, z_m)
+end
+
+public set_friction(b: Body, friction_m: int) -> void
+    ori_jolt_set_friction(b.id, friction_m)
+end
+
+public set_restitution(b: Body, restitution_m: int) -> void
+    ori_jolt_set_restitution(b.id, restitution_m)
+end
+
+public get_friction_m(b: Body) -> int
+    return ori_jolt_get_friction_m(b.id)
+end
+
+public get_restitution_m(b: Body) -> int
+    return ori_jolt_get_restitution_m(b.id)
+end
+
+public set_body_layer(b: Body, layer: int) -> void
+    ori_jolt_set_body_layer(b.id, layer)
+end
+
+public get_body_layer(b: Body) -> int
+    return ori_jolt_get_body_layer(b.id)
+end
+
+public set_layer_mask(s: System, layer: int, mask: int) -> void
+    ori_jolt_set_layer_mask(s.id, layer, mask)
+end
+
+public get_layer_mask(s: System, layer: int) -> int
+    return ori_jolt_get_layer_mask(s.id, layer)
+end
+
+public raycast(
+    s: System,
+    ox_m: int, oy_m: int, oz_m: int,
+    dx_m: int, dy_m: int, dz_m: int,
+    max_dist_m: int
+) -> bool
+    return ori_jolt_raycast(s.id, ox_m, oy_m, oz_m, dx_m, dy_m, dz_m, max_dist_m) != 0
+end
+
+public last_hit_x_m() -> int
+    return ori_jolt_last_hit_x_m()
+end
+
+public last_hit_y_m() -> int
+    return ori_jolt_last_hit_y_m()
+end
+
+public last_hit_z_m() -> int
+    return ori_jolt_last_hit_z_m()
+end
+
+public last_hit_body() -> Body
+    return Body { id: ori_jolt_last_hit_body() }
+end
+
+public last_hit_body_id() -> int
+    return ori_jolt_last_hit_body()
+end
+
+public body_count_live() -> int
+    return ori_jolt_body_count_live()
+end
+
+public create_fixed_constraint(s: System, a: Body, b: Body) -> Constraint
+    return Constraint { id: ori_jolt_create_fixed_constraint(s.id, a.id, b.id) }
+end
+
+public create_distance_constraint(s: System, a: Body, b: Body, min_m: int, max_m: int) -> Constraint
+    return Constraint {
+        id: ori_jolt_create_distance_constraint(s.id, a.id, b.id, min_m, max_m)
+    }
+end
+
+public create_hinge_constraint(
+    s: System, a: Body, b: Body, ax_m: int, ay_m: int, az_m: int
+) -> Constraint
+    return Constraint {
+        id: ori_jolt_create_hinge_constraint(s.id, a.id, b.id, ax_m, ay_m, az_m)
+    }
+end
+
+public destroy_constraint(c: Constraint) -> void
+    ori_jolt_destroy_constraint(c.id)
+end
+
+public constraint_is_valid(c: Constraint) -> bool
+    return ori_jolt_constraint_is_valid(c.id) != 0
+end
+
+public create_character(
+    s: System, x_m: int, y_m: int, z_m: int, radius_m: int, half_height_m: int
+) -> Character
+    return Character {
+        id: ori_jolt_create_character(s.id, x_m, y_m, z_m, radius_m, half_height_m)
+    }
+end
+
+public destroy_character(c: Character) -> void
+    ori_jolt_destroy_character(c.id)
+end
+
+public character_is_valid(c: Character) -> bool
+    return ori_jolt_character_is_valid(c.id) != 0
+end
+
+public character_set_velocity(c: Character, vx_m: int, vy_m: int, vz_m: int) -> void
+    ori_jolt_character_set_velocity(c.id, vx_m, vy_m, vz_m)
+end
+
+public character_jump(c: Character, speed_m: int) -> void
+    ori_jolt_character_jump(c.id, speed_m)
+end
+
+public character_x_m(c: Character) -> int
+    return ori_jolt_character_x_m(c.id)
+end
+
+public character_y_m(c: Character) -> int
+    return ori_jolt_character_y_m(c.id)
+end
+
+public character_z_m(c: Character) -> int
+    return ori_jolt_character_z_m(c.id)
+end
+
+public character_on_ground(c: Character) -> bool
+    return ori_jolt_character_on_ground(c.id) != 0
+end
+
+public create_vehicle(
+    s: System, x_m: int, y_m: int, z_m: int, half_x_m: int, half_y_m: int, half_z_m: int
+) -> Vehicle
+    return Vehicle {
+        id: ori_jolt_create_vehicle(s.id, x_m, y_m, z_m, half_x_m, half_y_m, half_z_m)
+    }
+end
+
+public destroy_vehicle(v: Vehicle) -> void
+    ori_jolt_destroy_vehicle(v.id)
+end
+
+public vehicle_is_valid(v: Vehicle) -> bool
+    return ori_jolt_vehicle_is_valid(v.id) != 0
+end
+
+public vehicle_set_input(v: Vehicle, throttle_m: int, steer_m: int, brake_m: int) -> void
+    ori_jolt_vehicle_set_input(v.id, throttle_m, steer_m, brake_m)
+end
+
+public vehicle_chassis(v: Vehicle) -> Body
+    return Body { id: ori_jolt_vehicle_chassis(v.id) }
+end

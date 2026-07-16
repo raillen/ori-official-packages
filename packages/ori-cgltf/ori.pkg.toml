@@ -1,0 +1,8 @@
+[package]
+name = "cgltf"
+version = "0.2.0"
+entry = "cgltf/loader.orl"
+ori_version = "0.3.0"
+description = "cgltf glTF 2.0 loader bindings for Ori (meshes, nodes, materials, interleaved mesh export)"
+license = "MIT"
+native_libs = ["ori_cgltf_shim"]

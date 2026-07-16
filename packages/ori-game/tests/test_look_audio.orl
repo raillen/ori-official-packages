@@ -1,0 +1,59 @@
+module test.look_audio
+
+-- Headless-pure modules (no raylib link).
+
+imports
+    game.asset_paths = paths
+    game.inventory = inv
+    game.collision_layers = layers
+    game.character_controller = ctrl
+    game.multi_scene = mscene
+    game.decals = decals
+    ori.test = test
+end
+
+@test
+asset_paths_join_and_prefer_existing()
+    var roots: paths.PathRoots = paths.with_project("/tmp/")
+    const j: string = paths.join("/proj/", "assets/x.png")
+    test.assert(j == "/proj/assets/x.png", "join")
+    const r: string = paths.resolve(roots, "no_such_file_xyz")
+    test.assert(r == "/tmp/no_such_file_xyz", "fallback project")
+end
+
+@test
+inventory_add_count()
+    var bag: inv.Inventory = inv.create(4)
+    const item: inv.Item = inv.Item {
+        id: "coin",
+        name: "Coin",
+        stackable: true,
+        max_stack: 99
+    }
+    bag = inv.add(bag, item, 3)
+    test.assert(inv.count_of(bag, "coin") == 3, "3 coins")
+end
+
+@test
+layer_and_controller()
+    test.assert(layers.name_of(layers.LAYER_PLAYER) == "Player", "player")
+    const c: ctrl.Controller = ctrl.create(8.0, 40.0)
+    test.assert(c.radius == 8.0, "radius")
+end
+
+@test
+scene_stack_depth()
+    var st: mscene.SceneStack = mscene.empty_stack()
+    st = mscene.stack_push(st, "a")
+    st = mscene.stack_push(st, "b")
+    test.assert(mscene.stack_depth(st) == 2, "depth")
+end
+
+@test
+decal_pool_spawn_tick()
+    var pool: decals.DecalPool = decals.create(4)
+    pool = decals.spawn(pool, 1.0, 0.0, 2.0, 3.0, 0.5)
+    test.assert(decals.alive_count(pool) == 1, "one alive")
+    pool = decals.tick(pool, 1.0)
+    test.assert(decals.alive_count(pool) == 0, "expired")
+end

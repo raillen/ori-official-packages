@@ -1,0 +1,11 @@
+[package]
+name = "immemory"
+version = "0.1.0"
+entry = "immemory/buffer.orl"
+ori_version = "0.3.0"
+description = "In-ImGui hex memory editor for Ori (pure Ori buffer view/edit + optional imgui.ui draw)"
+license = "MIT"
+# Pure Ori buffer + hex helpers — no native shim. Product draw path-deps sibling ori-imgui.
+
+[dependencies]
+imgui = { path = "../ori-imgui", version = "0.5.1" }

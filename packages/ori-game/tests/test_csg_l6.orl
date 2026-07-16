@@ -1,0 +1,112 @@
+module test.csg_l6
+
+imports
+    game.ogame_level = level
+    game.ogame_level_csg = csg
+    game.ogame_level_tools = ltools
+    ori.list = lists
+    ori.test = test
+end
+
+near(a: float, b: float) -> bool
+    const d: float = a - b
+    if d < 0.0
+        return 0.0 - d < 0.01
+    end
+    return d < 0.01
+end
+
+@test
+l6_intersect_volume()
+    const a: csg.Aabb = csg.aabb(0.0, 0.0, 0.0, 20.0, 20.0, 20.0)
+    const b: csg.Aabb = csg.aabb(5.0, 0.0, 0.0, 20.0, 20.0, 20.0)
+    const inter: csg.Aabb = csg.aabb_intersect(a, b)
+    test.assert(csg.aabb_volume(inter) > 0.0, "overlap produces volume")
+    test.assert(near(inter.sx, 15.0), "intersect sx")
+end
+
+@test
+l6_boolean_subtract_pieces()
+    const a: csg.Aabb = csg.aabb(0.0, 0.0, 0.0, 32.0, 16.0, 32.0)
+    const b: csg.Aabb = csg.aabb(0.0, 0.0, 0.0, 8.0, 20.0, 8.0)
+    const pieces: list[csg.Aabb] = csg.boolean_aabb(a, b, csg.OP_SUBTRACT)
+    test.assert(lists.len(pieces) >= 4, "subtract multi-slab")
+end
+
+@test
+l6_boolean_union_hull()
+    const a: csg.Aabb = csg.aabb(0.0, 0.0, 0.0, 10.0, 10.0, 10.0)
+    const b: csg.Aabb = csg.aabb(20.0, 0.0, 0.0, 10.0, 10.0, 10.0)
+    const pieces: list[csg.Aabb] = csg.boolean_aabb(a, b, csg.OP_UNION_HULL)
+    test.equal_int(lists.len(pieces), 1)
+    test.assert(pieces[0].sx > 20.0, "hull spans both")
+end
+
+@test
+l6_merge_adjacent_slabs()
+    const left: csg.Aabb = csg.aabb(-5.0, 0.0, 0.0, 10.0, 10.0, 10.0)
+    const right: csg.Aabb = csg.aabb(5.0, 0.0, 0.0, 10.0, 10.0, 10.0)
+    test.assert(csg.can_merge_aabb(left, right), "touching same YZ merges")
+    var pieces: list[csg.Aabb] = []
+    lists.push(pieces, left)
+    lists.push(pieces, right)
+    const merged: list[csg.Aabb] = csg.merge_aabb_list(pieces)
+    test.equal_int(lists.len(merged), 1)
+    test.assert(near(merged[0].sx, 20.0), "merged width")
+end
+
+@test
+l6_carve_merged_not_worse()
+    const solid: csg.Aabb = csg.aabb(0.0, 0.0, 0.0, 40.0, 20.0, 40.0)
+    var cuts: list[csg.Aabb] = []
+    lists.push(cuts, csg.aabb(-12.0, 0.0, 0.0, 8.0, 24.0, 8.0))
+    lists.push(cuts, csg.aabb(12.0, 0.0, 0.0, 8.0, 24.0, 8.0))
+    const raw: list[csg.Aabb] = csg.carve(solid, cuts)
+    const merged: list[csg.Aabb] = csg.carve_merged(solid, cuts)
+    test.assert(lists.len(merged) <= lists.len(raw), "merge never increases pieces")
+    test.assert(lists.len(merged) >= 1, "still has solids")
+end
+
+@test
+l6_clip_axis_plane()
+    const a: csg.Aabb = csg.aabb(0.0, 0.0, 0.0, 20.0, 20.0, 20.0)
+    const clip: csg.AxisPlaneClip = csg.axis_plane_clip(csg.CLIP_AXIS_Y, 0.0, true)
+    const half: csg.Aabb = csg.clip_aabb_axis_plane(a, clip)
+    test.assert(csg.aabb_volume(half) > 0.0, "keep +Y half")
+    test.assert(half.sy <= 10.01, "half height")
+end
+
+@test
+l6_bsp_clip_chain()
+    const solid: csg.Aabb = csg.aabb(0.0, 0.0, 0.0, 40.0, 40.0, 40.0)
+    var clips: list[csg.AxisPlaneClip] = []
+    lists.push(clips, csg.axis_plane_clip(csg.CLIP_AXIS_X, 0.0, true))
+    lists.push(clips, csg.axis_plane_clip(csg.CLIP_AXIS_Z, 0.0, true))
+    const pieces: list[csg.Aabb] = csg.compile_bsp_clips(solid, clips, true)
+    test.equal_int(lists.len(pieces), 1)
+    test.assert(pieces[0].sx <= 20.01, "bsp shrink x")
+end
+
+@test
+l6_tools_intersect_brush()
+    var lvl: level.LevelGeometry = level.empty_level()
+    lvl = ltools.add_box_brush(lvl, "b0", 0.0, 8.0, 0.0, 32.0, 16.0, 32.0)
+    lvl = ltools.intersect_brush_with_box(lvl, 0, 0.0, 8.0, 0.0, 16.0, 16.0, 16.0, 0.0)
+    match ltools.brush_at(lvl, 0)
+        case some(b):
+            test.assert(b.sx <= 16.01, "intersect shrinks brush")
+        case none:
+            test.assert(false, "brush missing")
+    end
+end
+
+@test
+l6_collect_solids_uses_merge()
+    const raw: string = "{\"brushes\":[{\"id\":\"b1\",\"kind\":\"box\",\"x\":0.0,\"y\":0.0,\"z\":0.0,\"sx\":40.0,\"sy\":20.0,\"sz\":40.0}],\"subtracts\":[{\"id\":\"s1\",\"x\":-10.0,\"y\":0.0,\"z\":0.0,\"sx\":8.0,\"sy\":24.0,\"sz\":8.0},{\"id\":\"s2\",\"x\":10.0,\"y\":0.0,\"z\":0.0,\"sx\":8.0,\"sy\":24.0,\"sz\":8.0}]}"
+    const lvl: level.LevelGeometry = level.parse_level_text(raw)
+    const n: int = level.solids_count(lvl)
+    test.assert(n >= 2, "multi-cut still yields pieces")
+    const raw_n: int = ltools.carve_piece_count_raw(lvl, 0)
+    const mer_n: int = ltools.carve_piece_count_merged(lvl, 0)
+    test.assert(mer_n <= raw_n, "merged <= raw")
+end

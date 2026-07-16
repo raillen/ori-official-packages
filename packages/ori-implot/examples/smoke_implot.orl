@@ -1,0 +1,72 @@
+module app.smoke_implot
+
+imports
+    implot.charts = plot
+    ori.io = io
+end
+
+main()
+    plot.reset()
+    if not plot.push_m(0, 1000)
+        io.println("push_fail")
+        return
+    end
+    if not plot.push_m(1000, 2000)
+        io.println("push2_fail")
+        return
+    end
+    if plot.count() != 2
+        io.println("count_fail")
+        return
+    end
+    if plot.sum_m() != 3000
+        io.println("sum_fail")
+        return
+    end
+    if plot.min_m() != 1000 or plot.max_m() != 2000
+        io.println("minmax_fail")
+        return
+    end
+
+    plot.setup_axes("x", "y")
+    if not plot.x_label_eq("x") or not plot.y_label_eq("y")
+        io.println("axes_fail")
+        return
+    end
+
+    plot.plot_line("L")
+    if plot.last_draw() != plot.DRAW_LINE
+        io.println("line_fail")
+        return
+    end
+    plot.plot_scatter("S")
+    if plot.last_draw() != plot.DRAW_SCATTER
+        io.println("scatter_fail")
+        return
+    end
+    plot.plot_bars("B")
+    if plot.last_draw() != plot.DRAW_BARS
+        io.println("bars_fail")
+        return
+    end
+
+    -- Headless begin returns false (no ImGui frame); API still callable.
+    if plot.begin_plot("smoke", 320, 240)
+        io.println("begin_unexpected")
+        return
+    end
+    plot.end_plot()
+
+    plot.clear()
+    if plot.count() != 0
+        io.println("clear_fail")
+        return
+    end
+    plot.reset()
+    if plot.x_label_len() != 0
+        io.println("reset_fail")
+        return
+    end
+
+    io.println("ok")
+end

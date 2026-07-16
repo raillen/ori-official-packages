@@ -1,0 +1,24 @@
+module app.simple_game
+
+imports
+    game.collision = collision
+    game.shape = shape
+    ori.math.vec2 = vec2
+    ori.io = io
+end
+
+main()
+    const player: shape.Rectangle = shape.rect(100.0, 100.0, 32.0, 32.0)
+    const wall: shape.Rectangle = shape.rect(200.0, 150.0, 50.0, 100.0)
+    if collision.rects_overlap(player, wall)
+        io.print("overlap")
+    else
+        io.print("clear")
+    end
+    const p: vec2.Vec2 = vec2.Vec2 { x: 110.0, y: 110.0 }
+    if collision.point_in_rect(p, wall)
+        io.print("point in wall")
+    else
+        io.print("point free")
+    end
+end

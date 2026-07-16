@@ -1,0 +1,132 @@
+module imnodes.editor
+
+-- imnodes node editor for Ori.
+-- Headless graph_* bookkeeping always available; FULL path (ORI_IMNODES_FULL=1)
+-- wires Begin/End node editor + pins + Link against real imnodes.
+
+extern c
+    public ori_imnodes_create_context() -> void
+    public ori_imnodes_destroy_context() -> void
+    public ori_imnodes_begin_node_editor() -> void
+    public ori_imnodes_end_node_editor() -> void
+    public ori_imnodes_begin_node(id: int) -> void
+    public ori_imnodes_end_node() -> void
+    public ori_imnodes_begin_input_attr(id: int) -> void
+    public ori_imnodes_begin_output_attr(id: int) -> void
+    public ori_imnodes_end_attr() -> void
+    public ori_imnodes_link(id: int, start_attr: int, end_attr: int) -> void
+    public ori_imnodes_graph_clear() -> void
+    public ori_imnodes_graph_add_node(id: int) -> int
+    public ori_imnodes_graph_add_pin(id: int, kind: int) -> int
+    public ori_imnodes_graph_add_link(a: int, b: int) -> int
+    public ori_imnodes_graph_add_link_id(link_id: int, a: int, b: int) -> int
+    public ori_imnodes_graph_node_count() -> int
+    public ori_imnodes_graph_pin_count() -> int
+    public ori_imnodes_graph_link_count() -> int
+    public ori_imnodes_graph_has_node(id: int) -> int
+    public ori_imnodes_graph_pin_id(index: int) -> int
+    public ori_imnodes_graph_pin_kind(index: int) -> int
+    public ori_imnodes_graph_link_id(index: int) -> int
+    public ori_imnodes_graph_link_start(index: int) -> int
+    public ori_imnodes_graph_link_end(index: int) -> int
+end
+
+-- pin kind constants (bookkeeping)
+public const PIN_INPUT: int = 0
+public const PIN_OUTPUT: int = 1
+
+public create_context() -> void
+    ori_imnodes_create_context()
+end
+
+public destroy_context() -> void
+    ori_imnodes_destroy_context()
+end
+
+public begin_node_editor() -> void
+    ori_imnodes_begin_node_editor()
+end
+
+public end_node_editor() -> void
+    ori_imnodes_end_node_editor()
+end
+
+public begin_node(id: int) -> void
+    ori_imnodes_begin_node(id)
+end
+
+public end_node() -> void
+    ori_imnodes_end_node()
+end
+
+public begin_input_attr(id: int) -> void
+    ori_imnodes_begin_input_attr(id)
+end
+
+public begin_output_attr(id: int) -> void
+    ori_imnodes_begin_output_attr(id)
+end
+
+public end_attr() -> void
+    ori_imnodes_end_attr()
+end
+
+public link(id: int, start_attr: int, end_attr: int) -> void
+    ori_imnodes_link(id, start_attr, end_attr)
+end
+
+public graph_clear() -> void
+    ori_imnodes_graph_clear()
+end
+
+public graph_add_node(id: int) -> bool
+    return ori_imnodes_graph_add_node(id) == 0
+end
+
+public graph_add_pin(id: int, kind: int) -> bool
+    return ori_imnodes_graph_add_pin(id, kind) == 0
+end
+
+public graph_add_link(a: int, b: int) -> bool
+    return ori_imnodes_graph_add_link(a, b) == 0
+end
+
+public graph_add_link_id(link_id: int, a: int, b: int) -> bool
+    return ori_imnodes_graph_add_link_id(link_id, a, b) == 0
+end
+
+public graph_node_count() -> int
+    return ori_imnodes_graph_node_count()
+end
+
+public graph_pin_count() -> int
+    return ori_imnodes_graph_pin_count()
+end
+
+public graph_link_count() -> int
+    return ori_imnodes_graph_link_count()
+end
+
+public graph_has_node(id: int) -> bool
+    return ori_imnodes_graph_has_node(id) != 0
+end
+
+public graph_pin_id(index: int) -> int
+    return ori_imnodes_graph_pin_id(index)
+end
+
+public graph_pin_kind(index: int) -> int
+    return ori_imnodes_graph_pin_kind(index)
+end
+
+public graph_link_id(index: int) -> int
+    return ori_imnodes_graph_link_id(index)
+end
+
+public graph_link_start(index: int) -> int
+    return ori_imnodes_graph_link_start(index)
+end
+
+public graph_link_end(index: int) -> int
+    return ori_imnodes_graph_link_end(index)
+end

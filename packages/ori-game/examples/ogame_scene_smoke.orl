@@ -1,0 +1,25 @@
+module app.ogame_scene_smoke
+
+-- Headless R3 smoke: load sample_project catalog + scene, spawn into engine.
+-- Run from ori-game root: ori run examples/ogame_scene_smoke.orl
+
+imports
+    game.ogame = ogame
+    game.engine = engine
+    ori.io = io
+end
+
+main()
+    match ogame.load_and_spawn_sample()
+        case ok(eng):
+            const n: int = engine.entity_count(eng)
+            if n == 3
+                io.print("ogame_scene_smoke: ok entities=3")
+            else
+                io.print("ogame_scene_smoke: bad count")
+            end
+        case err(msg):
+            io.print("ogame_scene_smoke: fail")
+            io.print(msg)
+    end
+end

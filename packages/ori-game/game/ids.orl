@@ -1,0 +1,9 @@
+module game.ids
+
+-- Domain handle aliases (0.3.x style). Backing type is still int at L0/FFI.
+public alias TextureId = int
+public alias ModelId = int
+public alias SoundId = int
+public alias MusicId = int
+public alias FontId = int
+public alias EntityId = int

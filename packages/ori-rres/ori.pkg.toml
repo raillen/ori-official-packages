@@ -1,0 +1,8 @@
+[package]
+name = "rres"
+version = "0.3.0"
+entry = "rres/pack.orl"
+ori_version = "0.3.0"
+description = "Resource pack bindings for Ori (ORPK product + rres CRC32)"
+license = "MIT"
+native_libs = ["rres"]

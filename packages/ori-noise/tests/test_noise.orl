@@ -1,0 +1,86 @@
+module test.noise
+
+imports
+    noise.fnl = fnl
+    ori.test = test
+end
+
+@test
+deterministic_seed()
+    fnl.init()
+    fnl.set_seed(7)
+    fnl.set_frequency_m(100)
+    fnl.use_perlin()
+    fnl.use_fractal_none()
+    const a: int = fnl.get2_m(3000, 4000)
+    fnl.init()
+    fnl.set_seed(7)
+    fnl.set_frequency_m(100)
+    fnl.use_perlin()
+    fnl.use_fractal_none()
+    const b: int = fnl.get2_m(3000, 4000)
+    test.equal_int(a, b)
+end
+
+@test
+get3_range()
+    fnl.init()
+    fnl.set_seed(1)
+    fnl.use_open_simplex()
+    fnl.use_fractal_none()
+    const v: int = fnl.get3_m(100, 200, 300)
+    test.assert(v >= -2000 and v <= 2000, "range")
+end
+
+@test
+types_differ_at_point()
+    fnl.init()
+    fnl.set_seed(42)
+    fnl.set_frequency_m(50)
+    fnl.use_fractal_none()
+    fnl.use_perlin()
+    const perlin_v: int = fnl.get2_m(1500, 2500)
+    fnl.use_open_simplex()
+    const simplex_v: int = fnl.get2_m(1500, 2500)
+    test.assert(perlin_v != simplex_v, "perlin vs open_simplex")
+end
+
+@test
+seed_changes_sample()
+    fnl.init()
+    fnl.set_frequency_m(80)
+    fnl.use_perlin()
+    fnl.use_fractal_none()
+    fnl.set_seed(1)
+    const a: int = fnl.get2_m(1000, 1000)
+    fnl.set_seed(999)
+    const b: int = fnl.get2_m(1000, 1000)
+    test.assert(a != b, "seed must change field")
+end
+
+@test
+fractal_fbm_changes_sample()
+    fnl.init()
+    fnl.set_seed(11)
+    fnl.set_frequency_m(40)
+    fnl.use_open_simplex()
+    fnl.use_fractal_none()
+    const plain: int = fnl.get2_m(2000, 3000)
+    fnl.use_fractal_fbm()
+    fnl.set_octaves(5)
+    fnl.set_lacunarity_m(2000)
+    fnl.set_gain_m(500)
+    const fbm: int = fnl.get2_m(2000, 3000)
+    test.assert(plain != fbm, "fbm vs none")
+end
+
+@test
+cellular_3d_in_range()
+    fnl.init()
+    fnl.set_seed(3)
+    fnl.set_frequency_m(60)
+    fnl.use_cellular()
+    fnl.use_fractal_none()
+    const v: int = fnl.get3_m(500, 700, 900)
+    test.assert(v >= -2000 and v <= 2000, "cellular range")
+end

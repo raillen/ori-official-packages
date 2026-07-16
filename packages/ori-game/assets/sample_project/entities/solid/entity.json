@@ -1,0 +1,10 @@
+{
+  "format_version": 1,
+  "id": "solid",
+  "name": "Solid",
+  "script": "solid.orl",
+  "tags": ["solid"],
+  "events": ["create"],
+  "vars": [],
+  "parent": null
+}

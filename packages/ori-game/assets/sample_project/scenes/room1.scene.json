@@ -1,0 +1,118 @@
+{
+  "format_version": 1,
+  "name": "room1",
+  "brushes": [
+    {
+      "id": "brush_floor",
+      "kind": "box",
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "sx": 120.0,
+      "sy": 2.0,
+      "sz": 120.0,
+      "rx": 0.0,
+      "ry": 0.0,
+      "rz": 0.0,
+      "r": 92,
+      "g": 120,
+      "b": 72,
+      "a": 255,
+      "metallic": 0.0,
+      "roughness": 0.92,
+      "mesh_path": "",
+      "albedo_path": "",
+      "collider": true,
+      "layer": 1
+    },
+    {
+      "id": "brush_wall_n",
+      "kind": "box",
+      "x": 0.0,
+      "y": 10.0,
+      "z": 58.0,
+      "sx": 120.0,
+      "sy": 20.0,
+      "sz": 4.0,
+      "rx": 0.0,
+      "ry": 0.0,
+      "rz": 0.0,
+      "r": 106,
+      "g": 120,
+      "b": 90,
+      "a": 255,
+      "metallic": 0.05,
+      "roughness": 0.85,
+      "mesh_path": "",
+      "albedo_path": "",
+      "collider": true,
+      "layer": 1
+    },
+    {
+      "id": "brush_pillar",
+      "kind": "box",
+      "x": 24.0,
+      "y": 8.0,
+      "z": 16.0,
+      "sx": 8.0,
+      "sy": 16.0,
+      "sz": 8.0,
+      "rx": 0.0,
+      "ry": 0.0,
+      "rz": 0.0,
+      "r": 130,
+      "g": 110,
+      "b": 90,
+      "a": 255,
+      "metallic": 0.1,
+      "roughness": 0.8,
+      "mesh_path": "",
+      "albedo_path": "",
+      "collider": true,
+      "layer": 1
+    }
+  ],
+  "subtracts": [],
+  "terrain": null,
+  "chunk_size": 64.0,
+  "chunks_enabled": false,
+  "instances": [
+    {
+      "entity": "player",
+      "id": "inst_player_01",
+      "x": 0.0,
+      "y": 1.0,
+      "z": 8.0,
+      "var_overrides": {
+        "collider_radius": 8.0,
+        "collision_layer": 1,
+        "mesh_path": "assets/models/brazilian-cowboy.glb",
+        "mesh_scale": 48.0,
+        "move_speed": 48.0
+      }
+    },
+    {
+      "entity": "enemy",
+      "id": "inst_enemy_01",
+      "x": 28.0,
+      "y": 1.0,
+      "z": 32.0,
+      "var_overrides": {
+        "hp": 5.0,
+        "collider_radius": 8.0,
+        "collision_layer": 1
+      }
+    },
+    {
+      "entity": "solid",
+      "id": "inst_goal_marker",
+      "x": -24.0,
+      "y": 1.0,
+      "z": 40.0,
+      "var_overrides": {
+        "collider_radius": 6.0,
+        "collision_layer": 1
+      }
+    }
+  ]
+}

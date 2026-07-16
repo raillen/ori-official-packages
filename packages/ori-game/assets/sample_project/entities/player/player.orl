@@ -1,0 +1,35 @@
+module game.sample.player
+
+-- Default engine-test player (brazilian-cowboy mesh driven from main.orl).
+-- Vars (entity.json / instance overrides): move_speed, mesh_path, mesh_scale,
+-- collider_radius, collision_layer.
+-- N1 markers: host game.ogame_script interprets ogs:* (see main.orl).
+
+import ori.log = log
+
+public const DEFAULT_MESH_PATH: string = "assets/models/brazilian-cowboy.glb"
+public const DEFAULT_MOVE_SPEED: float = 48.0
+public const DEFAULT_MESH_SCALE: float = 48.0
+public const DEFAULT_COLLIDER_RADIUS: float = 8.0
+public const DEFAULT_COLLISION_LAYER: int = 1
+
+-- Body text for Studio lower/lift + runtime host (ogs markers only).
+public const CREATE_OGS: string = "-- ogs:print player create\n-- ogs:set_var ready = 1\n-- ogs:call on_ready\n"
+public const STEP_OGS: string = "-- ogs:pass\n"
+
+on_create(_self_id: int) -> void
+    -- ogs:print player create
+    log.info("player create")
+    -- ogs:set_var ready = 1
+    -- host: game.ogame_script.set_var / run_ogs_body
+    -- ogs:call on_ready
+    -- host: ogs last_call / dispatch table
+end
+
+on_step(_self_id: int, _dt: float) -> void
+    -- ogs:pass
+    -- Movement is applied in sample.main; ogs host can tick STEP_OGS.
+end
+
+on_destroy(_self_id: int) -> void
+end

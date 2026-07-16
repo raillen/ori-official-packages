@@ -1,0 +1,391 @@
+module imgui.test_harness
+
+-- Pure Ori UI test harness (Stage C4 / PR11).
+-- Query widgets by label; simulate click / open / close headlessly.
+-- Non-goal: full official imgui_test_engine CI / pixel regression.
+
+import ori.list = lists
+
+-- Item kinds (product-facing constants).
+public const KIND_BUTTON: int = 0
+public const KIND_WINDOW: int = 1
+public const KIND_MENU: int = 2
+public const KIND_CHECKBOX: int = 3
+public const KIND_HEADER: int = 4
+public const KIND_MENU_ITEM: int = 5
+
+public struct Item
+    label: string
+    kind: int
+    open: bool
+    checked: bool
+    enabled: bool
+    visible: bool
+    click_count: int
+end
+
+public struct Harness
+    items: list[Item]
+    last_action: string
+    last_label: string
+    frame: int
+end
+
+-- Lifecycle -----------------------------------------------------------------
+
+public create() -> Harness
+    return Harness {
+        items: [],
+        last_action: "",
+        last_label: "",
+        frame: 0
+    }
+end
+
+public clear(h: Harness) -> Harness
+    var out: Harness = h
+    out.items = []
+    out.last_action = "clear"
+    out.last_label = ""
+    return out
+end
+
+public item_count(h: Harness) -> int
+    return lists.len(h.items)
+end
+
+public frame_of(h: Harness) -> int
+    return h.frame
+end
+
+public begin_frame(h: Harness) -> Harness
+    var out: Harness = h
+    out.frame = out.frame + 1
+    out.last_action = "begin_frame"
+    return out
+end
+
+public last_action_of(h: Harness) -> string
+    return h.last_action
+end
+
+public last_label_of(h: Harness) -> string
+    return h.last_label
+end
+
+-- Registration --------------------------------------------------------------
+
+make_item(label: string, kind: int, open: bool, checked: bool) -> Item
+    return Item {
+        label: label,
+        kind: kind,
+        open: open,
+        checked: checked,
+        enabled: true,
+        visible: true,
+        click_count: 0
+    }
+end
+
+find_index(h: Harness, label: string) -> int
+    if label == ""
+        return -1
+    end
+    const n: int = lists.len(h.items)
+    var i: int = 0
+    while i < n
+        if h.items[i].label == label
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+-- Register or replace by exact label. Empty label is a no-op.
+public register(h: Harness, label: string, kind: int) -> Harness
+    return register_full(h, label, kind, false, false)
+end
+
+public register_full(
+    h: Harness,
+    label: string,
+    kind: int,
+    open: bool,
+    checked: bool
+) -> Harness
+    var out: Harness = h
+    if label == ""
+        return out
+    end
+    const idx: int = find_index(out, label)
+    const item: Item = make_item(label, kind, open, checked)
+    if idx >= 0
+        -- Keep click history when re-registering same label.
+        var prev: Item = out.items[idx]
+        var next: Item = item
+        next.click_count = prev.click_count
+        next.enabled = prev.enabled
+        next.visible = prev.visible
+        lists.set(out.items, idx, next)
+    else
+        lists.push(out.items, item)
+    end
+    out.last_action = "register"
+    out.last_label = label
+    return out
+end
+
+public register_button(h: Harness, label: string) -> Harness
+    return register(h, label, KIND_BUTTON)
+end
+
+public register_window(h: Harness, label: string, open: bool) -> Harness
+    return register_full(h, label, KIND_WINDOW, open, false)
+end
+
+public register_menu(h: Harness, label: string, open: bool) -> Harness
+    return register_full(h, label, KIND_MENU, open, false)
+end
+
+public register_checkbox(h: Harness, label: string, checked: bool) -> Harness
+    return register_full(h, label, KIND_CHECKBOX, false, checked)
+end
+
+public register_header(h: Harness, label: string, open: bool) -> Harness
+    return register_full(h, label, KIND_HEADER, open, false)
+end
+
+public register_menu_item(h: Harness, label: string, checked: bool) -> Harness
+    return register_full(h, label, KIND_MENU_ITEM, false, checked)
+end
+
+-- Query by label ------------------------------------------------------------
+
+public exists(h: Harness, label: string) -> bool
+    return find_index(h, label) >= 0
+end
+
+public kind_of(h: Harness, label: string) -> int
+    const idx: int = find_index(h, label)
+    if idx < 0
+        return -1
+    end
+    return h.items[idx].kind
+end
+
+public is_open(h: Harness, label: string) -> bool
+    const idx: int = find_index(h, label)
+    if idx < 0
+        return false
+    end
+    return h.items[idx].open
+end
+
+public is_checked(h: Harness, label: string) -> bool
+    const idx: int = find_index(h, label)
+    if idx < 0
+        return false
+    end
+    return h.items[idx].checked
+end
+
+public is_enabled(h: Harness, label: string) -> bool
+    const idx: int = find_index(h, label)
+    if idx < 0
+        return false
+    end
+    return h.items[idx].enabled
+end
+
+public is_visible(h: Harness, label: string) -> bool
+    const idx: int = find_index(h, label)
+    if idx < 0
+        return false
+    end
+    return h.items[idx].visible
+end
+
+public click_count_of(h: Harness, label: string) -> int
+    const idx: int = find_index(h, label)
+    if idx < 0
+        return 0
+    end
+    return h.items[idx].click_count
+end
+
+public label_at(h: Harness, index: int) -> string
+    if index < 0 or index >= lists.len(h.items)
+        return ""
+    end
+    return h.items[index].label
+end
+
+-- True when any registered label equals `label` (exact). Alias of exists.
+public query_by_label(h: Harness, label: string) -> bool
+    return exists(h, label)
+end
+
+-- Simulate ------------------------------------------------------------------
+
+can_interact(item: Item) -> bool
+    return item.enabled and item.visible
+end
+
+is_openable_kind(kind: int) -> bool
+    if kind == KIND_WINDOW
+        return true
+    end
+    if kind == KIND_MENU
+        return true
+    end
+    if kind == KIND_HEADER
+        return true
+    end
+    return false
+end
+
+-- Click by exact label.
+-- Button/menu_item: click_count++.
+-- Checkbox: toggle checked + click_count++.
+-- Window/menu/header: open if closed (click to open) + click_count++.
+-- Disabled/hidden/missing: no-op (last_action = "click_miss").
+public click(h: Harness, label: string) -> Harness
+    var out: Harness = h
+    const idx: int = find_index(out, label)
+    if idx < 0
+        out.last_action = "click_miss"
+        out.last_label = label
+        return out
+    end
+    var item: Item = out.items[idx]
+    if not can_interact(item)
+        out.last_action = "click_blocked"
+        out.last_label = label
+        return out
+    end
+    item.click_count = item.click_count + 1
+    if item.kind == KIND_CHECKBOX
+        item.checked = not item.checked
+    elif item.kind == KIND_MENU_ITEM
+        item.checked = not item.checked
+    elif is_openable_kind(item.kind)
+        if not item.open
+            item.open = true
+        end
+    end
+    lists.set(out.items, idx, item)
+    out.last_action = "click"
+    out.last_label = label
+    return out
+end
+
+-- Force open (window / menu / collapsing header). Others no-op.
+public open_item(h: Harness, label: string) -> Harness
+    var out: Harness = h
+    const idx: int = find_index(out, label)
+    if idx < 0
+        out.last_action = "open_miss"
+        out.last_label = label
+        return out
+    end
+    var item: Item = out.items[idx]
+    if not can_interact(item)
+        out.last_action = "open_blocked"
+        out.last_label = label
+        return out
+    end
+    if not is_openable_kind(item.kind)
+        out.last_action = "open_unsupported"
+        out.last_label = label
+        return out
+    end
+    item.open = true
+    lists.set(out.items, idx, item)
+    out.last_action = "open"
+    out.last_label = label
+    return out
+end
+
+public close_item(h: Harness, label: string) -> Harness
+    var out: Harness = h
+    const idx: int = find_index(out, label)
+    if idx < 0
+        out.last_action = "close_miss"
+        out.last_label = label
+        return out
+    end
+    var item: Item = out.items[idx]
+    if not is_openable_kind(item.kind)
+        out.last_action = "close_unsupported"
+        out.last_label = label
+        return out
+    end
+    item.open = false
+    lists.set(out.items, idx, item)
+    out.last_action = "close"
+    out.last_label = label
+    return out
+end
+
+public set_checked(h: Harness, label: string, checked: bool) -> Harness
+    var out: Harness = h
+    const idx: int = find_index(out, label)
+    if idx < 0
+        out.last_action = "set_checked_miss"
+        out.last_label = label
+        return out
+    end
+    var item: Item = out.items[idx]
+    item.checked = checked
+    lists.set(out.items, idx, item)
+    out.last_action = "set_checked"
+    out.last_label = label
+    return out
+end
+
+public set_enabled(h: Harness, label: string, enabled: bool) -> Harness
+    var out: Harness = h
+    const idx: int = find_index(out, label)
+    if idx < 0
+        out.last_action = "set_enabled_miss"
+        out.last_label = label
+        return out
+    end
+    var item: Item = out.items[idx]
+    item.enabled = enabled
+    lists.set(out.items, idx, item)
+    out.last_action = "set_enabled"
+    out.last_label = label
+    return out
+end
+
+public set_visible(h: Harness, label: string, visible: bool) -> Harness
+    var out: Harness = h
+    const idx: int = find_index(out, label)
+    if idx < 0
+        out.last_action = "set_visible_miss"
+        out.last_label = label
+        return out
+    end
+    var item: Item = out.items[idx]
+    item.visible = visible
+    lists.set(out.items, idx, item)
+    out.last_action = "set_visible"
+    out.last_label = label
+    return out
+end
+
+public unregister(h: Harness, label: string) -> Harness
+    var out: Harness = h
+    const idx: int = find_index(out, label)
+    if idx < 0
+        out.last_action = "unregister_miss"
+        out.last_label = label
+        return out
+    end
+    lists.remove(out.items, idx)
+    out.last_action = "unregister"
+    out.last_label = label
+    return out
+end

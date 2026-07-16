@@ -1,0 +1,132 @@
+module test.imgui_extras
+
+imports
+    imgui_extras.notify = notify
+    imgui_extras.search = search
+    imgui_extras.hotkey = hotkey
+    imgui_extras.command_palette = palette
+    imgui_extras.metrics = metrics
+    ori.test = test
+end
+
+@test
+toast_queue_push_tick_expire()
+    var q: notify.ToastQueue = notify.create(300, 3)
+    q = notify.push_info(q, "a")
+    q = notify.push_warn(q, "b")
+    q = notify.push_error(q, "c")
+    test.equal_int(notify.count(q), 3)
+    test.equal_text(notify.message_at(q, 0), "a")
+    test.equal_int(notify.kind_at(q, 2), notify.KIND_ERROR)
+
+    -- Cap: 4th push drops oldest when max_visible=3
+    q = notify.push_info(q, "d")
+    test.equal_int(notify.count(q), 3)
+    test.equal_text(notify.message_at(q, 0), "b")
+
+    q = notify.tick(q, 200)
+    test.equal_int(notify.remaining_at(q, 0), 100)
+    q = notify.tick(q, 200)
+    test.equal_int(notify.count(q), 0)
+
+    q = notify.push_with_ttl(q, "short", notify.KIND_INFO, 50)
+    test.equal_int(notify.count(q), 1)
+    q = notify.clear(q)
+    test.equal_int(notify.count(q), 0)
+end
+
+@test
+search_filter_list_case()
+    var fl: search.FilterList = search.create()
+    fl = search.add_item(fl, "SceneRoot")
+    fl = search.add_item(fl, "Player")
+    fl = search.add_item(fl, "scene_camera")
+    fl = search.set_query(fl, "scene")
+    test.equal_int(search.filtered_count(fl), 2)
+    test.assert(search.matches_query("Abc", "ab", false), "ci match")
+    test.assert(not search.matches_query("Abc", "ab", true), "cs reject")
+    fl = search.set_case_sensitive(fl, true)
+    fl = search.set_query(fl, "Scene")
+    test.equal_int(search.filtered_count(fl), 1)
+    test.equal_text(search.filtered_at(fl, 0), "SceneRoot")
+    fl = search.set_query(fl, "")
+    test.equal_int(search.filtered_count(fl), 3)
+end
+
+@test
+hotkey_capture_chord_string()
+    var h: hotkey.HotkeyCapture = hotkey.create()
+    test.assert(not hotkey.is_capturing(h), "idle")
+    h = hotkey.begin_capture(h)
+    test.assert(hotkey.is_capturing(h), "capturing")
+    -- feed while capturing
+    h = hotkey.feed_key(h, "K", true, false, true)
+    test.equal_text(hotkey.chord_of(h), "Ctrl+Alt+K")
+    test.assert(not hotkey.is_capturing(h), "done")
+    test.equal_text(hotkey.last_key_of(h), "K")
+    test.assert(hotkey.matches_chord(hotkey.chord_of(h), "K", true, false, true), "match")
+    test.assert(not hotkey.matches_chord(hotkey.chord_of(h), "K", false, false, true), "nomatch")
+
+    -- ignore when not capturing
+    h = hotkey.feed_key(h, "X", true, false, false)
+    test.equal_text(hotkey.chord_of(h), "Ctrl+Alt+K")
+
+    h = hotkey.begin_capture(h)
+    h = hotkey.cancel_capture(h)
+    test.assert(not hotkey.is_capturing(h), "cancel")
+    test.equal_text(hotkey.format_chord("S", true, true, false), "Ctrl+Shift+S")
+end
+
+@test
+palette_register_filter_run()
+    var p: palette.Palette = palette.create()
+    p = palette.register(p, "cmd.a", "Alpha Command", "A")
+    p = palette.register(p, "cmd.b", "Beta Command", "B")
+    p = palette.register(p, "cmd.c", "Gamma", "G")
+    test.equal_int(palette.command_count(p), 3)
+
+    p = palette.open_ui(p)
+    test.assert(palette.is_open(p), "open")
+    p = palette.set_query(p, "beta")
+    test.equal_int(palette.filtered_count(p), 1)
+    test.equal_text(palette.filtered_id_at(p, 0), "cmd.b")
+    p = palette.run_filtered_at(p, 0)
+    test.equal_text(palette.last_run_id_of(p), "cmd.b")
+    test.assert(not palette.is_open(p), "closed after run")
+    test.assert(palette.has_run(p), "has run")
+    p = palette.take_run(p)
+    test.assert(not palette.has_run(p), "taken")
+
+    p = palette.open_ui(p)
+    p = palette.run_by_id(p, "cmd.a")
+    test.equal_text(palette.last_run_id_of(p), "cmd.a")
+    p = palette.run_by_id(p, "missing")
+    test.equal_text(palette.last_run_id_of(p), "cmd.a")
+
+    p = palette.unregister(p, "cmd.c")
+    test.equal_int(palette.command_count(p), 2)
+end
+
+@test
+metrics_fps_and_frame_milli()
+    test.equal_int(metrics.fps_milli_from_frame(16), 62500)
+    test.equal_int(metrics.integer_fps_from_frame(16), 62)
+    test.equal_int(metrics.fps_milli_from_frame(0), 0)
+    test.equal_int(metrics.fps_milli_from_frame(-5), 0)
+
+    var m: metrics.Metrics = metrics.create()
+    m = metrics.record_frame(m, 16)
+    test.equal_int(metrics.frame_milli_of(m), 16)
+    test.equal_int(metrics.smoothed_frame_milli_of(m), 16)
+    test.equal_int(metrics.sample_count_of(m), 1)
+    test.assert(metrics.fps_milli_of(m) > 0, "fps after first frame")
+
+    m = metrics.record_frame(m, 32)
+    test.equal_int(metrics.frame_milli_of(m), 32)
+    test.assert(metrics.smoothed_frame_milli_of(m) >= 16, "smooth rises")
+    test.assert(metrics.smoothed_frame_milli_of(m) <= 32, "smooth bounds")
+
+    m = metrics.reset(m)
+    test.equal_int(metrics.sample_count_of(m), 0)
+    test.equal_int(metrics.frame_milli_of(m), 0)
+end

@@ -1,0 +1,29 @@
+module app.main
+
+import web_app = wa
+import web = web
+import config.app = cfg
+import config.routes = routes
+import ori.io = io
+import ori.string = str
+import ori.os = os
+import ori.convert = conv
+
+main()
+    const host: string = os.env_or("ORI_HOST", cfg.host())
+    const port: int = conv.parse_int_or(os.env_or("PORT", string(cfg.port())), cfg.port())
+    wa.set_listen(host, port)
+    wa.set_views_root(cfg.views_root())
+    wa.set_public_root(cfg.public_root())
+
+    var a: web.App = wa.standard_app()
+    wa.mount_assets(a)
+    routes.draw(a)
+
+    io.println(str.concat("{{APP_NAME}} blog on http://", str.concat(host, str.concat(":", string(port)))))
+    match wa.run(a)
+    case ok(_):
+    case err(msg):
+        io.println(msg)
+    end
+end

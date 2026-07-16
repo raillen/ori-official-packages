@@ -1,0 +1,126 @@
+module test.fast_obj
+
+imports
+    fast_obj.mesh = obj
+    ori.test = test
+end
+
+@test
+load_triangle()
+    test.assert(obj.load("tests/fixtures/triangle.obj"), "load triangle")
+    -- 3 verts + dummy → position_count == 4
+    test.equal_int(obj.position_count(), 4)
+    test.equal_int(obj.face_count(), 1)
+    -- 1 normal + dummy → normal_count == 2
+    test.equal_int(obj.normal_count(), 2)
+    -- 3 texcoords + dummy → texcoord_count == 4
+    test.equal_int(obj.texcoord_count(), 4)
+    test.equal_int(obj.index_count(), 3)
+    -- mtllib Default material
+    test.equal_int(obj.material_count(), 1)
+    test.equal_int(obj.material_name_len(0), 7)
+    -- 'D' 'e' 'f' 'a' 'u' 'l' 't'
+    test.equal_int(obj.material_name_byte(0, 0), 68)
+    test.equal_int(obj.material_name_byte(0, 6), 116)
+    -- v0 = (0,0,0), v1 = (1,0,0), v2 = (0,1,0) in milli
+    test.equal_int(obj.pos_m(0, 0), 0)
+    test.equal_int(obj.pos_m(0, 1), 0)
+    test.equal_int(obj.pos_m(1, 0), 1000)
+    test.equal_int(obj.pos_m(2, 1), 1000)
+    obj.free()
+    test.equal_int(obj.position_count(), 0)
+    test.equal_int(obj.face_count(), 0)
+    test.equal_int(obj.material_count(), 0)
+end
+
+@test
+load_missing_fails()
+    test.assert(not obj.load("tests/fixtures/does_not_exist.obj"), "missing")
+    test.equal_int(obj.position_count(), 0)
+    test.assert(not obj.export_mesh(), "export without mesh fails")
+end
+
+@test
+sample_normals_uvs_indices()
+    test.assert(obj.load("tests/fixtures/triangle.obj"), "load")
+    -- single normal (0,0,1)
+    test.equal_int(obj.normal_m(0, 0), 0)
+    test.equal_int(obj.normal_m(0, 1), 0)
+    test.equal_int(obj.normal_m(0, 2), 1000)
+    -- texcoords: (0,0), (1,0), (0,1)
+    test.equal_int(obj.texcoord_m(0, 0), 0)
+    test.equal_int(obj.texcoord_m(0, 1), 0)
+    test.equal_int(obj.texcoord_m(1, 0), 1000)
+    test.equal_int(obj.texcoord_m(1, 1), 0)
+    test.equal_int(obj.texcoord_m(2, 0), 0)
+    test.equal_int(obj.texcoord_m(2, 1), 1000)
+    -- face corner indices (1-based into attribute arrays)
+    test.equal_int(obj.index_p(0), 1)
+    test.equal_int(obj.index_t(0), 1)
+    test.equal_int(obj.index_n(0), 1)
+    test.equal_int(obj.index_p(1), 2)
+    test.equal_int(obj.index_t(1), 2)
+    test.equal_int(obj.index_n(1), 1)
+    test.equal_int(obj.index_p(2), 3)
+    test.equal_int(obj.index_t(2), 3)
+    test.equal_int(obj.index_n(2), 1)
+    obj.free()
+end
+
+@test
+export_flattened_mesh()
+    test.assert(obj.load("tests/fixtures/triangle.obj"), "load")
+    test.assert(obj.export_mesh(), "export/flatten mesh")
+    test.equal_int(obj.export_vertex_count(), 3)
+    test.equal_int(obj.export_index_count(), 3)
+    -- 8 floats per vertex
+    test.equal_int(obj.export_float_count(), 24)
+    -- positions: (0,0,0), (1,0,0), (0,1,0)
+    test.equal_int(obj.export_pos_m(0, 0), 0)
+    test.equal_int(obj.export_pos_m(0, 1), 0)
+    test.equal_int(obj.export_pos_m(0, 2), 0)
+    test.equal_int(obj.export_pos_m(1, 0), 1000)
+    test.equal_int(obj.export_pos_m(1, 1), 0)
+    test.equal_int(obj.export_pos_m(1, 2), 0)
+    test.equal_int(obj.export_pos_m(2, 0), 0)
+    test.equal_int(obj.export_pos_m(2, 1), 1000)
+    test.equal_int(obj.export_pos_m(2, 2), 0)
+    -- normals all (0,0,1)
+    test.equal_int(obj.export_normal_m(0, 0), 0)
+    test.equal_int(obj.export_normal_m(0, 1), 0)
+    test.equal_int(obj.export_normal_m(0, 2), 1000)
+    test.equal_int(obj.export_normal_m(2, 2), 1000)
+    -- uvs: (0,0), (1,0), (0,1)
+    test.equal_int(obj.export_uv_m(0, 0), 0)
+    test.equal_int(obj.export_uv_m(0, 1), 0)
+    test.equal_int(obj.export_uv_m(1, 0), 1000)
+    test.equal_int(obj.export_uv_m(1, 1), 0)
+    test.equal_int(obj.export_uv_m(2, 0), 0)
+    test.equal_int(obj.export_uv_m(2, 1), 1000)
+    -- sequential indices
+    test.equal_int(obj.export_index(0), 0)
+    test.equal_int(obj.export_index(1), 1)
+    test.equal_int(obj.export_index(2), 2)
+    test.assert(obj.export_floats_ptr() != 0, "floats ptr")
+    test.assert(obj.export_indices_ptr() != 0, "indices ptr")
+    -- sum milli: positions 2000 + normals 3000 + uvs 2000 = 7000
+    test.equal_int(obj.export_sum_m(), 7000)
+    obj.free()
+    test.equal_int(obj.export_vertex_count(), 0)
+end
+
+@test
+reload_replaces_mesh()
+    test.assert(obj.load("tests/fixtures/triangle.obj"), "first load")
+    test.equal_int(obj.position_count(), 4)
+    test.assert(obj.export_mesh(), "export")
+    test.equal_int(obj.export_vertex_count(), 3)
+    test.assert(obj.load("tests/fixtures/triangle.obj"), "second load")
+    test.equal_int(obj.face_count(), 1)
+    -- re-load clears previous export
+    test.equal_int(obj.export_vertex_count(), 0)
+    test.equal_int(obj.material_count(), 1)
+    obj.free()
+    test.equal_int(obj.position_count(), 0)
+    test.equal_int(obj.material_count(), 0)
+end

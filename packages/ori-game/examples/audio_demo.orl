@@ -1,0 +1,40 @@
+module app.audio_demo
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.audio = audio
+    ori.math.vec2 = vec2
+end
+
+var ready: bool = false
+var note: string = "Audio device init on start (no sample files bundled)"
+
+on_update(dt: float) -> void
+    if input.key_pressed(77)
+        note = "Master mute UI-only (load_sound needs a file path)"
+    end
+    if input.key_pressed(input.KEY_SPACE)
+        note = "Use audio.load_sound / play_sound with assets/*.wav"
+    end
+end
+
+on_draw() -> void
+    draw.draw_text("Audio Demo", vec2.Vec2 { x: 10.0, y: 10.0 }, 28, color.WHITE)
+    draw.draw_text(note, vec2.Vec2 { x: 10.0, y: 60.0 }, 16, color.LIGHTGRAY)
+    if ready
+        draw.draw_text("device: ready", vec2.Vec2 { x: 10.0, y: 100.0 }, 18, color.GREEN)
+    else
+        draw.draw_text("device: not inited", vec2.Vec2 { x: 10.0, y: 100.0 }, 18, color.RED)
+    end
+    draw.draw_text("Space / M - tips", vec2.Vec2 { x: 10.0, y: 140.0 }, 16, color.GRAY)
+end
+
+main()
+    audio.init()
+    ready = true
+    app.run_window("Audio Demo", 640, 360, on_update, on_draw)
+    audio.close()
+end

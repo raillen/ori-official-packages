@@ -1,0 +1,132 @@
+module game.camera3d
+
+import ori.math.vec3 = vec3
+import raylib = rl
+
+-- CAMERA_PERSPECTIVE = 0, CAMERA_ORTHOGRAPHIC = 1 (raylib CameraProjection)
+public const PROJECTION_PERSPECTIVE: int = 0
+public const PROJECTION_ORTHOGRAPHIC: int = 1
+
+public struct Camera3D
+    position: vec3.Vec3
+    target: vec3.Vec3
+    up: vec3.Vec3
+    fovy: float
+    projection: int
+end
+
+public create(
+    position: vec3.Vec3,
+    target: vec3.Vec3,
+    up: vec3.Vec3,
+    fovy: float,
+    projection: int
+) -> Camera3D
+    return Camera3D {
+        position: position,
+        target: target,
+        up: up,
+        fovy: fovy,
+        projection: projection
+    }
+end
+
+public create_perspective(position: vec3.Vec3, target: vec3.Vec3, fovy: float) -> Camera3D
+    return create(
+        position,
+        target,
+        vec3.Vec3 { x: 0.0, y: 1.0, z: 0.0 },
+        fovy,
+        PROJECTION_PERSPECTIVE
+    )
+end
+
+public begin_mode(cam: Camera3D) -> void
+    rl.ori_rl_BeginMode3D(
+        cam.position.x, cam.position.y, cam.position.z,
+        cam.target.x, cam.target.y, cam.target.z,
+        cam.up.x, cam.up.y, cam.up.z,
+        cam.fovy,
+        cam.projection
+    )
+end
+
+public end_mode() -> void
+    rl.ori_rl_EndMode3D()
+end
+
+public position_of(cam: Camera3D) -> vec3.Vec3
+    return cam.position
+end
+
+public target_of(cam: Camera3D) -> vec3.Vec3
+    return cam.target
+end
+
+public up_of(cam: Camera3D) -> vec3.Vec3
+    return cam.up
+end
+
+public fovy_of(cam: Camera3D) -> float
+    return cam.fovy
+end
+
+public projection_of(cam: Camera3D) -> int
+    return cam.projection
+end
+
+public set_position(cam: Camera3D, position: vec3.Vec3) -> Camera3D
+    return Camera3D {
+        position: position,
+        target: cam.target,
+        up: cam.up,
+        fovy: cam.fovy,
+        projection: cam.projection
+    }
+end
+
+public look_at(cam: Camera3D, target: vec3.Vec3) -> Camera3D
+    return Camera3D {
+        position: cam.position,
+        target: target,
+        up: cam.up,
+        fovy: cam.fovy,
+        projection: cam.projection
+    }
+end
+
+public set_fovy(cam: Camera3D, fovy: float) -> Camera3D
+    return Camera3D {
+        position: cam.position,
+        target: cam.target,
+        up: cam.up,
+        fovy: fovy,
+        projection: cam.projection
+    }
+end
+
+-- G1 B4: place camera at target + offset, look at target raised by look_height.
+public follow_offset(
+    cam: Camera3D,
+    target: vec3.Vec3,
+    offset: vec3.Vec3,
+    look_height: float
+) -> Camera3D
+    return Camera3D {
+        position: vec3.Vec3 {
+            x: target.x + offset.x,
+            y: target.y + offset.y,
+            z: target.z + offset.z
+        },
+        target: vec3.Vec3 {
+            x: target.x,
+            y: target.y + look_height,
+            z: target.z
+        },
+        up: cam.up,
+        fovy: cam.fovy,
+        projection: cam.projection
+    }
+end
+
+

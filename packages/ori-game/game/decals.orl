@@ -1,0 +1,138 @@
+module game.decals
+
+-- X4: simple decal pool (XZ ground stamps). Draw via draw_all when host has draw3d.
+
+import ori.list = lists
+import game.color = color
+import ori.math.vec3 = vec3
+
+public struct Decal
+    x: float
+    y: float
+    z: float
+    size: float
+    life: float
+    max_life: float
+    alive: bool
+    r: int
+    g: int
+    b: int
+end
+
+public struct DecalPool
+    items: list[Decal]
+    max_count: int
+end
+
+public create(max_count: int) -> DecalPool
+    var items: list[Decal] = []
+    var i: int = 0
+    while i < max_count
+        lists.push(items, Decal {
+            x: 0.0, y: 0.0, z: 0.0,
+            size: 1.0,
+            life: 0.0,
+            max_life: 1.0,
+            alive: false,
+            r: 200, g: 80, b: 40
+        })
+        i = i + 1
+    end
+    return DecalPool { items: items, max_count: max_count }
+end
+
+public spawn(
+    pool: DecalPool,
+    x: float,
+    y: float,
+    z: float,
+    size: float,
+    life: float
+) -> DecalPool
+    var out: DecalPool = pool
+    const n: int = lists.len(out.items)
+    var i: int = 0
+    while i < n
+        if out.items[i].alive == false
+            var d: Decal = out.items[i]
+            d.x = x
+            d.y = y
+            d.z = z
+            d.size = size
+            d.life = life
+            d.max_life = life
+            d.alive = true
+            out.items[i] = d
+            return out
+        end
+        i = i + 1
+    end
+    -- Full: reuse slot 0
+    if n > 0
+        var d0: Decal = out.items[0]
+        d0.x = x
+        d0.y = y
+        d0.z = z
+        d0.size = size
+        d0.life = life
+        d0.max_life = life
+        d0.alive = true
+        out.items[0] = d0
+    end
+    return out
+end
+
+public tick(pool: DecalPool, dt: float) -> DecalPool
+    var out: DecalPool = pool
+    const n: int = lists.len(out.items)
+    var i: int = 0
+    while i < n
+        var d: Decal = out.items[i]
+        if d.alive
+            d.life = d.life - dt
+            if d.life <= 0.0
+                d.alive = false
+            end
+            out.items[i] = d
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- Host draws: use decal_at + draw3d externally to avoid linking raylib into pure tests.
+public decal_at(pool: DecalPool, index: int) -> optional[Decal]
+    if index < 0 or index >= lists.len(pool.items)
+        return none
+    end
+    const d: Decal = pool.items[index]
+    if d.alive == false
+        return none
+    end
+    return some(d)
+end
+
+public capacity(pool: DecalPool) -> int
+    return lists.len(pool.items)
+end
+
+public decal_color(d: Decal) -> color.Color
+    return color.Color { r: d.r, g: d.g, b: d.b, a: 180 }
+end
+
+public decal_pos(d: Decal) -> vec3.Vec3
+    return vec3.Vec3 { x: d.x, y: d.y + 0.2, z: d.z }
+end
+
+public alive_count(pool: DecalPool) -> int
+    var c: int = 0
+    const n: int = lists.len(pool.items)
+    var i: int = 0
+    while i < n
+        if pool.items[i].alive
+            c = c + 1
+        end
+        i = i + 1
+    end
+    return c
+end

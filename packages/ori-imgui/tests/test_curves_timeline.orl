@@ -1,0 +1,31 @@
+module test.curves_timeline
+
+imports
+    imgui.curves = curves
+    imgui.timeline = tl
+    ori.test = test
+end
+
+@test
+curve_sample_lerp()
+    var c: curves.Curve = curves.create()
+    c = curves.add_point(c, 0, 0)
+    c = curves.add_point(c, 1000, 1000)
+    test.equal_int(curves.sample(c, 0), 0)
+    test.equal_int(curves.sample(c, 1000), 1000)
+    test.equal_int(curves.sample(c, 500), 500)
+end
+
+@test
+timeline_play_seek()
+    var t: tl.Timeline = tl.create(1000)
+    t = tl.add_track(t, "x")
+    t = tl.add_key(t, 0, 0, 0)
+    t = tl.add_key(t, 0, 1000, 100)
+    t = tl.seek(t, 1000)
+    test.equal_int(tl.sample(t, 0), 100)
+    t = tl.seek(t, 0)
+    t = tl.play(t)
+    t = tl.tick(t, 500)
+    test.assert(t.playhead_milli == 500, "playhead")
+end

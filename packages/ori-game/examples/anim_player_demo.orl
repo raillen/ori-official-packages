@@ -1,0 +1,51 @@
+module app.anim_player_demo
+
+imports
+    game.app = app
+    game.draw = draw
+    game.draw3d = draw3d
+    game.camera3d = cam3
+    game.color = color
+    game.anim_player = anim
+    ori.math.vec2 = vec2
+    ori.math.vec3 = vec3
+end
+
+var cam: cam3.Camera3D = cam3.create_perspective(
+    vec3.Vec3 { x: 3.0, y: 2.0, z: 4.0 },
+    vec3.Vec3 { x: 0.0, y: 0.5, z: 0.0 },
+    45.0
+)
+var model: draw3d.ModelId = 0
+var anims: draw3d.AnimSetId = 0
+var player: anim.ClipPlayer = anim.create(0, 0, 0)
+
+on_update(dt: float) -> void
+    player = anim.tick(player, dt)
+end
+
+on_draw() -> void
+    cam3.begin_mode(cam)
+    draw3d.draw_grid(8, 1.0)
+    if model != 0
+        draw3d.draw_model(model, vec3.Vec3 { x: 0.0, y: 0.0, z: 0.0 }, 1.0, color.WHITE)
+    else
+        draw3d.draw_cube(vec3.Vec3 { x: 0.0, y: 0.5, z: 0.0 }, 0.5, 1.0, 0.4, color.GREEN)
+    end
+    cam3.end_mode()
+    draw.draw_text("anim_player_demo", vec2.Vec2 { x: 10.0, y: 10.0 }, 18, color.WHITE)
+end
+
+main()
+    model = draw3d.load_model("assets/cube.obj")
+    anims = draw3d.load_model_animations("assets/cube.obj")
+    player = anim.create(model, anims, 0)
+    player = anim.play(player)
+    app.run_window("Anim Player", 800, 450, on_update, on_draw)
+    if anims != 0
+        draw3d.unload_model_animations(anims)
+    end
+    if model != 0
+        draw3d.unload_model(model)
+    end
+end

@@ -1,0 +1,50 @@
+module app.scene_menu
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.scene = scene
+    game.tween = tween
+    ori.math.vec2 = vec2
+end
+
+var screens: scene.SceneStack = scene.create("menu")
+var fade: tween.Tween = tween.create(0.0, 1.0, 0.5)
+
+on_update(dt: float) -> void
+    fade = tween.update(fade, dt)
+    if scene.is_current(screens, "menu")
+        if input.key_pressed(input.KEY_ENTER) or input.key_pressed(input.KEY_SPACE)
+            screens = scene.push(screens, "play")
+            fade = tween.create(0.0, 1.0, 0.4)
+        end
+    elif scene.is_current(screens, "play")
+        if input.key_pressed(input.KEY_ESCAPE)
+            screens = scene.push(screens, "pause")
+        end
+    elif scene.is_current(screens, "pause")
+        if input.key_pressed(input.KEY_ESCAPE) or input.key_pressed(input.KEY_ENTER)
+            screens = scene.pop(screens)
+        end
+    end
+end
+
+on_draw() -> void
+    const name: string = scene.current(screens)
+    const alpha: float = tween.value(fade)
+    const title_col: color.Color = color.fade(color.WHITE, alpha)
+    if name == "menu"
+        draw.draw_text("MENU — Enter to play", vec2.Vec2 { x: 40.0, y: 100.0 }, 20, title_col)
+    elif name == "play"
+        draw.draw_text("PLAY — Esc to pause", vec2.Vec2 { x: 40.0, y: 100.0 }, 20, title_col)
+        draw.draw_circle(vec2.Vec2 { x: 160.0, y: 160.0 }, 20.0, color.RED)
+    elif name == "pause"
+        draw.draw_text("PAUSE — Esc/Enter resume", vec2.Vec2 { x: 40.0, y: 100.0 }, 20, title_col)
+    end
+end
+
+main()
+    app.run_window("Scene Menu", 320, 240, on_update, on_draw)
+end

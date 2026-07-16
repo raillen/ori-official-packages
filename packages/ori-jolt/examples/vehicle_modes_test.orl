@@ -1,0 +1,47 @@
+module app.vehicle_modes_test
+
+imports
+    jolt.dynamics = jolt
+    jolt.vehicle_arcade = veh
+    jolt.units = units
+    ori.io = io
+end
+
+main()
+    const g: int = units.gravity_earth_y_m()
+    var sys: jolt.System = jolt.create_system(0, g, 0)
+    const floor: jolt.Body = jolt.create_static_box(sys, 0, 0 - 500, 0, 40000, 500, 40000)
+
+    var land: veh.ArcadeVehicle = veh.create_land(sys, 0, 1500, 0, 1000, 400, 2000)
+    land = veh.set_input(land, 1000, 0, 0)
+
+    var plane: veh.ArcadeVehicle = veh.create_plane(sys, 5000, 8000, 0, 800, 300, 1500)
+    plane = veh.set_input(plane, 1000, 100, 0 - 50)
+
+    var boat: veh.ArcadeVehicle = veh.create_boat(sys, 0 - 5000, 1000, 0, 1200, 300, 2000, 0)
+    boat = veh.set_input(boat, 800, 50, 0)
+
+    const dt: int = units.step_60hz_micros()
+    var i: int = 0
+    while i < 60
+        land = veh.tick(land, sys, dt)
+        plane = veh.tick(plane, sys, dt)
+        boat = veh.tick(boat, sys, dt)
+        i = i + 1
+    end
+
+    const ok_land: bool = jolt.vehicle_is_valid(land.vehicle)
+    const ok_plane: bool = jolt.vehicle_is_valid(plane.vehicle)
+    const ok_boat: bool = jolt.vehicle_is_valid(boat.vehicle)
+    if ok_land and ok_plane and ok_boat
+        io.print("modes_ok")
+    else
+        io.print("modes_bad")
+    end
+
+    veh.destroy(land)
+    veh.destroy(plane)
+    veh.destroy(boat)
+    jolt.destroy_body(floor)
+    jolt.destroy_system(sys)
+end

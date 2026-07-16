@@ -1,0 +1,76 @@
+module test.ogame_script
+
+imports
+    game.ogame_script = ogs
+    game.ogame_alarms = alarms
+    ori.test = test
+    ori.list = lists
+end
+
+@test
+parse_and_print()
+    const body: string = "    -- ogs:print hello world\n    -- ogs:pass\n"
+    const acts: list[ogs.ScriptAction] = ogs.parse_ogs_body(body)
+    test.equal_int(lists.len(acts), 2)
+    var st: ogs.ScriptState = ogs.empty_state(1)
+    st = ogs.load_program(st, acts)
+    st = ogs.step_program(st)
+    test.assert(st.last_print == "hello world", "print text")
+    test.equal_int(ogs.print_count(st), 1)
+    test.assert(ogs.is_finished(st), "finished")
+end
+
+@test
+set_var_and_if()
+    var acts: list[ogs.ScriptAction] = []
+    lists.push(acts, ogs.action_set_var("hp", "3"))
+    lists.push(acts, ogs.action_if("hp > 0"))
+    lists.push(acts, ogs.action_print("alive"))
+    lists.push(acts, ogs.action_if("hp < 0"))
+    lists.push(acts, ogs.action_print("dead"))
+    var st: ogs.ScriptState = ogs.empty_state(7)
+    st = ogs.load_program(st, acts)
+    st = ogs.step_program(st)
+    test.assert(ogs.get_var(st, "hp", 0.0) == 3.0, "hp")
+    test.equal_int(ogs.print_count(st), 1)
+    test.assert(st.last_print == "alive", "if then")
+end
+
+@test
+wait_and_tick()
+    var acts: list[ogs.ScriptAction] = []
+    lists.push(acts, ogs.action_print("start"))
+    lists.push(acts, ogs.action_wait("0.5"))
+    lists.push(acts, ogs.action_print("after"))
+    var st: ogs.ScriptState = ogs.empty_state(1)
+    st = ogs.load_program(st, acts)
+    st = ogs.step_program(st)
+    test.assert(ogs.is_waiting(st), "waiting")
+    test.assert(st.last_print == "start", "before wait")
+    st = ogs.tick(st, 0.2)
+    test.assert(ogs.is_waiting(st), "still waiting")
+    st = ogs.tick(st, 0.4)
+    test.assert(st.last_print == "after", "after wait")
+    test.assert(ogs.is_finished(st), "done")
+end
+
+-- wait "0.5" → 500 ms; tick 0.2 → -200 ms remaining → 300; tick 0.4 → done
+
+@test
+alarm_set()
+    var acts: list[ogs.ScriptAction] = []
+    lists.push(acts, ogs.action_alarm("2", "1.5"))
+    var st: ogs.ScriptState = ogs.empty_state(1)
+    st = ogs.load_program(st, acts)
+    st = ogs.step_program(st)
+    test.equal_int(alarms.get_alarm(st.alarms, 2), 1500)
+end
+
+@test
+run_ogs_body_set_call()
+    const body: string = "-- ogs:set_var move_speed = 48.0\n-- ogs:call on_ready\n"
+    var st: ogs.ScriptState = ogs.empty_state(9)
+    st = ogs.run_ogs_body(st, body)
+    test.assert(ogs.get_var(st, "move_speed", 0.0) == 48.0, "speed")
+    test.assert(st.last_call == "on_ready", "call")
+end

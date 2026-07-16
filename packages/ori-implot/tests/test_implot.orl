@@ -1,0 +1,81 @@
+module test.implot
+
+imports
+    implot.charts = plot
+    ori.test = test
+end
+
+@test
+series_stats()
+    plot.reset()
+    test.assert(plot.push_m(0, 500), "p0")
+    test.assert(plot.push_m(1, 1500), "p1")
+    test.equal_int(plot.count(), 2)
+    test.equal_int(plot.sum_m(), 2000)
+    test.equal_int(plot.min_m(), 500)
+    test.equal_int(plot.max_m(), 1500)
+end
+
+@test
+clear_and_reset()
+    plot.reset()
+    test.assert(plot.push_m(10, 100), "push")
+    plot.setup_axes("x", "y")
+    plot.plot_line("L")
+    test.equal_int(plot.count(), 1)
+    test.equal_int(plot.x_label_len(), 1)
+    plot.clear()
+    test.equal_int(plot.count(), 0)
+    test.equal_int(plot.last_draw(), plot.DRAW_NONE)
+    -- clear keeps axis labels; reset clears them
+    test.equal_int(plot.x_label_len(), 1)
+    plot.reset()
+    test.equal_int(plot.x_label_len(), 0)
+    test.equal_int(plot.y_label_len(), 0)
+end
+
+@test
+axis_labels()
+    plot.reset()
+    plot.setup_axes("time", "value")
+    test.equal_int(plot.x_label_len(), 4)
+    test.equal_int(plot.y_label_len(), 5)
+    test.assert(plot.x_label_eq("time"), "x eq")
+    test.assert(plot.y_label_eq("value"), "y eq")
+    test.assert(not plot.x_label_eq("nope"), "x ne")
+end
+
+@test
+draw_kinds_line_scatter_bar()
+    plot.reset()
+    test.assert(plot.push_m(0, 1000), "p")
+    test.equal_int(plot.last_draw(), plot.DRAW_NONE)
+    plot.plot_line("line")
+    test.equal_int(plot.last_draw(), plot.DRAW_LINE)
+    plot.plot_scatter("sc")
+    test.equal_int(plot.last_draw(), plot.DRAW_SCATTER)
+    plot.plot_bars("bar")
+    test.equal_int(plot.last_draw(), plot.DRAW_BARS)
+    -- headless begin_plot fails (no ImGui); still marks open then end
+    test.assert(not plot.begin_plot("t", 200, 100), "no imgui")
+    test.assert(not plot.begin_ok(), "begin_ok false")
+    plot.end_plot()
+end
+
+@test
+capacity_edge()
+    plot.reset()
+    var cap: int = plot.capacity()
+    test.assert(cap > 0, "cap")
+    var i: int = 0
+    while i < cap
+        test.assert(plot.push_m(i, i), "fill")
+        i = i + 1
+    end
+    test.equal_int(plot.count(), cap)
+    test.assert(not plot.push_m(0, 0), "overflow")
+    test.equal_int(plot.count(), cap)
+    plot.clear()
+    test.equal_int(plot.count(), 0)
+    test.assert(plot.push_m(1, 2), "after clear")
+end

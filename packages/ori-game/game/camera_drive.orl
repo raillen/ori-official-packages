@@ -1,0 +1,181 @@
+module game.camera_drive
+
+-- R5.2: keyframed camera offset — pure, no ImGui.
+-- Sample/shell key T toggles drive; apply_to_stack updates follow offsets.
+
+import game.camera_stack = cstack
+
+public struct CamKey
+    t_ms: int
+    ox: float
+    oy: float
+    oz: float
+end
+
+-- Fixed-capacity clip (max 8 keys). does_loop: reserved word "loop" forbidden in Ori.
+public struct CamClip
+    k0: CamKey
+    k1: CamKey
+    k2: CamKey
+    k3: CamKey
+    k4: CamKey
+    k5: CamKey
+    k6: CamKey
+    k7: CamKey
+    count: int
+    duration_ms: int
+    playing: bool
+    playhead_ms: int
+    does_loop: bool
+end
+
+empty_key() -> CamKey
+    return CamKey { t_ms: 0, ox: 0.0, oy: 0.0, oz: 0.0 }
+end
+
+public empty_clip() -> CamClip
+    return CamClip {
+        k0: empty_key(),
+        k1: empty_key(),
+        k2: empty_key(),
+        k3: empty_key(),
+        k4: empty_key(),
+        k5: empty_key(),
+        k6: empty_key(),
+        k7: empty_key(),
+        count: 0,
+        duration_ms: 4000,
+        playing: false,
+        playhead_ms: 0,
+        does_loop: true
+    }
+end
+
+public default_orbit_clip() -> CamClip
+    var c: CamClip = empty_clip()
+    c.duration_ms = 6000
+    c.count = 4
+    c.does_loop = true
+    c.k0 = CamKey { t_ms: 0, ox: 40.0, oy: 35.0, oz: 64.0 }
+    c.k1 = CamKey { t_ms: 2000, ox: 70.0, oy: 28.0, oz: 20.0 }
+    c.k2 = CamKey { t_ms: 4000, ox: 8.0, oy: 80.0, oz: 8.0 }
+    c.k3 = CamKey { t_ms: 6000, ox: 40.0, oy: 35.0, oz: 64.0 }
+    return c
+end
+
+key_at(c: CamClip, i: int) -> CamKey
+    if i == 0
+        return c.k0
+    end
+    if i == 1
+        return c.k1
+    end
+    if i == 2
+        return c.k2
+    end
+    if i == 3
+        return c.k3
+    end
+    if i == 4
+        return c.k4
+    end
+    if i == 5
+        return c.k5
+    end
+    if i == 6
+        return c.k6
+    end
+    return c.k7
+end
+
+public play(c: CamClip) -> CamClip
+    var out: CamClip = c
+    out.playing = true
+    return out
+end
+
+public pause(c: CamClip) -> CamClip
+    var out: CamClip = c
+    out.playing = false
+    return out
+end
+
+public seek(c: CamClip, t_ms: int) -> CamClip
+    var out: CamClip = c
+    out.playhead_ms = t_ms
+    if out.playhead_ms < 0
+        out.playhead_ms = 0
+    end
+    if out.playhead_ms > out.duration_ms
+        out.playhead_ms = out.duration_ms
+    end
+    return out
+end
+
+public tick(c: CamClip, dt_ms: int) -> CamClip
+    var out: CamClip = c
+    if out.playing == false
+        return out
+    end
+    out.playhead_ms = out.playhead_ms + dt_ms
+    if out.playhead_ms > out.duration_ms
+        if out.does_loop
+            out.playhead_ms = out.playhead_ms - out.duration_ms
+            if out.playhead_ms > out.duration_ms
+                out.playhead_ms = 0
+            end
+        end
+        if out.does_loop == false
+            out.playhead_ms = out.duration_ms
+            out.playing = false
+        end
+    end
+    return out
+end
+
+lerp_f(a: float, b: float, t: float) -> float
+    return a + (b - a) * t
+end
+
+public sample_offset(c: CamClip) -> CamKey
+    if c.count <= 0
+        return empty_key()
+    end
+    if c.count == 1
+        return key_at(c, 0)
+    end
+    const t: int = c.playhead_ms
+    var i: int = 0
+    while i < c.count - 1
+        const a: CamKey = key_at(c, i)
+        const b: CamKey = key_at(c, i + 1)
+        if t >= a.t_ms and t <= b.t_ms
+            const span: int = b.t_ms - a.t_ms
+            var u: float = 0.0
+            if span > 0
+                u = float(t - a.t_ms) / float(span)
+            end
+            return CamKey {
+                t_ms: t,
+                ox: lerp_f(a.ox, b.ox, u),
+                oy: lerp_f(a.oy, b.oy, u),
+                oz: lerp_f(a.oz, b.oz, u)
+            }
+        end
+        i = i + 1
+    end
+    return key_at(c, c.count - 1)
+end
+
+public apply_to_stack(c: CamClip, stack: cstack.CamStack) -> cstack.CamStack
+    const k: CamKey = sample_offset(c)
+    return cstack.set_active_offset(stack, k.ox, k.oy, k.oz)
+end
+
+public playhead_ms(c: CamClip) -> int
+    return c.playhead_ms
+end
+
+public is_playing(c: CamClip) -> bool
+    return c.playing
+end

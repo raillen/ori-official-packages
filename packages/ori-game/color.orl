@@ -1,0 +1,54 @@
+module game.color
+
+import ori.math = math
+
+public struct Color
+    r: int
+    g: int
+    b: int
+    a: int
+end
+
+public const RAYWHITE: Color = Color { r: 245, g: 245, b: 245, a: 255 }
+public const BLACK: Color = Color { r: 0, g: 0, b: 0, a: 255 }
+public const WHITE: Color = Color { r: 255, g: 255, b: 255, a: 255 }
+public const RED: Color = Color { r: 230, g: 41, b: 55, a: 255 }
+public const GREEN: Color = Color { r: 0, g: 228, b: 48, a: 255 }
+public const BLUE: Color = Color { r: 0, g: 121, b: 241, a: 255 }
+public const YELLOW: Color = Color { r: 253, g: 249, b: 0, a: 255 }
+public const ORANGE: Color = Color { r: 255, g: 161, b: 0, a: 255 }
+public const PURPLE: Color = Color { r: 200, g: 122, b: 255, a: 255 }
+public const PINK: Color = Color { r: 255, g: 102, b: 194, a: 255 }
+public const DARKGRAY: Color = Color { r: 80, g: 80, b: 80, a: 255 }
+public const LIGHTGRAY: Color = Color { r: 200, g: 200, b: 200, a: 255 }
+public const GRAY: Color = Color { r: 130, g: 130, b: 130, a: 255 }
+public const MAROON: Color = Color { r: 190, g: 33, b: 55, a: 255 }
+public const DARKGREEN: Color = Color { r: 0, g: 117, b: 44, a: 255 }
+public const DARKBLUE: Color = Color { r: 0, g: 82, b: 172, a: 255 }
+public const DARKPURPLE: Color = Color { r: 112, g: 31, b: 126, a: 255 }
+public const DARKBROWN: Color = Color { r: 76, g: 63, b: 47, a: 255 }
+
+public from_rgb(r: int, g: int, b: int) -> Color
+    return Color { r: r, g: g, b: b, a: 255 }
+end
+
+public from_rgba(r: int, g: int, b: int, a: int) -> Color
+    return Color { r: r, g: g, b: b, a: a }
+end
+
+public from_hex(hex: int) -> Color
+    const r: int = (hex / 65536) % 256
+    const g: int = (hex / 256) % 256
+    const b: int = hex % 256
+    return Color { r: r, g: g, b: b, a: 255 }
+end
+
+public fade(c: Color, alpha: float) -> Color
+    var a: int = 255
+    if alpha <= 0.0
+        a = 0
+    elif alpha < 1.0
+        a = math.floor(alpha * 255.0)
+    end
+    return Color { r: c.r, g: c.g, b: c.b, a: a }
+end

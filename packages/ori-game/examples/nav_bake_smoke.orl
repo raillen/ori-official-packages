@@ -1,0 +1,68 @@
+module app.nav_bake_smoke
+
+-- GP4 residual: solids → bake → path query → path_follow waypoints.
+-- Run from ori-game root with recast native_libs staged.
+
+imports
+    game.nav_bake = bake
+    game.ogame_level = level
+    game.path_follow = pfollow
+    ori.io = io
+    ori.list = lists
+end
+
+make_floor(x: float, z: float, sx: float, sz: float) -> level.SolidPiece
+    return level.SolidPiece {
+        x: x,
+        y: 0.0,
+        z: z,
+        sx: sx,
+        sy: 1.0,
+        sz: sz,
+        r: 100,
+        g: 120,
+        b: 80,
+        a: 255,
+        metallic: 0.0,
+        roughness: 0.9,
+        layer: 1,
+        collider: true
+    }
+end
+
+main()
+    var solids: list[level.SolidPiece] = []
+    lists.push(solids, make_floor(20.0, 20.0, 40.0, 40.0))
+    lists.push(solids, make_floor(50.0, 20.0, 20.0, 20.0))
+
+    const res: bake.BakeResult = bake.bake_solids(solids, 500, 300)
+    if res.ok == false
+        io.print("fail")
+        bake.destroy()
+        return
+    end
+    if res.solid_count < 1
+        io.print("fail")
+        bake.destroy()
+        return
+    end
+
+    -- Path across the floors (world meters).
+    const pf: pfollow.PathFollow = bake.path_follow_from_query(
+        5.0,
+        0.5,
+        20.0,
+        55.0,
+        0.5,
+        20.0,
+        24.0
+    )
+    if pfollow.waypoint_count(pf) < 2
+        io.print("fail")
+        bake.destroy()
+        return
+    end
+
+    io.print("ok")
+    bake.destroy()
+end

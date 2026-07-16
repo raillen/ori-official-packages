@@ -1,0 +1,55 @@
+module imguizmo.zoom
+
+-- ImZoomSlider for Ori. Headless: range + view bounds (milli).
+-- Zoom value = view span (view_higher - view_lower) in milli.
+-- FULL: slider() draws ImZoomSlider when ImGui context is active.
+
+extern c
+    public ori_zoom_reset() -> void
+    public ori_zoom_set_range_m(lower_m: int, higher_m: int) -> void
+    public ori_zoom_set_view_m(view_lower_m: int, view_higher_m: int) -> void
+    public ori_zoom_lower_m() -> int
+    public ori_zoom_higher_m() -> int
+    public ori_zoom_view_lower_m() -> int
+    public ori_zoom_view_higher_m() -> int
+    public ori_zoom_span_m() -> int
+    public ori_zoom_slider() -> int
+end
+
+public reset() -> void
+    ori_zoom_reset()
+end
+
+public set_range_m(lower_m: int, higher_m: int) -> void
+    ori_zoom_set_range_m(lower_m, higher_m)
+end
+
+public set_view_m(view_lower_m: int, view_higher_m: int) -> void
+    ori_zoom_set_view_m(view_lower_m, view_higher_m)
+end
+
+public lower_m() -> int
+    return ori_zoom_lower_m()
+end
+
+public higher_m() -> int
+    return ori_zoom_higher_m()
+end
+
+public view_lower_m() -> int
+    return ori_zoom_view_lower_m()
+end
+
+public view_higher_m() -> int
+    return ori_zoom_view_higher_m()
+end
+
+-- Zoom value: current view span in milli (smaller ⇒ more zoomed in).
+public span_m() -> int
+    return ori_zoom_span_m()
+end
+
+-- FULL: interactive zoom slider; headless always false.
+public slider() -> bool
+    return ori_zoom_slider() == 1
+end

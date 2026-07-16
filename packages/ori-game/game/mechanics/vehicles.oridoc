@@ -1,0 +1,132 @@
+# vehicles — Sistema de Veículos
+
+Módulo com mecânicas de veículos para jogos.
+
+## VehicleConfig
+
+Configuração do veículo.
+
+```ori
+struct VehicleConfig
+    max_speed: float = 200.0
+    acceleration: float = 100.0
+    friction: float = 0.9
+    turn_speed: float = 3.0
+    can_reverse: bool = false
+    reverse_speed: float = 100.0
+    drift_factor: float = 0.0
+end
+```
+
+## VehicleState
+
+Estado do veículo.
+
+```ori
+struct VehicleState
+    rotation: float = 0.0
+    speed: float = 0.0
+    driver: Entity = nil
+    occupied: bool = false
+end
+```
+
+## Funções
+
+### create_vehicle
+
+Cria um novo veículo.
+
+```ori
+func create_vehicle(config: VehicleConfig) -> VehicleState
+```
+
+### enter_vehicle
+
+Entra no veículo.
+
+```ori
+func enter_vehicle(vehicle: VehicleState, driver: Entity) -> bool
+```
+
+### exit_vehicle
+
+Sai do veículo.
+
+```ori
+func exit_vehicle(vehicle: VehicleState) -> void
+```
+
+### drive_vehicle
+
+Dirige o veículo.
+
+```ori
+func drive_vehicle(vehicle: VehicleState, config: VehicleConfig, accel_input: float, turn_input: float, dt: float) -> void
+```
+
+**Parâmetros:**
+- `accel_input` — Input de aceleração (-1.0 a 1.0)
+- `turn_input` — Input de direção (-1.0 esquerda, 1.0 direita)
+
+### get_vehicle_forward
+
+Retorna a direção frontal do veículo.
+
+```ori
+func get_vehicle_forward(vehicle: VehicleState) -> Vec2
+```
+
+### get_vehicle_speed
+
+Retorna a velocidade atual.
+
+```ori
+func get_vehicle_speed(vehicle: VehicleState) -> float
+```
+
+### is_vehicle_moving
+
+Verifica se o veículo está em movimento.
+
+```ori
+func is_vehicle_moving(vehicle: VehicleState) -> bool
+```
+
+**Exemplo — Carro simples:**
+```ori
+var car = vehicles.create_vehicle(vehicles.VehicleConfig(
+    max_speed: 300.0,
+    acceleration: 150.0,
+    turn_speed: 2.0
+))
+
+-- Entrar no carro com E
+if input.key_pressed(69) and not car.occupied
+    vehicles.enter_vehicle(car, player)
+end
+
+-- Sair com Q
+if input.key_pressed(81) and car.occupied
+    vehicles.exit_vehicle(car)
+end
+
+-- Dirigir
+if car.occupied
+    var accel = 0.0
+    var turn = 0.0
+    if input.key_down(38)
+        accel = 1.0
+    end
+    if input.key_down(40)
+        accel = -1.0
+    end
+    if input.key_down(37)
+        turn = -1.0
+    end
+    if input.key_down(39)
+        turn = 1.0
+    end
+    vehicles.drive_vehicle(car, car_config, accel, turn, dt)
+end
+```

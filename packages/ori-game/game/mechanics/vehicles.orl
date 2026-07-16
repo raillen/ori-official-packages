@@ -1,0 +1,32 @@
+module game.mechanics.vehicles
+
+import ori.math.vec2 = vec2
+
+public struct Vehicle
+    pos: vec2.Vec2
+    vel: vec2.Vec2
+    accel: float
+    max_speed: float
+end
+
+public create(pos: vec2.Vec2, accel: float, max_speed: float) -> Vehicle
+    return Vehicle {
+        pos: pos,
+        vel: vec2.Vec2 { x: 0.0, y: 0.0 },
+        accel: accel,
+        max_speed: max_speed
+    }
+end
+
+public throttle(v: Vehicle, dir_x: float, dt: float) -> Vehicle
+    var out: Vehicle = v
+    out.vel = vec2.Vec2 { x: out.vel.x + dir_x * out.accel * dt, y: out.vel.y }
+    if out.vel.x > out.max_speed
+        out.vel = vec2.Vec2 { x: out.max_speed, y: out.vel.y }
+    end
+    if out.vel.x < 0.0 - out.max_speed
+        out.vel = vec2.Vec2 { x: 0.0 - out.max_speed, y: out.vel.y }
+    end
+    out.pos = vec2.Vec2 { x: out.pos.x + out.vel.x * dt, y: out.pos.y + out.vel.y * dt }
+    return out
+end

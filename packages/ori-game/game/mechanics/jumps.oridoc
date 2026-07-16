@@ -1,0 +1,87 @@
+# jumps — Sistema de Pulos
+
+Módulo com configurações e funções para pulos em jogos de plataforma.
+
+## JumpConfig
+
+Configuração de pulo.
+
+```ori
+struct JumpConfig
+    height: float = 200.0
+    gravity_mult: float = 1.0
+    coyote_time: float = 0.1
+    jump_buffer: float = 0.1
+    max_air_jumps: int = 0
+    variable_height: bool = true
+    allow_air_control: bool = true
+end
+```
+
+**Campos:**
+- `height` — altura do pulo em pixels
+- `gravity_mult` — multiplicador de gravidade (1.0 = normal, >1.0 = cai mais rápido)
+- `coyote_time` — tempo após sair da plataforma que ainda permite pular
+- `jump_buffer` — buffer antes de pousar para pular ao poussar
+- `max_air_jumps` — pulos extras no ar (0 = sem double jump, 1 = double jump)
+- `variable_height` — soltar o botão = pulo mais baixo
+- `allow_air_control` — controlar direção no ar
+
+## JumpState
+
+Estado do pulo da entidade.
+
+```ori
+struct JumpState
+    on_ground: bool = false
+    air_jumps_used: int = 0
+    coyote_timer: float = 0.0
+    jump_buffer_timer: float = 0.0
+    is_jumping: bool = false
+    jump_held: bool = false
+end
+```
+
+## Funções
+
+### can_jump
+
+Verifica se a entidade pode pular.
+
+```ori
+func can_jump(state: JumpState, config: JumpConfig) -> bool
+```
+
+### apply_jump
+
+Aplica o pulo na entidade.
+
+```ori
+func apply_jump(e: Entity, state: JumpState, config: JumpConfig) -> void
+```
+
+### update_jump_state
+
+Atualiza o estado do pulo.
+
+```ori
+func update_jump_state(state: JumpState, config: JumpConfig, dt: float) -> void
+```
+
+**Exemplo — Double Jump:**
+```ori
+const config = jumps.JumpConfig(height: 300.0, max_air_jumps: 1)
+var state = jumps.JumpState()
+
+-- No update:
+if input.key_pressed(25)  -- UP
+    jumps.apply_jump(player, state, config)
+end
+jumps.update_jump_state(state, config, dt)
+```
+
+**Exemplo — Coyote Time:**
+```ori
+const config = jumps.JumpConfig(height: 200.0, coyote_time: 0.15)
+-- Permite pular 0.15s após sair da plataforma
+```

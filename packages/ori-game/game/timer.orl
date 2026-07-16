@@ -1,0 +1,51 @@
+module game.timer
+
+public struct Timer
+    duration: float
+    elapsed: float
+    active: bool
+    loops: bool
+end
+
+public create(duration: float, loops: bool) -> Timer
+    return Timer { duration: duration, elapsed: 0.0, active: true, loops: loops }
+end
+
+public tick(t: Timer, dt: float) -> Timer
+    if not t.active
+        return t
+    end
+    var out: Timer = t
+    out.elapsed = out.elapsed + dt
+    if out.elapsed >= out.duration
+        if out.loops
+            out.elapsed = out.elapsed - out.duration
+        else
+            out.elapsed = out.duration
+            out.active = false
+        end
+    end
+    return out
+end
+
+public reset(t: Timer) -> Timer
+    return Timer { duration: t.duration, elapsed: 0.0, active: true, loops: t.loops }
+end
+
+public finished(t: Timer) -> bool
+    return not t.active and t.elapsed >= t.duration
+end
+
+public progress(t: Timer) -> float
+    if t.duration <= 0.0
+        return 1.0
+    end
+    var p: float = t.elapsed / t.duration
+    if p > 1.0
+        return 1.0
+    end
+    if p < 0.0
+        return 0.0
+    end
+    return p
+end

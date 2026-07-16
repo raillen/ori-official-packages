@@ -1,0 +1,67 @@
+module app.wrapper_test
+
+import ori.mem
+import ori.math.vec2 = vec2
+
+-- Raylib extern declarations
+extern c
+    InitWindow(width: int, height: int, title: int) -> void
+    CloseWindow() -> void
+    WindowShouldClose() -> bool
+    SetTargetFPS(fps: int) -> void
+    BeginDrawing() -> void
+    EndDrawing() -> void
+    ClearBackground(r: int, g: int, b: int, a: int) -> void
+    DrawCircleV(centerX: float, centerY: float, radius: float, r: int, g: int, b: int, a: int) -> void
+    DrawRectangleRec(x: float, y: float, w: float, h: float, r: int, g: int, b: int, a: int) -> void
+    DrawRectangleLinesEx(x: float, y: float, w: float, h: float, thick: int, r: int, g: int, b: int, a: int) -> void
+    DrawText(text: int, x: int, y: int, size: int, r: int, g: int, b: int, a: int) -> void
+    IsKeyDown(key: int) -> bool
+end
+
+main()
+    var title_ptr: int = mem.string_as_ptr("Wrapper Test")
+    InitWindow(800, 600, title_ptr)
+    SetTargetFPS(60)
+
+    var player_x: float = 400.0
+    var player_y: float = 300.0
+
+    while not WindowShouldClose()
+        -- Input
+        if IsKeyDown(37)
+            player_x = player_x - 200.0 * 0.016
+        end
+        if IsKeyDown(39)
+            player_x = player_x + 200.0 * 0.016
+        end
+        if IsKeyDown(38)
+            player_y = player_y - 200.0 * 0.016
+        end
+        if IsKeyDown(40)
+            player_y = player_y + 200.0 * 0.016
+        end
+
+        -- Draw
+        BeginDrawing()
+        ClearBackground(0, 0, 0, 255)
+
+        -- Draw player
+        DrawCircleV(player_x, player_y, 20.0, 0, 255, 0, 255)
+
+        -- Draw some shapes
+        DrawRectangleRec(100.0, 100.0, 50.0, 50.0, 0, 0, 255, 255)
+        DrawRectangleLinesEx(200.0, 100.0, 50.0, 50.0, 2, 255, 0, 0, 255)
+
+        -- Draw text
+        var text1: int = mem.string_as_ptr("Arrow keys to move")
+        DrawText(text1, 10, 10, 20, 255, 255, 255, 255)
+
+        var text2: int = mem.string_as_ptr("Press ESC to exit")
+        DrawText(text2, 10, 40, 20, 255, 255, 0, 255)
+
+        EndDrawing()
+    end
+
+    CloseWindow()
+end

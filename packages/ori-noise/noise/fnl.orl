@@ -1,0 +1,82 @@
+module noise.fnl
+
+-- FastNoiseLite (C) for Ori — milli-int coordinates and samples.
+-- Frequency / lacunarity / gain use milli units (1000 = 1.0).
+
+extern c
+    public ori_fnl_init() -> void
+    public ori_fnl_set_seed(seed: int) -> void
+    public ori_fnl_set_frequency_m(freq_m: int) -> void
+    public ori_fnl_set_type_open_simplex() -> void
+    public ori_fnl_set_type_perlin() -> void
+    public ori_fnl_set_type_cellular() -> void
+    public ori_fnl_set_type_value() -> void
+    public ori_fnl_set_fractal_none() -> void
+    public ori_fnl_set_fractal_fbm() -> void
+    public ori_fnl_set_fractal_ridged() -> void
+    public ori_fnl_set_octaves(octaves: int) -> void
+    public ori_fnl_set_lacunarity_m(lac_m: int) -> void
+    public ori_fnl_set_gain_m(gain_m: int) -> void
+    public ori_fnl_get_2d_m(x_m: int, y_m: int) -> int
+    public ori_fnl_get_3d_m(x_m: int, y_m: int, z_m: int) -> int
+end
+
+public init() -> void
+    ori_fnl_init()
+end
+
+public set_seed(seed: int) -> void
+    ori_fnl_set_seed(seed)
+end
+
+public set_frequency_m(freq_m: int) -> void
+    ori_fnl_set_frequency_m(freq_m)
+end
+
+public use_open_simplex() -> void
+    ori_fnl_set_type_open_simplex()
+end
+
+public use_perlin() -> void
+    ori_fnl_set_type_perlin()
+end
+
+public use_cellular() -> void
+    ori_fnl_set_type_cellular()
+end
+
+public use_value() -> void
+    ori_fnl_set_type_value()
+end
+
+public use_fractal_none() -> void
+    ori_fnl_set_fractal_none()
+end
+
+public use_fractal_fbm() -> void
+    ori_fnl_set_fractal_fbm()
+end
+
+public use_fractal_ridged() -> void
+    ori_fnl_set_fractal_ridged()
+end
+
+public set_octaves(octaves: int) -> void
+    ori_fnl_set_octaves(octaves)
+end
+
+public set_lacunarity_m(lac_m: int) -> void
+    ori_fnl_set_lacunarity_m(lac_m)
+end
+
+public set_gain_m(gain_m: int) -> void
+    ori_fnl_set_gain_m(gain_m)
+end
+
+public get2_m(x_m: int, y_m: int) -> int
+    return ori_fnl_get_2d_m(x_m, y_m)
+end
+
+public get3_m(x_m: int, y_m: int, z_m: int) -> int
+    return ori_fnl_get_3d_m(x_m, y_m, z_m)
+end

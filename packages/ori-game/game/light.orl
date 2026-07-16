@@ -1,0 +1,63 @@
+module game.light
+
+-- Point/directional lights as uniforms for a custom lighting shader.
+-- Bind locations once after loading the shader, then call apply each frame.
+
+import game.shader = shader
+import game.color = color
+import ori.math.vec3 = vec3
+
+public const LIGHT_DISABLED: int = 0
+public const LIGHT_DIRECTIONAL: int = 1
+public const LIGHT_POINT: int = 2
+
+public struct Light
+    enabled: int
+    kind: int
+    position: vec3.Vec3
+    target: vec3.Vec3
+    color: color.Color
+    intensity: float
+end
+
+public create_directional(direction: vec3.Vec3, c: color.Color, intensity: float) -> Light
+    return Light {
+        enabled: 1,
+        kind: LIGHT_DIRECTIONAL,
+        position: vec3.Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+        target: direction,
+        color: c,
+        intensity: intensity
+    }
+end
+
+public create_point(position: vec3.Vec3, c: color.Color, intensity: float) -> Light
+    return Light {
+        enabled: 1,
+        kind: LIGHT_POINT,
+        position: position,
+        target: vec3.Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+        color: c,
+        intensity: intensity
+    }
+end
+
+-- Resolve uniform locations once in the game (recommended).
+public upload(
+    sh: shader.ShaderId,
+    light: Light,
+    loc_enabled: shader.LocationId,
+    loc_kind: shader.LocationId,
+    loc_position: shader.LocationId,
+    loc_target: shader.LocationId,
+    loc_color: shader.LocationId,
+    loc_intensity: shader.LocationId
+) -> void
+    shader.set_int(sh, loc_enabled, light.enabled)
+    shader.set_int(sh, loc_kind, light.kind)
+    shader.set_vec3(sh, loc_position, light.position)
+    shader.set_vec3(sh, loc_target, light.target)
+    -- Color is applied at draw tint; keep lightColor white in uniforms for MVP.
+    shader.set_vec4(sh, loc_color, 1.0, 1.0, 1.0, 1.0)
+    shader.set_float(sh, loc_intensity, light.intensity)
+end

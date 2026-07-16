@@ -1,0 +1,158 @@
+module fast_obj.mesh
+
+-- Wavefront OBJ loader (fast_obj). Single leaf module — keep as `fast_obj.mesh`
+-- so path-dep + `game.obj` do not collide on last segment with other loaders.
+-- Milli-float: physical value * 1000 as int.
+
+import ori.mem = mem
+
+extern c
+    public ori_fast_obj_load(path_ptr: int) -> int
+    public ori_fast_obj_free() -> void
+    public ori_fast_obj_position_count() -> int
+    public ori_fast_obj_face_count() -> int
+    public ori_fast_obj_normal_count() -> int
+    public ori_fast_obj_texcoord_count() -> int
+    public ori_fast_obj_index_count() -> int
+    public ori_fast_obj_material_count() -> int
+    public ori_fast_obj_material_name_len(mat_i: int) -> int
+    public ori_fast_obj_material_name_byte(mat_i: int, offset: int) -> int
+    public ori_fast_obj_pos_m(vertex_index: int, axis: int) -> int
+    public ori_fast_obj_normal_m(normal_index: int, axis: int) -> int
+    public ori_fast_obj_texcoord_m(texcoord_index: int, axis: int) -> int
+    public ori_fast_obj_index_p(i: int) -> int
+    public ori_fast_obj_index_t(i: int) -> int
+    public ori_fast_obj_index_n(i: int) -> int
+    public ori_fast_obj_export_mesh() -> int
+    public ori_fast_obj_export_vertex_count() -> int
+    public ori_fast_obj_export_index_count() -> int
+    public ori_fast_obj_export_float_count() -> int
+    public ori_fast_obj_export_float_m(i: int) -> int
+    public ori_fast_obj_export_index(i: int) -> int
+    public ori_fast_obj_export_pos_m(vert_i: int, axis: int) -> int
+    public ori_fast_obj_export_normal_m(vert_i: int, axis: int) -> int
+    public ori_fast_obj_export_uv_m(vert_i: int, axis: int) -> int
+    public ori_fast_obj_export_floats_ptr() -> int
+    public ori_fast_obj_export_indices_ptr() -> int
+    public ori_fast_obj_export_sum_m() -> int
+end
+
+-- Load Wavefront OBJ from path. Returns true on success.
+public load(path: string) -> bool
+    return ori_fast_obj_load(mem.string_as_ptr(path)) == 0
+end
+
+public free() -> void
+    ori_fast_obj_free()
+end
+
+-- Includes dummy zero entry at index 0 (fast_obj convention).
+public position_count() -> int
+    return ori_fast_obj_position_count()
+end
+
+public face_count() -> int
+    return ori_fast_obj_face_count()
+end
+
+public normal_count() -> int
+    return ori_fast_obj_normal_count()
+end
+
+public texcoord_count() -> int
+    return ori_fast_obj_texcoord_count()
+end
+
+public index_count() -> int
+    return ori_fast_obj_index_count()
+end
+
+-- Number of materials (from mtllib). Each has a name.
+public material_count() -> int
+    return ori_fast_obj_material_count()
+end
+
+public material_name_len(mat_i: int) -> int
+    return ori_fast_obj_material_name_len(mat_i)
+end
+
+public material_name_byte(mat_i: int, offset: int) -> int
+    return ori_fast_obj_material_name_byte(mat_i, offset)
+end
+
+-- Real vertex index (0-based); returns milli-float (value * 1000).
+public pos_m(vertex_index: int, axis: int) -> int
+    return ori_fast_obj_pos_m(vertex_index, axis)
+end
+
+-- Real normal index (0-based); milli-float.
+public normal_m(normal_index: int, axis: int) -> int
+    return ori_fast_obj_normal_m(normal_index, axis)
+end
+
+-- Real texcoord index (0-based); axis 0=u, 1=v; milli-float.
+public texcoord_m(texcoord_index: int, axis: int) -> int
+    return ori_fast_obj_texcoord_m(texcoord_index, axis)
+end
+
+-- Face-corner attribute indices (fast_obj 1-based; 0 = missing).
+public index_p(i: int) -> int
+    return ori_fast_obj_index_p(i)
+end
+
+public index_t(i: int) -> int
+    return ori_fast_obj_index_t(i)
+end
+
+public index_n(i: int) -> int
+    return ori_fast_obj_index_n(i)
+end
+
+-- Flatten to interleaved float mesh [px,py,pz,nx,ny,nz,u,v]*V for raylib helpers.
+public export_mesh() -> bool
+    return ori_fast_obj_export_mesh() == 0
+end
+
+public export_vertex_count() -> int
+    return ori_fast_obj_export_vertex_count()
+end
+
+public export_index_count() -> int
+    return ori_fast_obj_export_index_count()
+end
+
+public export_float_count() -> int
+    return ori_fast_obj_export_float_count()
+end
+
+public export_float_m(i: int) -> int
+    return ori_fast_obj_export_float_m(i)
+end
+
+public export_index(i: int) -> int
+    return ori_fast_obj_export_index(i)
+end
+
+public export_pos_m(vert_i: int, axis: int) -> int
+    return ori_fast_obj_export_pos_m(vert_i, axis)
+end
+
+public export_normal_m(vert_i: int, axis: int) -> int
+    return ori_fast_obj_export_normal_m(vert_i, axis)
+end
+
+public export_uv_m(vert_i: int, axis: int) -> int
+    return ori_fast_obj_export_uv_m(vert_i, axis)
+end
+
+public export_floats_ptr() -> int
+    return ori_fast_obj_export_floats_ptr()
+end
+
+public export_indices_ptr() -> int
+    return ori_fast_obj_export_indices_ptr()
+end
+
+public export_sum_m() -> int
+    return ori_fast_obj_export_sum_m()
+end

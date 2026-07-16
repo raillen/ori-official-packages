@@ -1,0 +1,104 @@
+module test.texinspect
+
+imports
+    texinspect.inspect = insp
+    texinspect.zoom = zoom
+    texinspect.channels = ch
+    ori.test = test
+end
+
+@test
+show_texture_id_and_size()
+    var i: insp.Inspect = insp.create(42, 256, 128)
+    test.equal_int(insp.texture_id_of(i), 42)
+    test.equal_int(insp.width_of(i), 256)
+    test.equal_int(insp.height_of(i), 128)
+    test.assert(not insp.is_open(i), "starts closed")
+    i = insp.open_ui(i)
+    test.assert(insp.is_open(i), "open")
+    i = insp.bind_texture_for_test(i, 99, 64, 32)
+    test.equal_int(insp.texture_id_of(i), 99)
+    test.equal_int(insp.width_of(i), 64)
+    test.equal_int(insp.height_of(i), 32)
+    i = insp.close(i)
+    test.assert(not insp.is_open(i), "closed")
+end
+
+@test
+zoom_in_out_clamp_and_scaled()
+    var z: zoom.Zoom = zoom.create()
+    test.equal_int(zoom.factor_milli(z), zoom.ZOOM_1X_MILLI)
+    z = zoom.zoom_in(z, 500)
+    test.equal_int(zoom.factor_milli(z), 1500)
+    z = zoom.zoom_out(z, 250)
+    test.equal_int(zoom.factor_milli(z), 1250)
+    z = zoom.set_milli(z, 1)
+    test.equal_int(zoom.factor_milli(z), zoom.ZOOM_MIN_MILLI)
+    z = zoom.set_milli(z, 100000)
+    test.equal_int(zoom.factor_milli(z), zoom.ZOOM_MAX_MILLI)
+    z = zoom.reset(z)
+    test.equal_int(zoom.factor_milli(z), zoom.ZOOM_1X_MILLI)
+    test.equal_int(zoom.scaled_size(100, zoom.create_milli(2000)), 200)
+    test.equal_int(zoom.scaled_size(100, zoom.create_milli(500)), 50)
+
+    var i: insp.Inspect = insp.create(1, 100, 50)
+    i = insp.set_zoom_milli(i, 2000)
+    test.equal_int(insp.zoom_milli_of(i), 2000)
+    test.equal_int(insp.display_width(i), 200)
+    test.equal_int(insp.display_height(i), 100)
+    i = insp.zoom_out(i, 1000)
+    test.equal_int(insp.zoom_milli_of(i), 1000)
+    i = insp.reset_zoom(i)
+    test.equal_int(insp.zoom_milli_of(i), zoom.ZOOM_1X_MILLI)
+end
+
+@test
+channel_toggle_mask_and_tint()
+    var c: ch.Channels = ch.create_all()
+    test.equal_int(ch.mask_of(c), 15)
+    test.assert(ch.show_r(c), "r on")
+    test.assert(ch.show_g(c), "g on")
+    test.assert(ch.show_b(c), "b on")
+    test.assert(ch.show_a(c), "a on")
+    c = ch.toggle_r(c)
+    test.assert(not ch.show_r(c), "r off")
+    test.equal_int(ch.mask_of(c), 14)
+    test.equal_int(ch.tint_r(c), 0)
+    test.equal_int(ch.tint_g(c), 255)
+    c = ch.toggle_g(c)
+    c = ch.toggle_b(c)
+    c = ch.toggle_a(c)
+    test.equal_int(ch.mask_of(c), 0)
+    c = ch.create_mask(5)
+    test.assert(ch.show_r(c), "mask5 r")
+    test.assert(not ch.show_g(c), "mask5 g")
+    test.assert(ch.show_b(c), "mask5 b")
+    test.assert(not ch.show_a(c), "mask5 a")
+
+    var i: insp.Inspect = insp.create(7, 16, 16)
+    test.equal_int(insp.channel_mask_of(i), 15)
+    i = insp.toggle_channel_r(i)
+    test.assert(not insp.show_channel_r(i), "insp r off")
+    test.assert(insp.show_channel_g(i), "insp g on")
+    i = insp.set_channel_mask(i, 1)
+    test.assert(insp.show_channel_r(i), "only r")
+    test.assert(not insp.show_channel_g(i), "no g")
+    test.assert(not insp.show_channel_b(i), "no b")
+    test.assert(not insp.show_channel_a(i), "no a")
+end
+
+@test
+open_pan_and_title()
+    var i: insp.Inspect = insp.create_titled(3, 8, 8, "Albedo")
+    test.equal_text(insp.title_of(i), "Albedo")
+    i = insp.open_ui(i)
+    test.assert(insp.is_open(i), "open")
+    i = insp.set_pan_milli(i, 1000, -500)
+    test.equal_int(insp.pan_x_milli_of(i), 1000)
+    test.equal_int(insp.pan_y_milli_of(i), 0 - 500)
+    i = insp.reset_pan(i)
+    test.equal_int(insp.pan_x_milli_of(i), 0)
+    test.equal_int(insp.pan_y_milli_of(i), 0)
+    i = insp.set_title(i, "Normal")
+    test.equal_text(insp.title_of(i), "Normal")
+end

@@ -1,0 +1,32 @@
+module app.jolt_constraint_test
+
+imports
+    jolt.dynamics = jolt
+    jolt.units = units
+    ori.io = io
+end
+
+main()
+    const g: int = units.gravity_earth_y_m()
+    var sys: jolt.System = jolt.create_system(0, g, 0)
+    const floor: jolt.Body = jolt.create_static_box(sys, 0, 0 - 500, 0, 8000, 500, 8000)
+    var a: jolt.Body = jolt.create_dynamic_box(sys, 0, 4000, 0, 400, 400, 400, 1000)
+    var b: jolt.Body = jolt.create_dynamic_box(sys, 1500, 4000, 0, 400, 400, 400, 1000)
+    const c: jolt.Constraint = jolt.create_distance_constraint(sys, a, b, 1000, 2000)
+    if not jolt.constraint_is_valid(c)
+        io.print("bad_constraint")
+        return
+    end
+    const dt: int = units.step_60hz_micros()
+    var i: int = 0
+    while i < 120
+        jolt.step(sys, dt)
+        i = i + 1
+    end
+    io.print("constrained")
+    jolt.destroy_constraint(c)
+    jolt.destroy_body(a)
+    jolt.destroy_body(b)
+    jolt.destroy_body(floor)
+    jolt.destroy_system(sys)
+end

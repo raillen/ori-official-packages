@@ -1,0 +1,142 @@
+module test.immemory
+
+imports
+    immemory.buffer = buf
+    immemory.hex = hex
+    ori.list = lists
+    ori.bytes = by
+    ori.test = test
+end
+
+@test
+bind_list_and_read_write_cell()
+    var cells: list[int] = []
+    lists.push(cells, 1)
+    lists.push(cells, 2)
+    lists.push(cells, 3)
+    var e: buf.Editor = buf.bind_list(cells)
+    test.equal_int(buf.nbytes(e), 3)
+    test.equal_int(buf.read_cell(e, 0), 1)
+    test.equal_int(buf.read_cell(e, 1), 2)
+    test.equal_int(buf.read_cell(e, 2), 3)
+    test.equal_int(buf.read_cell(e, 99), 0)
+
+    e = buf.write_cell(e, 1, 200)
+    test.equal_int(buf.read_cell(e, 1), 200)
+    test.equal_int(buf.cursor_of(e), 1)
+
+    -- clamp write to 0..255
+    e = buf.write_cell(e, 1, 999)
+    test.equal_int(buf.read_cell(e, 1), 255)
+    e = buf.write_cell(e, 1, 0 - 5)
+    test.equal_int(buf.read_cell(e, 1), 0)
+
+    -- original list not mutated (copy on bind)
+    test.equal_int(cells[1], 2)
+end
+
+@test
+bind_bytes_and_to_bytes_roundtrip()
+    var cells: list[int] = []
+    lists.push(cells, 10)
+    lists.push(cells, 20)
+    lists.push(cells, 30)
+    const raw: bytes = by.from_list(cells)
+    var e: buf.Editor = buf.bind_bytes(raw)
+    test.equal_int(buf.nbytes(e), 3)
+    test.equal_int(buf.read_cell(e, 2), 30)
+    e = buf.write_cell(e, 0, 11)
+    const out: bytes = buf.to_bytes(e)
+    test.equal_int(by.len(out), 3)
+    test.equal_int(int(by.get(out, 0)), 11)
+    test.equal_int(int(by.get(out, 1)), 20)
+end
+
+@test
+hex_row_helpers_and_address()
+    var cells: list[int] = []
+    lists.push(cells, 0)
+    lists.push(cells, 15)
+    lists.push(cells, 255)
+    lists.push(cells, 65)
+    lists.push(cells, 66)
+    var e: buf.Editor = buf.bind_for_test(cells, 256)
+    e = buf.set_cols(e, 4)
+
+    test.equal_text(hex.byte_hex(0), "00")
+    test.equal_text(hex.byte_hex(15), "0F")
+    test.equal_text(hex.byte_hex(255), "FF")
+    test.equal_text(hex.address_hex(256, 8), "00000100")
+    test.equal_int(hex.display_address(e, 0), 256)
+    test.equal_int(hex.row_count(e), 2)
+    test.equal_int(hex.row_offset(e, 1), 4)
+    test.equal_int(hex.row_nbytes(e, 1), 1)
+    test.equal_text(hex.format_row_hex(e, 0), "00 0F FF 41")
+    test.equal_text(hex.format_row_ascii(e, 0), "...A")
+    test.equal_text(hex.format_row_hex(e, 1), "42")
+    test.equal_text(hex.format_row_ascii(e, 1), "B")
+
+    const line: string = hex.format_row_line(e, 0)
+    test.assert(line == "00000100  00 0F FF 41  |...A|", "full dump line")
+end
+
+@test
+read_only_resize_fill_and_cursor()
+    var e: buf.Editor = buf.create_with_size(4)
+    test.equal_int(buf.nbytes(e), 4)
+    test.equal_int(buf.read_cell(e, 0), 0)
+    e = buf.fill(e, 7)
+    test.equal_int(buf.read_cell(e, 3), 7)
+    e = buf.set_cursor(e, 100)
+    test.equal_int(buf.cursor_of(e), 3)
+    e = buf.resize(e, 6)
+    test.equal_int(buf.nbytes(e), 6)
+    test.equal_int(buf.read_cell(e, 5), 0)
+    e = buf.resize(e, 2)
+    test.equal_int(buf.nbytes(e), 2)
+    test.equal_int(buf.cursor_of(e), 1)
+
+    e = buf.set_read_only(e, true)
+    test.assert(buf.is_read_only(e), "ro")
+    e = buf.write_cell(e, 0, 99)
+    test.equal_int(buf.read_cell(e, 0), 7)
+    e = buf.fill(e, 1)
+    test.equal_int(buf.read_cell(e, 0), 7)
+    e = buf.resize(e, 10)
+    test.equal_int(buf.nbytes(e), 2)
+
+    e = buf.set_read_only(e, false)
+    e = buf.clear_to_zero(e)
+    test.equal_int(buf.read_cell(e, 0), 0)
+    test.equal_int(buf.read_cell(e, 1), 0)
+
+    e = buf.set_cols(e, 0)
+    test.equal_int(buf.cols_of(e), 1)
+    e = buf.set_cols(e, 100)
+    test.equal_int(buf.cols_of(e), buf.MAX_COLS)
+    e = buf.set_title(e, "Dump")
+    test.equal_text(buf.title_of(e), "Dump")
+    e = buf.open_ui(e)
+    test.assert(buf.is_open(e), "open")
+    e = buf.close(e)
+    test.assert(not buf.is_open(e), "closed")
+end
+
+@test
+format_all_lines_empty_and_partial_row()
+    var empty: buf.Editor = buf.create()
+    test.equal_int(hex.row_count(empty), 0)
+    const no_lines: list[string] = hex.format_all_lines(empty)
+    test.equal_int(lists.len(no_lines), 0)
+
+    var cells: list[int] = []
+    lists.push(cells, 72)
+    lists.push(cells, 105)
+    var e: buf.Editor = buf.bind_list(cells)
+    e = buf.set_cols(e, 16)
+    test.equal_int(hex.row_count(e), 1)
+    test.equal_text(hex.format_row_ascii(e, 0), "Hi")
+    const lines: list[string] = hex.format_all_lines(e)
+    test.equal_int(lists.len(lines), 1)
+    test.equal_text(lines[0], "00000000  48 69  |Hi|")
+end

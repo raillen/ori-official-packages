@@ -1,0 +1,229 @@
+module game.play_freshness
+
+-- R2.3: detect when Play sources diverge from last compile stamp.
+-- No OS mtime in ori.fs — content fingerprint (djb2) vs stamp file.
+
+import ori.list = lists
+import ori.fs = fs
+import ori.string = str
+import ori.bytes = by
+import ori.format = fmt
+
+public const STATUS_FRESH: int = 0
+public const STATUS_STALE: int = 1
+public const STATUS_MISSING_STAMP: int = 2
+public const STATUS_MISSING_SOURCES: int = 3
+
+public struct FreshnessReport
+    status: int
+    source_fp: string
+    stamp_fp: string
+    message: string
+    checked_count: int
+    missing_count: int
+end
+
+-- djb2 over UTF-8 bytes of path + content.
+hash_text(acc: int, text: string) -> int
+    var h: int = acc
+    const raw: bytes = str.to_bytes(text)
+    const n: int = by.len(raw)
+    var i: int = 0
+    while i < n
+        h = h * 33 + int(by.get(raw, i))
+        if h < 0
+            h = 0 - h
+        end
+        -- Fold into modest range (stable stamp across long files).
+        while h > 2000000000
+            h = h - 1000000000
+        end
+        i = i + 1
+    end
+    return h
+end
+
+trim_trailing_nl(s: string) -> string
+    const n: int = str.len(s)
+    if n == 0
+        return s
+    end
+    if str.slice(s, n - 1, n) == "\n"
+        return str.slice(s, 0, n - 1)
+    end
+    return s
+end
+
+ends_with_slash(s: string) -> bool
+    const n: int = str.len(s)
+    if n == 0
+        return false
+    end
+    return str.slice(s, n - 1, n) == "/"
+end
+
+public fingerprint_paths(paths: list[string]) -> string
+    var h: int = 5381
+    var missing: int = 0
+    const n: int = lists.len(paths)
+    var i: int = 0
+    while i < n
+        const p: string = paths[i]
+        h = hash_text(h, p)
+        h = hash_text(h, "|")
+        match fs.read_text(p)
+            case ok(text):
+                h = hash_text(h, text)
+            case err(_):
+                missing = missing + 1
+                h = hash_text(h, "?missing")
+        end
+        h = hash_text(h, ";")
+        i = i + 1
+    end
+    return "p" + fmt.number_int(h) + ":" + fmt.number_int(n) + "m" + fmt.number_int(missing)
+end
+
+public stamp_path_for_project(project_root: string) -> string
+    if project_root == ""
+        return "/tmp/ori_play_stamp"
+    end
+    if ends_with_slash(project_root)
+        return project_root + ".ori_play_stamp"
+    end
+    return project_root + "/.ori_play_stamp"
+end
+
+public empty_report() -> FreshnessReport
+    return FreshnessReport {
+        status: STATUS_MISSING_STAMP,
+        source_fp: "",
+        stamp_fp: "",
+        message: "no check",
+        checked_count: 0,
+        missing_count: 0
+    }
+end
+
+-- Count files that failed to read while fingerprinting.
+count_missing(paths: list[string]) -> int
+    var missing: int = 0
+    const n: int = lists.len(paths)
+    var i: int = 0
+    while i < n
+        match fs.read_text(paths[i])
+            case ok(_):
+            case err(_):
+                missing = missing + 1
+        end
+        i = i + 1
+    end
+    return missing
+end
+
+public evaluate(stamp_path: string, sources: list[string]) -> FreshnessReport
+    const n: int = lists.len(sources)
+    const src_fp: string = fingerprint_paths(sources)
+    const missing: int = count_missing(sources)
+    match fs.read_text(stamp_path)
+        case ok(stamp_body):
+            const stamp_fp: string = trim_trailing_nl(stamp_body)
+            if stamp_fp == src_fp
+                return FreshnessReport {
+                    status: STATUS_FRESH,
+                    source_fp: src_fp,
+                    stamp_fp: stamp_fp,
+                    message: "Play sources match stamp (fresh)",
+                    checked_count: n,
+                    missing_count: missing
+                }
+            end
+            return FreshnessReport {
+                status: STATUS_STALE,
+                source_fp: src_fp,
+                stamp_fp: stamp_fp,
+                message: "Play sources changed since last stamp — recompile (ori compile .) then write stamp",
+                checked_count: n,
+                missing_count: missing
+            }
+        case err(_):
+            if n > 0 and missing >= n
+                return FreshnessReport {
+                    status: STATUS_MISSING_SOURCES,
+                    source_fp: src_fp,
+                    stamp_fp: "",
+                    message: "Play sources missing and no stamp",
+                    checked_count: n,
+                    missing_count: missing
+                }
+            end
+            return FreshnessReport {
+                status: STATUS_MISSING_STAMP,
+                source_fp: src_fp,
+                stamp_fp: "",
+                message: "No play stamp — run write_stamp after ori compile .",
+                checked_count: n,
+                missing_count: missing
+            }
+    end
+    return empty_report()
+end
+
+public write_stamp(stamp_path: string, sources: list[string]) -> result[bool, string]
+    const fp: string = fingerprint_paths(sources)
+    match fs.write_text(stamp_path, fp + "\n")
+        case ok(_):
+            return ok(true)
+        case err(msg):
+            return err(msg)
+    end
+    return err("write_stamp: unreachable")
+end
+
+public is_fresh(r: FreshnessReport) -> bool
+    return r.status == STATUS_FRESH
+end
+
+public needs_recompile_hint(r: FreshnessReport) -> bool
+    return r.status == STATUS_STALE or r.status == STATUS_MISSING_STAMP
+end
+
+public status_label(status: int) -> string
+    if status == STATUS_FRESH
+        return "fresh"
+    end
+    if status == STATUS_STALE
+        return "stale"
+    end
+    if status == STATUS_MISSING_STAMP
+        return "no_stamp"
+    end
+    if status == STATUS_MISSING_SOURCES
+        return "missing_sources"
+    end
+    return "unknown"
+end
+
+-- Default sample-project play sources (relative to project root).
+public sample_project_sources(project_root: string) -> list[string]
+    var root: string = project_root
+    if root != ""
+        if ends_with_slash(root) == false
+            root = root + "/"
+        end
+    end
+    var paths: list[string] = []
+    lists.push(paths, root + "main.orl")
+    lists.push(paths, root + "ori.pkg.toml")
+    lists.push(paths, root + "entities/player/player.orl")
+    lists.push(paths, root + "entities/player/entity.json")
+    lists.push(paths, root + "entities/enemy/enemy.orl")
+    lists.push(paths, root + "entities/enemy/entity.json")
+    lists.push(paths, root + "entities/solid/solid.orl")
+    lists.push(paths, root + "entities/solid/entity.json")
+    lists.push(paths, root + "entities/empty/empty.orl")
+    lists.push(paths, root + "entities/empty/entity.json")
+    lists.push(paths, root + "scenes/engine_test.scene.json")
+    lists.push(paths, root + "scenes/room1.scene.json")
+    return paths
+end

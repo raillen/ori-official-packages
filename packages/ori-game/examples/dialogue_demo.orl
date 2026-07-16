@@ -1,0 +1,48 @@
+module app.dialogue_demo
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.dialogue = dialogue
+    game.shape = shape
+    ori.math.vec2 = vec2
+end
+
+var dlg: dialogue.Dialogue = dialogue.create()
+var started: bool = false
+
+on_update(dt: float) -> void
+    if not started
+        dlg = dialogue.start(dlg, 0)
+        started = true
+    end
+    if input.key_pressed(input.KEY_SPACE) or input.key_pressed(input.KEY_ENTER)
+        var d: dialogue.Dialogue = dlg
+        if d.active
+            dlg = dialogue.advance(dlg)
+        else
+            dlg = dialogue.start(dlg, 0)
+        end
+    end
+end
+
+on_draw() -> void
+    draw.draw_rect(shape.rect(40.0, 240.0, 560.0, 90.0), color.DARKBLUE)
+    var d: dialogue.Dialogue = dlg
+    if d.active
+        draw.draw_text(dialogue.current_text(dlg), vec2.Vec2 { x: 56.0, y: 260.0 }, 18, color.WHITE)
+        draw.draw_text("[Space] continue", vec2.Vec2 { x: 56.0, y: 300.0 }, 14, color.LIGHTGRAY)
+    else
+        draw.draw_text("(ended - Space restarts)", vec2.Vec2 { x: 56.0, y: 270.0 }, 16, color.GRAY)
+    end
+    draw.draw_text("Dialogue demo", vec2.Vec2 { x: 10.0, y: 10.0 }, 20, color.WHITE)
+end
+
+main()
+    dlg = dialogue.add_line(dlg, "Guide", "Welcome, traveler.")
+    dlg = dialogue.add_line(dlg, "Guide", "The forest holds monsters.")
+    dlg = dialogue.add_line(dlg, "Guide", "Press Space to continue lines.")
+    app.run_window("Dialogue Demo", 640, 360, on_update, on_draw)
+end

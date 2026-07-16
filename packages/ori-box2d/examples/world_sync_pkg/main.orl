@@ -1,0 +1,55 @@
+module app.world_sync_pkg
+
+-- Headless: game.world + box2d.world_sync — crate falls, transform updates.
+
+imports
+    box2d.world_sync = sync
+    box2d.units = units
+    game.world = world
+    ori.io = io
+end
+
+main()
+    var host: sync.SyncHost = sync.create(units.gravity_earth_y_m())
+    if sync.is_valid(host) == false
+        io.println("host_invalid")
+        return
+    end
+
+    var w: world.World = world.empty_world()
+    var t: world.Transform = world.empty_transform()
+    t.x = 0.0
+    t.y = 1.0
+    t.z = 5.0
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "crate",
+            entity_type: "crate",
+            primary_tag: "crate"
+        },
+        t
+    )
+    const id: world.EntityId = world.get_entity(w, 0).id
+    host = sync.attach_box(host, w, id, 0.5, 0.5, 1000)
+    if sync.body_count(host) != 1
+        io.println("attach_fail")
+        sync.destroy(host)
+        return
+    end
+
+    const z0: float = world.get_entity(w, 0).transform.z
+    var i: int = 0
+    while i < 90
+        w = sync.step_sync(host, w, 1.0 / 60.0)
+        i = i + 1
+    end
+    const z1: float = world.get_entity(w, 0).transform.z
+    sync.destroy(host)
+
+    if z1 < z0
+        io.println("ok")
+    else
+        io.println("fail")
+    end
+end

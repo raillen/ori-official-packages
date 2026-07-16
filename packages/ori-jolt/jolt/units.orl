@@ -1,0 +1,26 @@
+module jolt.units
+
+import ori.math = math
+
+-- Milli-unit boundary (meters×1000, µs for dt) — same idea as ori-box2d.
+
+public meters_to_milli(m: float) -> int
+    return math.floor(m * 1000.0 + 0.5)
+end
+
+public milli_to_meters(m: int) -> float
+    return float(m) / 1000.0
+end
+
+public seconds_to_micros(s: float) -> int
+    return math.floor(s * 1000000.0 + 0.5)
+end
+
+public gravity_earth_y_m() -> int
+    -- -9.81 m/s²
+    return 0 - 9810
+end
+
+public step_60hz_micros() -> int
+    return 16667
+end

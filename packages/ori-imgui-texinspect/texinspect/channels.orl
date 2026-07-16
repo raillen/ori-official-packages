@@ -1,0 +1,164 @@
+module texinspect.channels
+
+-- RGBA channel visibility for texture inspect.
+-- Four bools (no bitwise ops in Ori S3). Draw uses tint helpers 0/255.
+-- Mask encoding (interop): R=1, G=2, B=4, A=8.
+
+public const CH_R: int = 1
+public const CH_G: int = 2
+public const CH_B: int = 4
+public const CH_A: int = 8
+public const CH_RGB: int = 7
+public const CH_RGBA: int = 15
+
+public struct Channels
+    r: bool
+    g: bool
+    b: bool
+    a: bool
+end
+
+public create_all() -> Channels
+    return Channels { r: true, g: true, b: true, a: true }
+end
+
+public create_rgb() -> Channels
+    return Channels { r: true, g: true, b: true, a: false }
+end
+
+public create(r: bool, g: bool, b: bool, a: bool) -> Channels
+    return Channels { r: r, g: g, b: b, a: a }
+end
+
+-- Encode as 0..15 (R=1, G=2, B=4, A=8) for tests/interop without bitwise.
+public mask_of(c: Channels) -> int
+    var m: int = 0
+    if c.r
+        m = m + 1
+    end
+    if c.g
+        m = m + 2
+    end
+    if c.b
+        m = m + 4
+    end
+    if c.a
+        m = m + 8
+    end
+    return m
+end
+
+-- Decode mask 0..15 into channel flags (arithmetic only).
+public create_mask(mask: int) -> Channels
+    var m: int = mask
+    if m < 0
+        m = 0
+    end
+    if m > 15
+        m = 15
+    end
+    var r: bool = false
+    var g: bool = false
+    var b: bool = false
+    var a: bool = false
+    if m >= 8
+        a = true
+        m = m - 8
+    end
+    if m >= 4
+        b = true
+        m = m - 4
+    end
+    if m >= 2
+        g = true
+        m = m - 2
+    end
+    if m >= 1
+        r = true
+    end
+    return Channels { r: r, g: g, b: b, a: a }
+end
+
+public show_r(c: Channels) -> bool
+    return c.r
+end
+
+public show_g(c: Channels) -> bool
+    return c.g
+end
+
+public show_b(c: Channels) -> bool
+    return c.b
+end
+
+public show_a(c: Channels) -> bool
+    return c.a
+end
+
+public enable_r(c: Channels, on: bool) -> Channels
+    var out: Channels = c
+    out.r = on
+    return out
+end
+
+public enable_g(c: Channels, on: bool) -> Channels
+    var out: Channels = c
+    out.g = on
+    return out
+end
+
+public enable_b(c: Channels, on: bool) -> Channels
+    var out: Channels = c
+    out.b = on
+    return out
+end
+
+public enable_a(c: Channels, on: bool) -> Channels
+    var out: Channels = c
+    out.a = on
+    return out
+end
+
+public toggle_r(c: Channels) -> Channels
+    return enable_r(c, not c.r)
+end
+
+public toggle_g(c: Channels) -> Channels
+    return enable_g(c, not c.g)
+end
+
+public toggle_b(c: Channels) -> Channels
+    return enable_b(c, not c.b)
+end
+
+public toggle_a(c: Channels) -> Channels
+    return enable_a(c, not c.a)
+end
+
+public tint_r(c: Channels) -> int
+    if c.r
+        return 255
+    end
+    return 0
+end
+
+public tint_g(c: Channels) -> int
+    if c.g
+        return 255
+    end
+    return 0
+end
+
+public tint_b(c: Channels) -> int
+    if c.b
+        return 255
+    end
+    return 0
+end
+
+public tint_a(c: Channels) -> int
+    if c.a
+        return 255
+    end
+    return 0
+end

@@ -1,0 +1,136 @@
+module test.world_replicate
+
+imports
+    game.world = world
+    game.world_replicate = wr
+    ori.test = test
+end
+
+@test
+capture_encode_decode_apply()
+    var w: world.World = world.empty_world()
+    -- Transforms separados: spawn pode copiar por referência em stack reusado.
+    var t0: world.Transform = world.empty_transform()
+    t0.x = 1.5
+    t0.y = 2.0
+    t0.z = -3.25
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "a",
+            entity_type: "player",
+            primary_tag: "player"
+        },
+        t0
+    )
+    const id0: world.EntityId = world.get_entity(w, 0).id
+    var t1: world.Transform = world.empty_transform()
+    t1.x = 10.0
+    t1.y = 0.0
+    t1.z = 4.0
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "b",
+            entity_type: "enemy",
+            primary_tag: "enemy"
+        },
+        t1
+    )
+    const id1: world.EntityId = world.get_entity(w, 1).id
+
+    const snap: wr.WorldSnap = wr.capture(w, 42)
+    test.equal_int(wr.pose_count(snap), 2)
+    test.equal_int(snap.tick, 42)
+
+    const msg: string = wr.encode(snap)
+    test.assert(wr.is_ws_message(msg), "ws prefix")
+    test.assert(str_has(msg, "42"), "tick in msg")
+
+    const back: wr.WorldSnap = wr.decode(msg)
+    test.equal_int(back.tick, 42)
+    test.equal_int(wr.pose_count(back), 2)
+    test.equal_int(wr.pose_at(back, 0).id, id0)
+    test.equal_int(wr.pose_at(back, 1).id, id1)
+    test.assert(wr.pose_at(back, 0).x > 1.4 and wr.pose_at(back, 0).x < 1.6, "x0")
+    test.assert(wr.pose_at(back, 1).x > 9.9 and wr.pose_at(back, 1).x < 10.1, "x1")
+
+    -- Move entities away then apply snapshot → restore (transforms distintos).
+    var t_bad0: world.Transform = world.empty_transform()
+    t_bad0.x = 99.0
+    t_bad0.y = 99.0
+    t_bad0.z = 99.0
+    var t_bad1: world.Transform = world.empty_transform()
+    t_bad1.x = 88.0
+    t_bad1.y = 88.0
+    t_bad1.z = 88.0
+    w = world.set_transform(w, id0, t_bad0)
+    w = world.set_transform(w, id1, t_bad1)
+    w = wr.apply_snap(w, back)
+    match world.find_by_id(w, id0)
+        case some(e0):
+            test.assert(e0.transform.x > 1.4 and e0.transform.x < 1.6, "restored x0")
+            test.assert(e0.transform.z < -3.0 and e0.transform.z > -3.5, "restored z0")
+        case none:
+            test.assert(false, "missing e0")
+    end
+    match world.find_by_id(w, id1)
+        case some(e1):
+            test.assert(e1.transform.x > 9.9 and e1.transform.x < 10.1, "restored x1")
+        case none:
+            test.assert(false, "missing e1")
+    end
+end
+
+@test
+encode_world_roundtrip()
+    var w: world.World = world.empty_world()
+    var t: world.Transform = world.empty_transform()
+    t.x = 3.0
+    t.y = 1.0
+    t.z = 7.0
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "solo",
+            entity_type: "solid",
+            primary_tag: "solid"
+        },
+        t
+    )
+    const msg: string = wr.encode_world(w, 7)
+    const id: world.EntityId = world.get_entity(w, 0).id
+    w = wr.apply_message(w, msg)
+    match world.find_by_id(w, id)
+        case some(e):
+            test.assert(e.transform.x > 2.9 and e.transform.x < 3.1, "solo x")
+        case none:
+            test.assert(false, "solo missing")
+    end
+end
+
+@test
+reject_non_ws()
+    test.assert(wr.is_ws_message("tf:1,2,3") == false, "not ws")
+    const empty: wr.WorldSnap = wr.decode("nope")
+    test.equal_int(empty.count, 0)
+end
+
+str_has(hay: string, needle: string) -> bool
+    const hn: int = ori.string.len(hay)
+    const nn: int = ori.string.len(needle)
+    if nn == 0
+        return true
+    end
+    if nn > hn
+        return false
+    end
+    var i: int = 0
+    while i <= hn - nn
+        if ori.string.slice(hay, i, i + nn) == needle
+            return true
+        end
+        i = i + 1
+    end
+    return false
+end

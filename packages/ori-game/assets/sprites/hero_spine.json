@@ -1,0 +1,56 @@
+{
+  "skeleton": { "spine": "4.1.00", "x": 0, "y": 0, "width": 64, "height": 96 },
+  "bones": [
+    { "name": "root" },
+    { "name": "hip", "parent": "root", "y": 40 },
+    { "name": "chest", "parent": "hip", "y": 24 },
+    { "name": "head", "parent": "chest", "y": 18 },
+    { "name": "leg_l", "parent": "hip", "x": -8, "rotation": 0, "length": 28 },
+    { "name": "leg_r", "parent": "hip", "x": 8, "rotation": 0, "length": 28 }
+  ],
+  "animations": {
+    "idle": {
+      "bones": {
+        "chest": {
+          "rotate": [
+            { "time": 0, "value": 0 },
+            { "time": 0.5, "value": 6 },
+            { "time": 1.0, "value": 0 }
+          ]
+        },
+        "head": {
+          "rotate": [
+            { "time": 0, "value": 0 },
+            { "time": 0.5, "value": -4 },
+            { "time": 1.0, "value": 0 }
+          ]
+        }
+      }
+    },
+    "walk": {
+      "bones": {
+        "leg_l": {
+          "rotate": [
+            { "time": 0, "value": 20 },
+            { "time": 0.25, "value": -20 },
+            { "time": 0.5, "value": 20 }
+          ]
+        },
+        "leg_r": {
+          "rotate": [
+            { "time": 0, "value": -20 },
+            { "time": 0.25, "value": 20 },
+            { "time": 0.5, "value": -20 }
+          ]
+        },
+        "hip": {
+          "translate": [
+            { "time": 0, "x": 0, "y": 0 },
+            { "time": 0.25, "x": 0, "y": 3 },
+            { "time": 0.5, "x": 0, "y": 0 }
+          ]
+        }
+      }
+    }
+  }
+}

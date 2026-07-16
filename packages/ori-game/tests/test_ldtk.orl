@@ -1,0 +1,88 @@
+module test.ldtk
+
+imports
+    game.ldtk = ldtk
+    game.tilemap = tilemap
+    ori.test = test
+    ori.list = lists
+end
+
+const SAMPLE: string = "{\"jsonVersion\":\"1.5.3\",\"defaultGridSize\":32.0,\"levels\":[{\"identifier\":\"Level_0\",\"uid\":1.0,\"pxWid\":256.0,\"pxHei\":160.0,\"worldX\":0.0,\"worldY\":0.0,\"layerInstances\":[{\"__type\":\"IntGrid\",\"__identifier\":\"Collisions\",\"__cWid\":8.0,\"__cHei\":5.0,\"__gridSize\":32.0,\"intGridCsv\":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],\"entityInstances\":[],\"gridTiles\":[]},{\"__type\":\"Entities\",\"__identifier\":\"Entities\",\"__cWid\":8.0,\"__cHei\":5.0,\"__gridSize\":32.0,\"intGridCsv\":[],\"entityInstances\":[{\"__identifier\":\"PlayerStart\",\"iid\":\"p0\",\"px\":[48.0,64.0],\"width\":16.0,\"height\":16.0}],\"gridTiles\":[]}]}]}"
+
+@test
+parse_project_levels()
+    match ldtk.parse_project(SAMPLE)
+        case ok(p):
+            test.equal_int(ldtk.level_count(p), 1)
+            test.equal_int(p.default_grid_size, 32)
+            match ldtk.first_level(p)
+                case some(lv):
+                    test.assert(lv.identifier == "Level_0", "level id")
+                    test.equal_int(lv.px_width, 256)
+                case none:
+                    test.assert(false, "no level")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+int_grid_collision()
+    match ldtk.parse_project(SAMPLE)
+        case ok(p):
+            match ldtk.first_level(p)
+                case some(lv):
+                    match ldtk.first_int_grid(lv)
+                        case some(layer):
+                            test.assert(layer.identifier == "Collisions", "name")
+                            const tm: tilemap.Tilemap = ldtk.int_grid_to_tilemap(layer)
+                            test.equal_int(tilemap.get_tile(tm, 0, 0), 0)
+                            test.equal_int(tilemap.get_tile(tm, 2, 2), 1)
+                            test.assert(ldtk.is_solid_value(1), "solid")
+                        case none:
+                            test.assert(false, "no intgrid")
+                    end
+                case none:
+                    test.assert(false, "no level")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+entities_spawn()
+    match ldtk.parse_project(SAMPLE)
+        case ok(p):
+            match ldtk.first_level(p)
+                case some(lv):
+                    const spawns: list[ldtk.LdtkEntity] = ldtk.entities_of(lv, "PlayerStart")
+                    test.equal_int(lists.len(spawns), 1)
+                    var s: ldtk.LdtkEntity = spawns[0]
+                    test.assert(s.x == 48.0, "spawn x")
+                    test.assert(s.y == 64.0, "spawn y")
+                case none:
+                    test.assert(false, "no level")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+load_file_sample()
+    match ldtk.load_project("assets/maps/sample.ldtk")
+        case ok(p):
+            test.equal_int(ldtk.level_count(p), 1)
+            match ldtk.level_by_name(p, "Level_0")
+                case some(lv):
+                    const coins: list[ldtk.LdtkEntity] = ldtk.entities_of(lv, "Coin")
+                    test.equal_int(lists.len(coins), 1)
+                case none:
+                    test.assert(false, "Level_0 missing")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end

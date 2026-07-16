@@ -1,0 +1,212 @@
+module imgui.nodes
+
+-- Tier 1 simple node canvas (not full imnodes).
+-- Nodes are cards on a dummy canvas; links are draw_list lines between centers.
+
+import imgui.ui = ui
+import ori.list = lists
+
+public struct Node
+    id: int
+    title: string
+    x: int
+    y: int
+    w: int
+    h: int
+end
+
+public struct Link
+    from_id: int
+    to_id: int
+end
+
+public struct Graph
+    nodes: list[Node]
+    links: list[Link]
+    drag_id: int
+    drag_off_x: int
+    drag_off_y: int
+    selected_id: int
+end
+
+public create() -> Graph
+    var nodes: list[Node] = []
+    var links: list[Link] = []
+    return Graph {
+        nodes: nodes,
+        links: links,
+        drag_id: 0 - 1,
+        drag_off_x: 0,
+        drag_off_y: 0,
+        selected_id: 0 - 1
+    }
+end
+
+public add_node(g: Graph, id: int, title: string, x: int, y: int) -> Graph
+    var out: Graph = g
+    lists.push(out.nodes, Node {
+        id: id,
+        title: title,
+        x: x,
+        y: y,
+        w: 140,
+        h: 60
+    })
+    return out
+end
+
+public add_link(g: Graph, from_id: int, to_id: int) -> Graph
+    var out: Graph = g
+    lists.push(out.links, Link { from_id: from_id, to_id: to_id })
+    return out
+end
+
+find_node_index(g: Graph, id: int) -> int
+    const n: int = lists.len(g.nodes)
+    var i: int = 0
+    while i < n
+        var nd: Node = g.nodes[i]
+        if nd.id == id
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+node_center_x(nd: Node) -> int
+    return nd.x + nd.w / 2
+end
+
+node_center_y(nd: Node) -> int
+    return nd.y + nd.h / 2
+end
+
+point_in_node(nd: Node, px: int, py: int) -> bool
+    if px < nd.x
+        return false
+    end
+    if py < nd.y
+        return false
+    end
+    if px > nd.x + nd.w
+        return false
+    end
+    if py > nd.y + nd.h
+        return false
+    end
+    return true
+end
+
+-- Draw canvas of size (cw, ch) inside current window. Returns updated graph.
+public draw(g: Graph, cw: int, ch: int) -> Graph
+    var out: Graph = g
+    const origin_x: int = ui.cursor_screen_x()
+    const origin_y: int = ui.cursor_screen_y()
+    ui.dummy(cw, ch)
+
+    -- links behind nodes
+    const nl: int = lists.len(out.links)
+    var li: int = 0
+    while li < nl
+        var lk: Link = out.links[li]
+        const fi: int = find_node_index(out, lk.from_id)
+        const ti: int = find_node_index(out, lk.to_id)
+        if fi >= 0 and ti >= 0
+            var a: Node = out.nodes[fi]
+            var b: Node = out.nodes[ti]
+            ui.draw_line(
+                origin_x + node_center_x(a),
+                origin_y + node_center_y(a),
+                origin_x + node_center_x(b),
+                origin_y + node_center_y(b),
+                180, 180, 80, 255, 2
+            )
+        end
+        li = li + 1
+    end
+
+    const mx: int = ui.mouse_x()
+    const my: int = ui.mouse_y()
+    const local_mx: int = mx - origin_x
+    const local_my: int = my - origin_y
+
+    if ui.is_mouse_clicked(0)
+        out.drag_id = 0 - 1
+        const nn: int = lists.len(out.nodes)
+        var i: int = nn - 1
+        while i >= 0
+            var nd: Node = out.nodes[i]
+            if point_in_node(nd, local_mx, local_my)
+                out.selected_id = nd.id
+                out.drag_id = nd.id
+                out.drag_off_x = local_mx - nd.x
+                out.drag_off_y = local_my - nd.y
+                i = -1
+            else
+                i = i - 1
+            end
+        end
+    end
+
+    if out.drag_id >= 0
+        if ui.is_mouse_down(0)
+            const di: int = find_node_index(out, out.drag_id)
+            if di >= 0
+                var nd: Node = out.nodes[di]
+                nd.x = local_mx - out.drag_off_x
+                nd.y = local_my - out.drag_off_y
+                if nd.x < 0
+                    nd.x = 0
+                end
+                if nd.y < 0
+                    nd.y = 0
+                end
+                lists.set(out.nodes, di, nd)
+            end
+        end
+        if ui.is_mouse_released(0)
+            out.drag_id = 0 - 1
+        end
+    end
+
+    -- draw nodes
+    const nn2: int = lists.len(out.nodes)
+    var j: int = 0
+    while j < nn2
+        var nd2: Node = out.nodes[j]
+        var r: int = 50
+        var gcol: int = 50
+        var b: int = 70
+        if nd2.id == out.selected_id
+            r = 70
+            gcol = 90
+            b = 120
+        end
+        ui.draw_rect(
+            origin_x + nd2.x,
+            origin_y + nd2.y,
+            nd2.w,
+            nd2.h,
+            r, gcol, b, 255,
+            true
+        )
+        ui.draw_rect(
+            origin_x + nd2.x,
+            origin_y + nd2.y,
+            nd2.w,
+            nd2.h,
+            200, 200, 220, 255,
+            false
+        )
+        ui.set_cursor_screen(origin_x + nd2.x + 8, origin_y + nd2.y + 8)
+        ui.text(nd2.title)
+        j = j + 1
+    end
+
+    return out
+end
+
+public selected_id(g: Graph) -> int
+    return g.selected_id
+end

@@ -1,0 +1,324 @@
+module game.ogame_level_draw
+
+-- Runtime draw for level geometry: PBR lit cubes + mesh models + collider debug.
+
+import ori.list = lists
+import ori.math.vec3 = vec3
+import game.ogame_level = level
+import game.draw3d = draw3d
+import game.draw = draw2d
+import game.color = color
+import game.shader = shader
+
+var pbr_shader: shader.ShaderId = 0
+var pbr_loc_view: shader.LocationId = -1
+var pbr_loc_light_pos: shader.LocationId = -1
+var pbr_loc_light_color: shader.LocationId = -1
+var pbr_loc_light_intensity: shader.LocationId = -1
+var pbr_loc_metallic: shader.LocationId = -1
+var pbr_loc_roughness: shader.LocationId = -1
+var pbr_ready: bool = false
+var pbr_tried: bool = false
+-- Evita LoadModel/LoadTexture a cada frame (travava o Studio).
+var mesh_cache_paths: list[string] = []
+var mesh_cache_ids: list[draw3d.ModelId] = []
+
+struct PbrParams
+    metallic: float
+    roughness: float
+end
+
+pbr_params(metallic: float, roughness: float) -> PbrParams
+    return PbrParams { metallic: metallic, roughness: roughness }
+end
+
+piece_color(p: level.SolidPiece) -> color.Color
+    return color.from_rgba(p.r, p.g, p.b, p.a)
+end
+
+piece_pbr(p: level.SolidPiece) -> PbrParams
+    return pbr_params(p.metallic, p.roughness)
+end
+
+brush_color(b: level.BrushBox) -> color.Color
+    return color.from_rgba(b.r, b.g, b.b, b.a)
+end
+
+brush_pbr(b: level.BrushBox) -> PbrParams
+    return pbr_params(b.metallic, b.roughness)
+end
+
+piece_center(p: level.SolidPiece) -> vec3.Vec3
+    return vec3.Vec3 { x: p.x, y: p.y, z: p.z }
+end
+
+ensure_pbr() -> void
+    if pbr_tried
+        return
+    end
+    pbr_tried = true
+    pbr_shader = shader.load("assets/shaders/pbr_lit.vs", "assets/shaders/pbr_lit.fs")
+    if pbr_shader == 0
+        pbr_shader = shader.load("../assets/shaders/pbr_lit.vs", "../assets/shaders/pbr_lit.fs")
+    end
+    -- Studio shell demo cwd: ori-imgui/demos/studio_shell
+    if pbr_shader == 0
+        pbr_shader = shader.load(
+            "../../../ori-game/assets/sample_project/assets/shaders/pbr_lit.vs",
+            "../../../ori-game/assets/sample_project/assets/shaders/pbr_lit.fs"
+        )
+    end
+    if pbr_shader == 0
+        return
+    end
+    pbr_loc_view = shader.location(pbr_shader, "viewPos")
+    pbr_loc_light_pos = shader.location(pbr_shader, "lightPos")
+    pbr_loc_light_color = shader.location(pbr_shader, "lightColor")
+    pbr_loc_light_intensity = shader.location(pbr_shader, "lightIntensity")
+    pbr_loc_metallic = shader.location(pbr_shader, "metallic")
+    pbr_loc_roughness = shader.location(pbr_shader, "roughness")
+    pbr_ready = true
+end
+
+public pbr_available() -> bool
+    ensure_pbr()
+    return pbr_ready
+end
+
+apply_pbr_uniforms(view: vec3.Vec3, params: PbrParams) -> void
+    if pbr_ready == false
+        return
+    end
+    shader.set_vec3(pbr_shader, pbr_loc_view, view)
+    shader.set_vec3(
+        pbr_shader,
+        pbr_loc_light_pos,
+        vec3.Vec3 { x: 80.0, y: 120.0, z: 40.0 }
+    )
+    shader.set_vec4(pbr_shader, pbr_loc_light_color, 1.0, 1.0, 1.0, 1.0)
+    shader.set_float(pbr_shader, pbr_loc_light_intensity, 1.15)
+    shader.set_float(pbr_shader, pbr_loc_metallic, params.metallic)
+    shader.set_float(pbr_shader, pbr_loc_roughness, params.roughness)
+end
+
+begin_pbr(view: vec3.Vec3, params: PbrParams) -> void
+    if pbr_ready == false
+        return
+    end
+    shader.begin_mode(pbr_shader)
+    apply_pbr_uniforms(view, params)
+end
+
+end_pbr() -> void
+    if pbr_ready
+        shader.end_mode()
+    end
+end
+
+draw_collider_wire_at(center: vec3.Vec3, sx: float, sy: float, sz: float) -> void
+    draw3d.draw_cube_wires(
+        center,
+        sx,
+        sy,
+        sz,
+        color.from_rgba(0, 230, 118, 200)
+    )
+end
+
+-- lit=true: PBR begin/end per cube (game look). lit=false: unlit cube (editor fast path).
+-- Study: Godot editor does not pay full material path for every brush every frame.
+draw_solid_piece(
+    p: level.SolidPiece,
+    view: vec3.Vec3,
+    debug_colliders: bool,
+    lit: bool
+) -> void
+    const center: vec3.Vec3 = piece_center(p)
+    if lit
+        begin_pbr(view, piece_pbr(p))
+        draw3d.draw_cube(center, p.sx, p.sy, p.sz, piece_color(p))
+        end_pbr()
+    else
+        draw3d.draw_cube(center, p.sx, p.sy, p.sz, piece_color(p))
+    end
+    if debug_colliders and p.collider
+        draw_collider_wire_at(center, p.sx, p.sy, p.sz)
+    end
+end
+
+-- Mesh unit scale from brush full size (16 world units ≈ identity mesh size).
+brush_mesh_scale(b: level.BrushBox) -> vec3.Vec3
+    return vec3.Vec3 {
+        x: b.sx / 16.0,
+        y: b.sy / 16.0,
+        z: b.sz / 16.0
+    }
+end
+
+apply_brush_albedo_if_any(model: draw3d.ModelId, albedo_path: string) -> void
+    if albedo_path == ""
+        return
+    end
+    -- load_texture is assumed cheap/cached by host; still only call after model cache miss.
+    const tex: draw2d.TextureId = draw2d.load_texture(albedo_path)
+    if tex == 0
+        return
+    end
+    draw3d.set_model_diffuse_texture(model, tex)
+end
+
+-- Path → ModelId cache (shim LoadModel has no path dedupe).
+cached_brush_model(path: string, albedo_path: string) -> draw3d.ModelId
+    if path == ""
+        return 0
+    end
+    const n: int = lists.len(mesh_cache_paths)
+    var i: int = 0
+    while i < n
+        if mesh_cache_paths[i] == path
+            return mesh_cache_ids[i]
+        end
+        i = i + 1
+    end
+    const mid: draw3d.ModelId = draw3d.load_model(path)
+    if mid == 0
+        return 0
+    end
+    apply_brush_albedo_if_any(mid, albedo_path)
+    lists.push(mesh_cache_paths, path)
+    lists.push(mesh_cache_ids, mid)
+    return mid
+end
+
+-- Public: draw any loaded model with yaw (Y) + non-uniform scale + PBR.
+public draw_mesh_at(
+    model: draw3d.ModelId,
+    pos: vec3.Vec3,
+    scale: vec3.Vec3,
+    _rx: float,
+    ry: float,
+    _rz: float,
+    tint: color.Color,
+    view: vec3.Vec3,
+    metallic: float,
+    roughness: float
+) -> void
+    if model == 0
+        return
+    end
+    begin_pbr(view, pbr_params(metallic, roughness))
+    draw3d.draw_model_ex(
+        model,
+        pos,
+        vec3.Vec3 { x: 0.0, y: 1.0, z: 0.0 },
+        ry,
+        scale,
+        tint
+    )
+    end_pbr()
+end
+
+draw_mesh_brush(b: level.BrushBox, view: vec3.Vec3) -> void
+    if b.mesh_path == ""
+        return
+    end
+    const mid: draw3d.ModelId = cached_brush_model(b.mesh_path, b.albedo_path)
+    if mid == 0
+        return
+    end
+    draw_mesh_at(
+        mid,
+        vec3.Vec3 { x: b.x, y: b.y, z: b.z },
+        brush_mesh_scale(b),
+        b.rx,
+        b.ry,
+        b.rz,
+        brush_color(b),
+        view,
+        b.metallic,
+        b.roughness
+    )
+end
+
+draw_solid_pieces(
+    pieces: list[level.SolidPiece],
+    view: vec3.Vec3,
+    debug_colliders: bool,
+    lit: bool
+) -> void
+    const n: int = lists.len(pieces)
+    var i: int = 0
+    while i < n
+        draw_solid_piece(pieces[i], view, debug_colliders, lit)
+        i = i + 1
+    end
+end
+
+draw_mesh_brushes(lvl: level.LevelGeometry, view: vec3.Vec3, draw_meshes: bool) -> void
+    if draw_meshes == false
+        return
+    end
+    const nb: int = lists.len(lvl.brushes)
+    var bi: int = 0
+    while bi < nb
+        draw_mesh_brush(lvl.brushes[bi], view)
+        bi = bi + 1
+    end
+end
+
+-- Hot path API (Studio/sample): precomputed solids, optional PBR + brush meshes.
+-- Godot: ResourceCache + edit-mode simplified draw; TB: solid mesh from map compile, not per-frame CSG.
+public draw_level_pieces(
+    lvl: level.LevelGeometry,
+    pieces: list[level.SolidPiece],
+    view_pos: vec3.Vec3,
+    debug_colliders: bool
+) -> void
+    -- default: lit + meshes (game-ish); Studio should call draw_level_pieces_opts
+    draw_level_pieces_opts(lvl, pieces, view_pos, debug_colliders, true, true)
+end
+
+public draw_level_pieces_opts(
+    lvl: level.LevelGeometry,
+    pieces: list[level.SolidPiece],
+    view_pos: vec3.Vec3,
+    debug_colliders: bool,
+    lit: bool,
+    draw_meshes: bool
+) -> void
+    if lit
+        ensure_pbr()
+    end
+    draw_solid_pieces(pieces, view_pos, debug_colliders, lit)
+    draw_mesh_brushes(lvl, view_pos, draw_meshes)
+end
+
+public draw_level(lvl: level.LevelGeometry) -> void
+    draw_level_ex(lvl, vec3.Vec3 { x: 0.0, y: 40.0, z: 80.0 }, false)
+end
+
+-- Convenience: recomputes CSG (expensive). Prefer draw_level_pieces* + cache.
+public draw_level_ex(
+    lvl: level.LevelGeometry,
+    view_pos: vec3.Vec3,
+    debug_colliders: bool
+) -> void
+    draw_level_pieces(lvl, level.collect_solids(lvl), view_pos, debug_colliders)
+end
+
+public draw_collider_debug_pieces(pieces: list[level.SolidPiece]) -> void
+    const n: int = lists.len(pieces)
+    var i: int = 0
+    while i < n
+        const p: level.SolidPiece = pieces[i]
+        i = i + 1
+        if p.collider == false
+            continue
+        end
+        draw_collider_wire_at(piece_center(p), p.sx, p.sy, p.sz)
+    end
+end
+
+public draw_collider_debug(lvl: level.LevelGeometry) -> void
+    draw_collider_debug_pieces(level.collect_solids(lvl))
+end

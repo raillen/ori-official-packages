@@ -1,0 +1,61 @@
+module app.smoke_stb
+
+imports
+    stb.image = img
+    stb.perlin = perlin
+    stb.rect_pack = rp
+    ori.io = io
+end
+
+main()
+    const n2: int = perlin.noise2_m(1000, 2000)
+    if n2 < -2000 or n2 > 2000
+        io.println("perlin2_fail")
+        return
+    end
+    const n3: int = perlin.noise3_m(1000, 2000, 500)
+    if n3 < -2000 or n3 > 2000
+        io.println("perlin3_fail")
+        return
+    end
+    if not rp.begin_pack(2)
+        io.println("pack_begin_fail")
+        return
+    end
+    if not rp.add_rect(32, 32)
+        io.println("add_fail")
+        return
+    end
+    if not rp.add_rect(16, 16)
+        io.println("add2_fail")
+        return
+    end
+    const packed: int = rp.run(128, 128)
+    if packed < 2
+        io.println("pack_fail")
+        return
+    end
+    if not rp.was_packed(0)
+        io.println("was_fail")
+        return
+    end
+    if rp.rect_x(0) < 0 or rp.rect_y(0) < 0
+        io.println("rect_xy_fail")
+        return
+    end
+    const png_path: string = "tests/fixtures/smoke_gray.png"
+    if not img.write_solid_gray_png(png_path, 8, 8, 128)
+        io.println("write_png_fail")
+        return
+    end
+    if not img.load(png_path, 1)
+        io.println("load_png_fail")
+        return
+    end
+    if img.width() != 8 or img.height() != 8
+        io.println("dims_fail")
+        return
+    end
+    img.free()
+    io.println("ok")
+end

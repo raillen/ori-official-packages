@@ -1,0 +1,188 @@
+module game.pathfind
+
+-- Grid A* (4-neighbour). cells: 0 walkable, non-zero blocked.
+-- Returns list of linear indices from start to goal (empty if none).
+
+import ori.list = lists
+
+public struct Grid
+    w: int
+    h: int
+    cells: list[int]
+end
+
+public make_grid(w: int, h: int, blocked_default: int) -> Grid
+    var cells: list[int] = []
+    var i: int = 0
+    const n: int = w * h
+    while i < n
+        lists.push(cells, blocked_default)
+        i = i + 1
+    end
+    return Grid { w: w, h: h, cells: cells }
+end
+
+public set_blocked(g: Grid, x: int, y: int, blocked: bool) -> Grid
+    var out: Grid = g
+    if x < 0 or y < 0 or x >= g.w or y >= g.h
+        return out
+    end
+    const i: int = x + y * g.w
+    if blocked
+        lists.set(out.cells, i, 1)
+    else
+        lists.set(out.cells, i, 0)
+    end
+    return out
+end
+
+public index_of(g: Grid, x: int, y: int) -> int
+    return x + y * g.w
+end
+
+public x_of(g: Grid, i: int) -> int
+    return i - (i / g.w) * g.w
+end
+
+public y_of(g: Grid, i: int) -> int
+    return i / g.w
+end
+
+walkable(g: Grid, x: int, y: int) -> bool
+    if x < 0 or y < 0 or x >= g.w or y >= g.h
+        return false
+    end
+    return g.cells[index_of(g, x, y)] == 0
+end
+
+manhattan(g: Grid, a: int, b: int) -> int
+    const ax: int = x_of(g, a)
+    const ay: int = y_of(g, a)
+    const bx: int = x_of(g, b)
+    const by: int = y_of(g, b)
+    var dx: int = ax - bx
+    if dx < 0
+        dx = 0 - dx
+    end
+    var dy: int = ay - by
+    if dy < 0
+        dy = 0 - dy
+    end
+    return dx + dy
+end
+
+public find_path(g: Grid, sx: int, sy: int, gx: int, gy: int) -> list[int]
+    var empty: list[int] = []
+    if not walkable(g, sx, sy) or not walkable(g, gx, gy)
+        return empty
+    end
+    const start: int = index_of(g, sx, sy)
+    const goal: int = index_of(g, gx, gy)
+    if start == goal
+        lists.push(empty, start)
+        return empty
+    end
+
+    const n: int = g.w * g.h
+    var came: list[int] = []
+    var gscore: list[int] = []
+    var open: list[int] = []
+    var in_open: list[int] = []
+    var closed: list[int] = []
+    var i: int = 0
+    while i < n
+        lists.push(came, -1)
+        lists.push(gscore, 1000000000)
+        lists.push(in_open, 0)
+        lists.push(closed, 0)
+        i = i + 1
+    end
+    lists.set(gscore, start, 0)
+    lists.push(open, start)
+    lists.set(in_open, start, 1)
+
+    while lists.len(open) > 0
+        var best_i: int = 0
+        var best_f: int = 1000000000
+        var oi: int = 0
+        while oi < lists.len(open)
+            const node: int = open[oi]
+            const f: int = gscore[node] + manhattan(g, node, goal)
+            if f < best_f
+                best_f = f
+                best_i = oi
+            end
+            oi = oi + 1
+        end
+        const current: int = open[best_i]
+        var new_open: list[int] = []
+        oi = 0
+        while oi < lists.len(open)
+            if oi != best_i
+                lists.push(new_open, open[oi])
+            end
+            oi = oi + 1
+        end
+        open = new_open
+        lists.set(in_open, current, 0)
+        if current == goal
+            return reconstruct(came, current)
+        end
+        lists.set(closed, current, 1)
+        const cx: int = x_of(g, current)
+        const cy: int = y_of(g, current)
+        -- 4 neighbours
+        var nbs: list[int] = []
+        if walkable(g, cx + 1, cy)
+            lists.push(nbs, index_of(g, cx + 1, cy))
+        end
+        if walkable(g, cx - 1, cy)
+            lists.push(nbs, index_of(g, cx - 1, cy))
+        end
+        if walkable(g, cx, cy + 1)
+            lists.push(nbs, index_of(g, cx, cy + 1))
+        end
+        if walkable(g, cx, cy - 1)
+            lists.push(nbs, index_of(g, cx, cy - 1))
+        end
+        var ni: int = 0
+        while ni < lists.len(nbs)
+            const nb: int = nbs[ni]
+            if closed[nb] == 0
+                const tent: int = gscore[current] + 1
+                if tent < gscore[nb]
+                    lists.set(came, nb, current)
+                    lists.set(gscore, nb, tent)
+                    if in_open[nb] == 0
+                        lists.push(open, nb)
+                        lists.set(in_open, nb, 1)
+                    end
+                end
+            end
+            ni = ni + 1
+        end
+    end
+    return empty
+end
+
+reconstruct(came: list[int], current: int) -> list[int]
+    var path: list[int] = []
+    var c: int = current
+    var guard: int = 0
+    while c >= 0 and guard < 100000
+        lists.push(path, c)
+        c = came[c]
+        guard = guard + 1
+    end
+    var out: list[int] = []
+    var i: int = lists.len(path) - 1
+    while i >= 0
+        lists.push(out, path[i])
+        i = i - 1
+    end
+    return out
+end
+
+public path_len(path: list[int]) -> int
+    return lists.len(path)
+end

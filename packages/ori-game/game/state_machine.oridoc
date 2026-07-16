@@ -1,0 +1,117 @@
+# state_machine — Máquina de Estados
+
+Módulo para gerenciamento de estados de entidades.
+
+## State
+
+Definição de estado.
+
+```ori
+struct State
+    name: string
+    on_enter: func() -> void
+    on_update: func(float) -> void
+    on_exit: func() -> void
+end
+```
+
+## StateMachine
+
+Máquina de estados.
+
+```ori
+struct StateMachine
+    current: State = nil
+    states: map<string, State>
+    previous_name: string = ""
+end
+```
+
+## Funções
+
+### create_state_machine
+
+Cria uma nova máquina de estados.
+
+```ori
+func create_state_machine() -> StateMachine
+```
+
+### add_state
+
+Adiciona um estado à máquina.
+
+```ori
+func add_state(sm: StateMachine, state: State) -> void
+```
+
+### change_state
+
+Muda para um novo estado.
+
+```ori
+func change_state(sm: StateMachine, name: string) -> void
+```
+
+### update_state
+
+Atualiza o estado atual.
+
+```ori
+func update_state(sm: StateMachine, dt: float) -> void
+```
+
+### get_current_state_name
+
+Retorna o nome do estado atual.
+
+```ori
+func get_current_state_name(sm: StateMachine) -> string
+```
+
+### get_previous_state_name
+
+Retorna o nome do estado anterior.
+
+```ori
+func get_previous_state_name(sm: StateMachine) -> string
+```
+
+### is_in_state
+
+Verifica se está em um estado específico.
+
+```ori
+func is_in_state(sm: StateMachine, name: string) -> bool
+```
+
+**Exemplo — States de personagem:**
+```ori
+var sm = sm.create_state_machine()
+
+sm.add_state(sm, sm.State(
+    name: "idle",
+    on_enter = do() => io.print("Idle") end,
+    on_update = do(dt: float) => end,
+    on_exit = do() => end
+))
+
+sm.add_state(sm, sm.State(
+    name: "walking",
+    on_enter = do() => io.print("Walking") end,
+    on_update = do(dt: float) => end,
+    on_exit = do() => end
+))
+
+sm.change_state(sm, "idle")
+
+-- Mudar estado:
+if input.key_down(39)
+    sm.change_state(sm, "walking")
+end
+
+-- Verificar estado:
+if sm.is_in_state(sm, "walking")
+    -- Movimentar
+end
+```

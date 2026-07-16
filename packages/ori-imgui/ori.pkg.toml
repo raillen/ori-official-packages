@@ -1,0 +1,8 @@
+[package]
+name = "imgui"
+version = "0.5.1"
+entry = "imgui/ui.orl"
+ori_version = "0.3.0"
+description = "Dear ImGui for Ori (Tier0–2: dock/tables/file/plot/nodes/curves/timeline/multi-context/image/test_harness; optional raylib)"
+license = "MIT"
+native_libs = ["ori_imgui", "glfw3", "sysdeps"]

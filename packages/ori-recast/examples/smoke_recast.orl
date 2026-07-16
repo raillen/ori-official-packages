@@ -1,0 +1,60 @@
+module app.smoke_recast
+
+imports
+    recast.nav = nav
+    ori.io = io
+end
+
+main()
+    -- Triangle soup: 20m × 20m plane, cell 0.3m, agent radius 0.3m (milli).
+    nav.mesh_clear()
+    const a: int = nav.mesh_add_vertex(0, 0, 0)
+    const b: int = nav.mesh_add_vertex(20000, 0, 0)
+    const c: int = nav.mesh_add_vertex(20000, 0, 20000)
+    const d: int = nav.mesh_add_vertex(0, 0, 20000)
+    if a < 0 or b < 0 or c < 0 or d < 0
+        io.println("vert_fail")
+        return
+    end
+    if not nav.mesh_add_triangle(0, 2, 1)
+        io.println("tri_fail")
+        return
+    end
+    if not nav.mesh_add_triangle(0, 3, 2)
+        io.println("tri_fail")
+        return
+    end
+    if not nav.build_mesh(300, 300)
+        io.println("build_fail")
+        return
+    end
+    if not nav.is_ready()
+        io.println("ready_fail")
+        nav.destroy()
+        return
+    end
+    -- Path from (2,0,10) to (18,0,10) meters — well inside after agent erosion.
+    const n: int = nav.find_path(2000, 0, 10000, 18000, 0, 10000)
+    if n < 2
+        io.println("path_fail")
+        nav.destroy()
+        return
+    end
+    if not nav.find_nearest(10000, 200, 10000)
+        io.println("nearest_fail")
+        nav.destroy()
+        return
+    end
+    const rc: int = nav.raycast(3000, 0, 10000, 16000, 0, 10000)
+    if rc < 0
+        io.println("ray_fail")
+        nav.destroy()
+        return
+    end
+    nav.destroy()
+    if nav.is_ready()
+        io.println("destroy_fail")
+        return
+    end
+    io.println("ok")
+end

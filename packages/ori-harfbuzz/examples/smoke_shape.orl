@@ -1,0 +1,79 @@
+module app.smoke_shape
+
+imports
+    freetype.face = ft
+    harfbuzz.shape = hb
+    ori.io = io
+    ori.os = os
+    ori.list = lists
+end
+
+main()
+    const path: string = os.env_or("ORI_FT_SMOKE_FONT", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    if not ft.init()
+        io.println("init_fail")
+        return
+    end
+    const face: ft.FaceId = ft.new_face(path)
+    if face < 0
+        io.println("face_fail")
+        ft.done()
+        return
+    end
+    if not ft.set_pixel_sizes(face, 0, 32)
+        io.println("size_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    const glyphs: list[hb.ShapedGlyph] = hb.shape(face, "Hi")
+    const n: int = hb.glyph_count(glyphs)
+    if n < 2
+        io.println("shape_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    if hb.total_x_advance_m(glyphs) <= 0
+        io.println("advance_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    if glyphs[0].glyph_id <= 0
+        io.println("glyph_id_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    const ltr: list[hb.ShapedGlyph] = hb.shape_dir(face, "AB", hb.DIR_LTR)
+    if hb.glyph_count(ltr) < 2 or hb.total_x_advance_m(ltr) <= 0
+        io.println("ltr_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    const longer: list[hb.ShapedGlyph] = hb.shape(face, "Hello")
+    if hb.glyph_count(longer) < 5
+        io.println("longer_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    const cursors: list[int] = hb.x_cursor_positions_m(longer)
+    if lists.len(cursors) != hb.glyph_count(longer) + 1
+        io.println("cursor_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    if cursors[lists.len(cursors) - 1] != hb.total_x_advance_m(longer)
+        io.println("cursor_sum_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    ft.done_face(face)
+    ft.done()
+    io.println("ok")
+end

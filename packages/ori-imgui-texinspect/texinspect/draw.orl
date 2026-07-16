@@ -1,0 +1,104 @@
+module texinspect.draw
+
+-- Product draw for texinspect.inspect using imgui.ui (path-dep ori-imgui).
+-- Call only inside an active ImGui frame. Headless CI uses inspect state only.
+
+import texinspect.inspect = insp
+import texinspect.channels = ch
+import texinspect.zoom = zoom
+import imgui.ui = ui
+import ori.format = fmt
+import ori.string = str
+
+int_text(n: int) -> string
+    return fmt.number(float(n), 0)
+end
+
+channel_label(label: string, on: bool) -> string
+    if on
+        return str.concat("[x] ", label)
+    end
+    return str.concat("[ ] ", label)
+end
+
+-- Draw inspector window; returns updated state. No-op when not open.
+public draw(i: insp.Inspect) -> insp.Inspect
+    if not insp.is_open(i)
+        return i
+    end
+    var out: insp.Inspect = i
+    ui.set_next_window_size(480, 420)
+    if not ui.begin_window(insp.title_of(out))
+        return out
+    end
+
+    const tid: int = insp.texture_id_of(out)
+    ui.text(str.concat("Texture id: ", int_text(tid)))
+    ui.text(str.concat(
+        str.concat(
+            str.concat("Size: ", int_text(insp.width_of(out))),
+            " x "
+        ),
+        int_text(insp.height_of(out))
+    ))
+
+    ui.separator()
+    ui.text(str.concat("Zoom milli: ", int_text(insp.zoom_milli_of(out))))
+    if ui.button("Zoom -")
+        out = insp.zoom_out(out, zoom.ZOOM_STEP_MILLI)
+    end
+    ui.same_line()
+    if ui.button("Zoom +")
+        out = insp.zoom_in(out, zoom.ZOOM_STEP_MILLI)
+    end
+    ui.same_line()
+    if ui.button("1x")
+        out = insp.reset_zoom(out)
+    end
+
+    ui.separator()
+    ui.text("Channels")
+    if ui.button(channel_label("R", insp.show_channel_r(out)))
+        out = insp.toggle_channel_r(out)
+    end
+    ui.same_line()
+    if ui.button(channel_label("G", insp.show_channel_g(out)))
+        out = insp.toggle_channel_g(out)
+    end
+    ui.same_line()
+    if ui.button(channel_label("B", insp.show_channel_b(out)))
+        out = insp.toggle_channel_b(out)
+    end
+    ui.same_line()
+    if ui.button(channel_label("A", insp.show_channel_a(out)))
+        out = insp.toggle_channel_a(out)
+    end
+
+    ui.separator()
+    const dw: int = insp.display_width(out)
+    const dh: int = insp.display_height(out)
+    if dw > 0
+        if dh > 0
+            -- Preview: host image has no tint yet; size follows zoom.
+            ui.image(tid, dw, dh)
+            const c: ch.Channels = insp.channels_of(out)
+            ui.text(str.concat(
+                str.concat(
+                    str.concat("Tint R", int_text(ch.tint_r(c))),
+                    str.concat(" G", int_text(ch.tint_g(c)))
+                ),
+                str.concat(
+                    str.concat(" B", int_text(ch.tint_b(c))),
+                    str.concat(" A", int_text(ch.tint_a(c)))
+                )
+            ))
+        end
+    end
+
+    if ui.button("Close")
+        out = insp.close(out)
+    end
+
+    ui.end_window()
+    return out
+end

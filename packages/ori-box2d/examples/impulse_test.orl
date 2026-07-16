@@ -1,0 +1,26 @@
+module app.impulse_test
+
+imports
+    box2d.dynamics = b2
+    box2d.units = units
+    ori.io = io
+end
+
+main()
+    var world: b2.World = b2.create_world(0, 0)
+    const ground: b2.Body = b2.create_static_box(world, 0, 0 - 2000, 20000, 1000)
+    var box: b2.Body = b2.create_dynamic_box(world, 0, 1000, 400, 400, 1000)
+    b2.apply_impulse_to_center(box, 5000, 0)
+    var i: int = 0
+    while i < 30
+        b2.step(world, units.step_60hz_micros())
+        i = i + 1
+    end
+    const x: int = b2.body_x_m(box)
+    if x > 0
+        io.print("moved")
+    else
+        io.print("stuck")
+    end
+    b2.destroy_world(world)
+end

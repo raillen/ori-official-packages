@@ -1,0 +1,178 @@
+module game.path_follow
+
+-- GP4: fixed-capacity XZ path (no dynamic float lists — safer AOT).
+
+import ori.math = math
+
+public struct PathFollow
+    x0: float
+    z0: float
+    x1: float
+    z1: float
+    x2: float
+    z2: float
+    x3: float
+    z3: float
+    count: int
+    index: int
+    speed: float
+    arrive_eps: float
+    active: bool
+end
+
+public struct VelXZ
+    vx: float
+    vz: float
+end
+
+public empty() -> PathFollow
+    return PathFollow {
+        x0: 0.0, z0: 0.0,
+        x1: 0.0, z1: 0.0,
+        x2: 0.0, z2: 0.0,
+        x3: 0.0, z3: 0.0,
+        count: 0,
+        index: 0,
+        speed: 32.0,
+        arrive_eps: 2.0,
+        active: false
+    }
+end
+
+public add_waypoint(pf: PathFollow, x: float, z: float) -> PathFollow
+    var out: PathFollow = pf
+    if out.count == 0
+        out.x0 = x
+        out.z0 = z
+        out.count = 1
+        out.active = true
+        return out
+    end
+    if out.count == 1
+        out.x1 = x
+        out.z1 = z
+        out.count = 2
+        return out
+    end
+    if out.count == 2
+        out.x2 = x
+        out.z2 = z
+        out.count = 3
+        return out
+    end
+    if out.count == 3
+        out.x3 = x
+        out.z3 = z
+        out.count = 4
+        return out
+    end
+    return out
+end
+
+public set_speed(pf: PathFollow, speed: float) -> PathFollow
+    var out: PathFollow = pf
+    out.speed = speed
+    return out
+end
+
+public waypoint_count(pf: PathFollow) -> int
+    return pf.count
+end
+
+public waypoint_x_at(pf: PathFollow, i: int) -> float
+    if i == 0
+        return pf.x0
+    end
+    if i == 1
+        return pf.x1
+    end
+    if i == 2
+        return pf.x2
+    end
+    if i == 3
+        return pf.x3
+    end
+    return 0.0
+end
+
+public waypoint_z_at(pf: PathFollow, i: int) -> float
+    if i == 0
+        return pf.z0
+    end
+    if i == 1
+        return pf.z1
+    end
+    if i == 2
+        return pf.z2
+    end
+    if i == 3
+        return pf.z3
+    end
+    return 0.0
+end
+
+public current_index(pf: PathFollow) -> int
+    return pf.index
+end
+
+public finished(pf: PathFollow) -> bool
+    if pf.active == false
+        return true
+    end
+    if pf.index >= pf.count
+        return true
+    end
+    return false
+end
+
+public desired_velocity_xz(pf: PathFollow, x: float, z: float) -> VelXZ
+    var v: VelXZ = VelXZ { vx: 0.0, vz: 0.0 }
+    if pf.active == false
+        return v
+    end
+    if pf.index >= pf.count
+        return v
+    end
+    const tx: float = waypoint_x_at(pf, pf.index)
+    const tz: float = waypoint_z_at(pf, pf.index)
+    const dx: float = tx - x
+    const dz: float = tz - z
+    const d2: float = dx * dx + dz * dz
+    const eps2: float = pf.arrive_eps * pf.arrive_eps
+    if d2 <= eps2
+        return v
+    end
+    -- Constant speed toward waypoint: normalize direction, scale by speed.
+    const dist: float = math.hypot(dx, dz)
+    if dist <= 0.0
+        return v
+    end
+    const inv: float = pf.speed / dist
+    v.vx = dx * inv
+    v.vz = dz * inv
+    return v
+end
+
+public advance_if_arrived(pf: PathFollow, x: float, z: float) -> PathFollow
+    var out: PathFollow = pf
+    if out.active == false
+        return out
+    end
+    if out.index >= out.count
+        out.active = false
+        return out
+    end
+    const tx: float = waypoint_x_at(out, out.index)
+    const tz: float = waypoint_z_at(out, out.index)
+    const dx: float = tx - x
+    const dz: float = tz - z
+    const d2: float = dx * dx + dz * dz
+    const eps2: float = out.arrive_eps * out.arrive_eps
+    if d2 <= eps2
+        out.index = out.index + 1
+        if out.index >= out.count
+            out.active = false
+        end
+    end
+    return out
+end

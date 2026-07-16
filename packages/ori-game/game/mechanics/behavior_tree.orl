@@ -1,0 +1,27 @@
+module game.mechanics.behavior_tree
+
+-- Lightweight status helpers (no function-pointer nodes).
+
+public const STATUS_SUCCESS: int = 0
+public const STATUS_FAILURE: int = 1
+public const STATUS_RUNNING: int = 2
+
+public sequence_status(a: int, b: int) -> int
+    if a == STATUS_FAILURE or b == STATUS_FAILURE
+        return STATUS_FAILURE
+    end
+    if a == STATUS_RUNNING or b == STATUS_RUNNING
+        return STATUS_RUNNING
+    end
+    return STATUS_SUCCESS
+end
+
+public selector_status(a: int, b: int) -> int
+    if a == STATUS_SUCCESS or b == STATUS_SUCCESS
+        return STATUS_SUCCESS
+    end
+    if a == STATUS_RUNNING or b == STATUS_RUNNING
+        return STATUS_RUNNING
+    end
+    return STATUS_FAILURE
+end

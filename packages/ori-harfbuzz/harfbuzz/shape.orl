@@ -1,0 +1,115 @@
+module harfbuzz.shape
+
+-- HarfBuzz shaping on FreeType faces (ori-freetype).
+
+import ori.mem = mem
+import ori.list = lists
+import freetype.face = ft
+
+-- Direction codes (match C shim ORI_HB_DIR_*).
+public const DIR_LTR: int = 0
+public const DIR_RTL: int = 1
+public const DIR_TTB: int = 2
+public const DIR_BTT: int = 3
+public const DIR_AUTO: int = 4
+
+public struct ShapedGlyph
+    glyph_id: int
+    cluster: int
+    x_advance_m: int
+    y_advance_m: int
+    x_offset_m: int
+    y_offset_m: int
+end
+
+extern c
+    public ori_hb_shape_utf8(face_ptr: int, text_ptr: int) -> int
+    public ori_hb_shape_utf8_dir(face_ptr: int, text_ptr: int, direction: int) -> int
+    public ori_hb_glyph_count() -> int
+    public ori_hb_glyph_id(index: int) -> int
+    public ori_hb_cluster(index: int) -> int
+    public ori_hb_x_advance_m(index: int) -> int
+    public ori_hb_y_advance_m(index: int) -> int
+    public ori_hb_x_offset_m(index: int) -> int
+    public ori_hb_y_offset_m(index: int) -> int
+end
+
+collect_glyphs(n: int) -> list[ShapedGlyph]
+    var out: list[ShapedGlyph] = []
+    var i: int = 0
+    while i < n
+        lists.push(out, ShapedGlyph {
+            glyph_id: ori_hb_glyph_id(i),
+            cluster: ori_hb_cluster(i),
+            x_advance_m: ori_hb_x_advance_m(i),
+            y_advance_m: ori_hb_y_advance_m(i),
+            x_offset_m: ori_hb_x_offset_m(i),
+            y_offset_m: ori_hb_y_offset_m(i)
+        })
+        i = i + 1
+    end
+    return out
+end
+
+-- Shape UTF-8 with an open FreeType face (auto direction/script). Empty list on failure.
+public shape(face: ft.FaceId, text: string) -> list[ShapedGlyph]
+    return shape_dir(face, text, DIR_AUTO)
+end
+
+-- Shape with explicit direction (DIR_LTR / DIR_RTL / DIR_TTB / DIR_BTT / DIR_AUTO).
+public shape_dir(face: ft.FaceId, text: string, direction: int) -> list[ShapedGlyph]
+    var empty: list[ShapedGlyph] = []
+    if not ft.is_valid_face(face)
+        return empty
+    end
+    const fptr: int = ft.face_ptr(face)
+    if fptr == 0
+        return empty
+    end
+    const n: int = ori_hb_shape_utf8_dir(fptr, mem.string_as_ptr(text), direction)
+    if n < 0
+        return empty
+    end
+    return collect_glyphs(n)
+end
+
+public glyph_count(glyphs: list[ShapedGlyph]) -> int
+    return lists.len(glyphs)
+end
+
+public total_x_advance_m(glyphs: list[ShapedGlyph]) -> int
+    var sum: int = 0
+    var i: int = 0
+    const n: int = lists.len(glyphs)
+    while i < n
+        sum = sum + glyphs[i].x_advance_m
+        i = i + 1
+    end
+    return sum
+end
+
+public total_y_advance_m(glyphs: list[ShapedGlyph]) -> int
+    var sum: int = 0
+    var i: int = 0
+    const n: int = lists.len(glyphs)
+    while i < n
+        sum = sum + glyphs[i].y_advance_m
+        i = i + 1
+    end
+    return sum
+end
+
+-- Cursor positions after each glyph (milli-pixel), length = glyph_count + 1 (starts at 0).
+public x_cursor_positions_m(glyphs: list[ShapedGlyph]) -> list[int]
+    var out: list[int] = []
+    lists.push(out, 0)
+    var x: int = 0
+    var i: int = 0
+    const n: int = lists.len(glyphs)
+    while i < n
+        x = x + glyphs[i].x_advance_m
+        lists.push(out, x)
+        i = i + 1
+    end
+    return out
+end

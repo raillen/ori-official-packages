@@ -1,0 +1,63 @@
+module test.aseprite
+
+imports
+    game.aseprite = ase
+    ori.test = test
+    ori.list = lists
+end
+
+const SAMPLE: string = "{\"frames\":[{\"filename\":\"a\",\"frame\":{\"x\":0.0,\"y\":0.0,\"w\":16.0,\"h\":16.0},\"duration\":100.0},{\"filename\":\"b\",\"frame\":{\"x\":16.0,\"y\":0.0,\"w\":16.0,\"h\":16.0},\"duration\":100.0},{\"filename\":\"c\",\"frame\":{\"x\":32.0,\"y\":0.0,\"w\":16.0,\"h\":16.0},\"duration\":100.0}],\"meta\":{\"image\":\"sheet.png\",\"size\":{\"w\":48.0,\"h\":16.0},\"frameTags\":[{\"name\":\"idle\",\"from\":0.0,\"to\":1.0,\"direction\":\"forward\"},{\"name\":\"walk\",\"from\":2.0,\"to\":2.0,\"direction\":\"forward\"}]}}"
+
+@test
+parse_frames_and_meta()
+    match ase.parse_sheet(SAMPLE)
+        case ok(sheet):
+            test.equal_int(ase.frame_count(sheet), 3)
+            test.equal_int(ase.tag_count(sheet), 2)
+            test.assert(sheet.image == "sheet.png", "image name")
+            test.equal_int(sheet.sheet_w, 48)
+            match ase.get_frame(sheet, 1)
+                case some(f):
+                    test.assert(f.x == 16.0, "frame x")
+                    test.equal_int(f.duration_ms, 100)
+                case none:
+                    test.assert(false, "missing frame")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+play_tag_and_tick()
+    match ase.parse_sheet(SAMPLE)
+        case ok(sheet):
+            var p: ase.AsePlayer = ase.create_player(sheet, true)
+            p = ase.play_tag(p, "walk")
+            test.equal_int(p.frame_index, 2)
+            p = ase.tick(p, 0.05)
+            test.assert(p.playing, "still playing")
+            p = ase.tick(p, 0.12)
+            test.equal_int(p.frame_index, 2)
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+load_file_hero()
+    match ase.load_sheet("assets/sprites/hero.json")
+        case ok(sheet):
+            test.equal_int(ase.frame_count(sheet), 4)
+            test.equal_int(ase.tag_count(sheet), 2)
+            match ase.tag_by_name(sheet, "walk")
+                case some(t):
+                    test.equal_int(t.from_frame, 2)
+                    test.equal_int(t.to_frame, 3)
+                case none:
+                    test.assert(false, "no walk tag")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end

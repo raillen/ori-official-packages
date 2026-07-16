@@ -1,0 +1,88 @@
+module enkits.tasks
+
+-- enkiTS job system for Ori (C API): parallel_for, N tasks, wait, shutdown.
+
+extern c
+    public ori_enki_init(num_threads: int) -> int
+    public ori_enki_shutdown() -> void
+    public ori_enki_is_initialized() -> int
+    public ori_enki_num_threads() -> int
+    public ori_enki_wait_all() -> void
+    public ori_enki_parallel_for_sum(n: int, min_range: int) -> int
+    public ori_enki_parallel_sum(n: int) -> int
+    public ori_enki_last_range_runs() -> int
+    public ori_enki_last_sum() -> int
+    public ori_enki_run_n_tasks(n: int) -> int
+    public ori_enki_tasks_completed() -> int
+    public ori_enki_add_range_sum(n: int, min_range: int) -> int
+    public ori_enki_wait_scheduled_range() -> void
+    public ori_enki_is_range_complete() -> int
+    public ori_enki_serial_sum(n: int) -> int
+end
+
+-- num_threads 0 = hardware default (N-1 workers + main).
+public init(num_threads: int) -> bool
+    return ori_enki_init(num_threads) == 0
+end
+
+public shutdown() -> void
+    ori_enki_shutdown()
+end
+
+public is_initialized() -> bool
+    return ori_enki_is_initialized() != 0
+end
+
+public num_threads() -> int
+    return ori_enki_num_threads()
+end
+
+-- Wait for all pending task sets (no continuous producers).
+public wait_all() -> void
+    ori_enki_wait_all()
+end
+
+-- Parallel for over [0, n) with grain min_range; returns sum(i).
+public parallel_for_sum(n: int, min_range: int) -> int
+    return ori_enki_parallel_for_sum(n, min_range)
+end
+
+-- Parallel sum of 0..n-1 (grain 1).
+public parallel_sum(n: int) -> int
+    return ori_enki_parallel_sum(n)
+end
+
+public last_range_runs() -> int
+    return ori_enki_last_range_runs()
+end
+
+-- Sum from the last parallel_for / add_range_sum after wait.
+public last_sum() -> int
+    return ori_enki_last_sum()
+end
+
+-- N independent unit tasks (add all partitions, wait); returns sum of indices.
+public run_n_tasks(n: int) -> int
+    return ori_enki_run_n_tasks(n)
+end
+
+public tasks_completed() -> int
+    return ori_enki_tasks_completed()
+end
+
+-- Explicit add + wait for a range sum job (product "add task / wait" path).
+public add_range_sum(n: int, min_range: int) -> bool
+    return ori_enki_add_range_sum(n, min_range) == 0
+end
+
+public wait_scheduled_range() -> void
+    ori_enki_wait_scheduled_range()
+end
+
+public is_range_complete() -> bool
+    return ori_enki_is_range_complete() != 0
+end
+
+public serial_sum(n: int) -> int
+    return ori_enki_serial_sum(n)
+end

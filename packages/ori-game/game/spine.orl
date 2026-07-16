@@ -1,0 +1,620 @@
+module game.spine
+
+-- Spine JSON skeleton + rotate/translate timelines (pure Ori).
+-- Pose/keyframe storage is milli-int (codegen: list[float] is unsafe on current ori).
+--   position: units × 1000   rotation: degrees × 1000   time: seconds × 1000
+-- No mesh/skins/constraints. Good stick-figure / logic bones.
+
+import ori.json = json
+import ori.map = maps
+import ori.list = lists
+import ori.math = math
+import ori.fs = fs
+
+public struct SpineBone
+    name: string
+    parent_index: int
+    x_m: int
+    y_m: int
+    rotation_m: int
+    length_m: int
+end
+
+public struct SpineKeyframe
+    time_ms: int
+    value_m: int
+    x_m: int
+    y_m: int
+end
+
+public struct SpineBoneTrack
+    bone_index: int
+    rotates: list[SpineKeyframe]
+    translates: list[SpineKeyframe]
+end
+
+public struct SpineAnimation
+    name: string
+    duration_ms: int
+    tracks: list[SpineBoneTrack]
+end
+
+public struct SpineSkeleton
+    spine_version: string
+    bones: list[SpineBone]
+    animations: list[SpineAnimation]
+end
+
+public struct SpinePlayer
+    skeleton: SpineSkeleton
+    anim_index: int
+    time_ms: int
+    playing: bool
+    does_loop: bool
+    pose_rot_m: list[int]
+    pose_x_m: list[int]
+    pose_y_m: list[int]
+end
+
+public struct SpineWorldBone
+    name: string
+    x: float
+    y: float
+    rotation: float
+end
+
+public alias LoadResult = result[SpineSkeleton, string]
+
+-- ── units ─────────────────────────────────────────────────
+
+to_milli(v: float) -> int
+    return math.floor(v * 1000.0 + 0.5)
+end
+
+from_milli(m: int) -> float
+    return float(m) / 1000.0
+end
+
+-- ── JSON helpers ──────────────────────────────────────────
+
+json_number(fields: map[string, json.Value], key: string, fallback: float) -> float
+    if some(v) = maps.try_get(fields, key)
+        match v
+            case Number(value):
+                return value
+            case else:
+                return fallback
+        end
+    end
+    return fallback
+end
+
+json_string(fields: map[string, json.Value], key: string, fallback: string) -> string
+    if some(v) = maps.try_get(fields, key)
+        match v
+            case String(value):
+                return value
+            case else:
+                return fallback
+        end
+    end
+    return fallback
+end
+
+find_bone_index(bones: list[SpineBone], name: string) -> int
+    const n: int = lists.len(bones)
+    var i: int = 0
+    while i < n
+        var b: SpineBone = bones[i]
+        if b.name == name
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+parse_bones(items: list[json.Value]) -> list[SpineBone]
+    var out: list[SpineBone] = []
+    const n: int = lists.len(items)
+    var i: int = 0
+    while i < n
+        match items[i]
+            case Object(fields):
+                const name: string = json_string(fields, "name", "")
+                const parent_name: string = json_string(fields, "parent", "")
+                var parent_index: int = -1
+                if parent_name != ""
+                    parent_index = find_bone_index(out, parent_name)
+                end
+                lists.push(out, SpineBone {
+                    name: name,
+                    parent_index: parent_index,
+                    x_m: to_milli(json_number(fields, "x", 0.0)),
+                    y_m: to_milli(json_number(fields, "y", 0.0)),
+                    rotation_m: to_milli(json_number(fields, "rotation", 0.0)),
+                    length_m: to_milli(json_number(fields, "length", 0.0))
+                })
+            case else:
+        end
+        i = i + 1
+    end
+    return out
+end
+
+parse_rotate_keys(items: list[json.Value]) -> list[SpineKeyframe]
+    var out: list[SpineKeyframe] = []
+    const n: int = lists.len(items)
+    var i: int = 0
+    while i < n
+        match items[i]
+            case Object(fields):
+                lists.push(out, SpineKeyframe {
+                    time_ms: to_milli(json_number(fields, "time", 0.0)),
+                    value_m: to_milli(json_number(fields, "value", 0.0)),
+                    x_m: 0,
+                    y_m: 0
+                })
+            case else:
+        end
+        i = i + 1
+    end
+    return out
+end
+
+parse_translate_keys(items: list[json.Value]) -> list[SpineKeyframe]
+    var out: list[SpineKeyframe] = []
+    const n: int = lists.len(items)
+    var i: int = 0
+    while i < n
+        match items[i]
+            case Object(fields):
+                lists.push(out, SpineKeyframe {
+                    time_ms: to_milli(json_number(fields, "time", 0.0)),
+                    value_m: 0,
+                    x_m: to_milli(json_number(fields, "x", 0.0)),
+                    y_m: to_milli(json_number(fields, "y", 0.0))
+                })
+            case else:
+        end
+        i = i + 1
+    end
+    return out
+end
+
+max_time_ms(keys: list[SpineKeyframe]) -> int
+    var d: int = 0
+    const n: int = lists.len(keys)
+    var i: int = 0
+    while i < n
+        var k: SpineKeyframe = keys[i]
+        if k.time_ms > d
+            d = k.time_ms
+        end
+        i = i + 1
+    end
+    return d
+end
+
+parse_bone_track(bone_index: int, track_val: json.Value) -> SpineBoneTrack
+    var rotates: list[SpineKeyframe] = []
+    var translates: list[SpineKeyframe] = []
+    match track_val
+        case Object(fields):
+            if some(rot_v) = maps.try_get(fields, "rotate")
+                match rot_v
+                    case Array(items):
+                        rotates = parse_rotate_keys(items)
+                    case else:
+                end
+            end
+            if some(tr_v) = maps.try_get(fields, "translate")
+                match tr_v
+                    case Array(items):
+                        translates = parse_translate_keys(items)
+                    case else:
+                end
+            end
+        case else:
+    end
+    return SpineBoneTrack {
+        bone_index: bone_index,
+        rotates: rotates,
+        translates: translates
+    }
+end
+
+fill_tracks_from_bone_map(
+    bone_map: map[string, json.Value],
+    bones: list[SpineBone],
+    tracks: list[SpineBoneTrack]
+) -> list[SpineBoneTrack]
+    var out: list[SpineBoneTrack] = tracks
+    const nb: int = lists.len(bones)
+    var bi: int = 0
+    while bi < nb
+        var bone: SpineBone = bones[bi]
+        if some(track_v) = maps.try_get(bone_map, bone.name)
+            lists.push(out, parse_bone_track(bi, track_v))
+        end
+        bi = bi + 1
+    end
+    return out
+end
+
+tracks_duration_ms(tracks: list[SpineBoneTrack]) -> int
+    var duration_ms: int = 0
+    const n: int = lists.len(tracks)
+    var i: int = 0
+    while i < n
+        var tr: SpineBoneTrack = tracks[i]
+        var td: int = max_time_ms(tr.rotates)
+        const tt: int = max_time_ms(tr.translates)
+        if tt > td
+            td = tt
+        end
+        if td > duration_ms
+            duration_ms = td
+        end
+        i = i + 1
+    end
+    return duration_ms
+end
+
+parse_animation_obj(name: string, anim_val: json.Value, bones: list[SpineBone]) -> SpineAnimation
+    var tracks: list[SpineBoneTrack] = []
+    match anim_val
+        case Object(fields):
+            const anim_fields: map[string, json.Value] = fields
+            if some(bones_v) = maps.try_get(anim_fields, "bones")
+                match bones_v
+                    case Object(fields):
+                        const bone_map: map[string, json.Value] = fields
+                        tracks = fill_tracks_from_bone_map(bone_map, bones, tracks)
+                    case else:
+                end
+            end
+        case else:
+    end
+    return SpineAnimation {
+        name: name,
+        duration_ms: tracks_duration_ms(tracks),
+        tracks: tracks
+    }
+end
+
+-- ── Public API ────────────────────────────────────────────
+
+-- `animation_names` lists keys under JSON `animations` (map key enum not exposed).
+parse_skeleton_root(root: map[string, json.Value], animation_names: list[string]) -> LoadResult
+    var bones: list[SpineBone] = []
+    if some(bones_v) = maps.try_get(root, "bones")
+        match bones_v
+            case Array(items):
+                bones = parse_bones(items)
+            case else:
+        end
+    end
+    if lists.len(bones) == 0
+        return err("no bones")
+    end
+    var spine_version: string = ""
+    if some(sk_v) = maps.try_get(root, "skeleton")
+        match sk_v
+            case Object(fields):
+                const sk_fields: map[string, json.Value] = fields
+                spine_version = json_string(sk_fields, "spine", "")
+            case else:
+        end
+    end
+    var animations: list[SpineAnimation] = []
+    if some(an_v) = maps.try_get(root, "animations")
+        match an_v
+            case Object(fields):
+                const an_map: map[string, json.Value] = fields
+                const nn: int = lists.len(animation_names)
+                var ai: int = 0
+                while ai < nn
+                    const aname: string = animation_names[ai]
+                    if some(av) = maps.try_get(an_map, aname)
+                        lists.push(animations, parse_animation_obj(aname, av, bones))
+                    end
+                    ai = ai + 1
+                end
+            case else:
+        end
+    end
+    return ok(SpineSkeleton {
+        spine_version: spine_version,
+        bones: bones,
+        animations: animations
+    })
+end
+
+public parse_skeleton(text: string, animation_names: list[string]) -> LoadResult
+    match json.parse(text)
+        case ok(val):
+            match val
+                case Object(fields):
+                    const root: map[string, json.Value] = fields
+                    return parse_skeleton_root(root, animation_names)
+                case else:
+                    return err("root must be object")
+            end
+        case err(msg):
+            return err(msg)
+    end
+    return err("parse failed")
+end
+
+public load_skeleton(path: string, animation_names: list[string]) -> LoadResult
+    match fs.read_text(path)
+        case ok(text):
+            return parse_skeleton(text, animation_names)
+        case err(_):
+            return err("failed to read skeleton")
+    end
+    return err("failed to read skeleton")
+end
+
+public bone_count(s: SpineSkeleton) -> int
+    return lists.len(s.bones)
+end
+
+public animation_count(s: SpineSkeleton) -> int
+    return lists.len(s.animations)
+end
+
+public find_animation(s: SpineSkeleton, name: string) -> int
+    const n: int = lists.len(s.animations)
+    var i: int = 0
+    while i < n
+        var a: SpineAnimation = s.animations[i]
+        if a.name == name
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+public create_player(s: SpineSkeleton, anim_index: int) -> SpinePlayer
+    var pose_rot_m: list[int] = []
+    var pose_x_m: list[int] = []
+    var pose_y_m: list[int] = []
+    const n: int = lists.len(s.bones)
+    var i: int = 0
+    while i < n
+        var b: SpineBone = s.bones[i]
+        lists.push(pose_rot_m, b.rotation_m)
+        lists.push(pose_x_m, b.x_m)
+        lists.push(pose_y_m, b.y_m)
+        i = i + 1
+    end
+    return SpinePlayer {
+        skeleton: s,
+        anim_index: anim_index,
+        time_ms: 0,
+        playing: true,
+        does_loop: true,
+        pose_rot_m: pose_rot_m,
+        pose_x_m: pose_x_m,
+        pose_y_m: pose_y_m
+    }
+end
+
+lerp_m(a: int, b: int, t_num: int, t_den: int) -> int
+    if t_den <= 0
+        return a
+    end
+    return a + (b - a) * t_num / t_den
+end
+
+sample_rotate_m(keys: list[SpineKeyframe], time_ms: int, bind_m: int) -> int
+    const n: int = lists.len(keys)
+    if n == 0
+        return bind_m
+    end
+    var first: SpineKeyframe = keys[0]
+    if time_ms <= first.time_ms
+        return bind_m + first.value_m
+    end
+    var i: int = 0
+    while i + 1 < n
+        var a: SpineKeyframe = keys[i]
+        var b: SpineKeyframe = keys[i + 1]
+        if time_ms >= a.time_ms
+            if time_ms <= b.time_ms
+                const span: int = b.time_ms - a.time_ms
+                const num: int = time_ms - a.time_ms
+                return bind_m + lerp_m(a.value_m, b.value_m, num, span)
+            end
+        end
+        i = i + 1
+    end
+    var last: SpineKeyframe = keys[n - 1]
+    return bind_m + last.value_m
+end
+
+sample_tx_m(keys: list[SpineKeyframe], time_ms: int, bind_m: int) -> int
+    const n: int = lists.len(keys)
+    if n == 0
+        return bind_m
+    end
+    var first: SpineKeyframe = keys[0]
+    if time_ms <= first.time_ms
+        return bind_m + first.x_m
+    end
+    var i: int = 0
+    while i + 1 < n
+        var a: SpineKeyframe = keys[i]
+        var b: SpineKeyframe = keys[i + 1]
+        if time_ms >= a.time_ms
+            if time_ms <= b.time_ms
+                const span: int = b.time_ms - a.time_ms
+                const num: int = time_ms - a.time_ms
+                return bind_m + lerp_m(a.x_m, b.x_m, num, span)
+            end
+        end
+        i = i + 1
+    end
+    var last: SpineKeyframe = keys[n - 1]
+    return bind_m + last.x_m
+end
+
+sample_ty_m(keys: list[SpineKeyframe], time_ms: int, bind_m: int) -> int
+    const n: int = lists.len(keys)
+    if n == 0
+        return bind_m
+    end
+    var first: SpineKeyframe = keys[0]
+    if time_ms <= first.time_ms
+        return bind_m + first.y_m
+    end
+    var i: int = 0
+    while i + 1 < n
+        var a: SpineKeyframe = keys[i]
+        var b: SpineKeyframe = keys[i + 1]
+        if time_ms >= a.time_ms
+            if time_ms <= b.time_ms
+                const span: int = b.time_ms - a.time_ms
+                const num: int = time_ms - a.time_ms
+                return bind_m + lerp_m(a.y_m, b.y_m, num, span)
+            end
+        end
+        i = i + 1
+    end
+    var last: SpineKeyframe = keys[n - 1]
+    return bind_m + last.y_m
+end
+
+public update_player(player: SpinePlayer, dt: float) -> SpinePlayer
+    var out: SpinePlayer = player
+    if not out.playing
+        return out
+    end
+    const ai: int = out.anim_index
+    const n_anims: int = lists.len(out.skeleton.animations)
+    if ai < 0 or ai >= n_anims
+        return out
+    end
+    var anim: SpineAnimation = out.skeleton.animations[ai]
+    const dt_ms: int = to_milli(dt)
+    out.time_ms = out.time_ms + dt_ms
+    if anim.duration_ms > 0
+        if out.time_ms > anim.duration_ms
+            if out.does_loop
+                while out.time_ms > anim.duration_ms
+                    out.time_ms = out.time_ms - anim.duration_ms
+                end
+            else
+                out.time_ms = anim.duration_ms
+                out.playing = false
+            end
+        end
+    end
+
+    const nb: int = lists.len(out.skeleton.bones)
+    var bi: int = 0
+    while bi < nb
+        var bone: SpineBone = out.skeleton.bones[bi]
+        lists.set(out.pose_rot_m, bi, bone.rotation_m)
+        lists.set(out.pose_x_m, bi, bone.x_m)
+        lists.set(out.pose_y_m, bi, bone.y_m)
+        bi = bi + 1
+    end
+
+    const nt: int = lists.len(anim.tracks)
+    var ti: int = 0
+    while ti < nt
+        var tr: SpineBoneTrack = anim.tracks[ti]
+        const bidx: int = tr.bone_index
+        if bidx >= 0 and bidx < nb
+            var bone2: SpineBone = out.skeleton.bones[bidx]
+            const rot: int = sample_rotate_m(tr.rotates, out.time_ms, bone2.rotation_m)
+            const px: int = sample_tx_m(tr.translates, out.time_ms, bone2.x_m)
+            const py: int = sample_ty_m(tr.translates, out.time_ms, bone2.y_m)
+            lists.set(out.pose_rot_m, bidx, rot)
+            lists.set(out.pose_x_m, bidx, px)
+            lists.set(out.pose_y_m, bidx, py)
+        end
+        ti = ti + 1
+    end
+    return out
+end
+
+cos1000(deg: int) -> int
+    const c: float = math.cos(math.deg_to_rad(float(deg)))
+    return math.floor(c * 1000.0 + 0.5)
+end
+
+sin1000(deg: int) -> int
+    const s: float = math.sin(math.deg_to_rad(float(deg)))
+    return math.floor(s * 1000.0 + 0.5)
+end
+
+-- World-space bones (float for drawing). Rotation hierarchy via fixed-point cos/sin.
+public world_bones(player: SpinePlayer) -> list[SpineWorldBone]
+    var out: list[SpineWorldBone] = []
+    const n: int = lists.len(player.skeleton.bones)
+    var wx: list[int] = []
+    var wy: list[int] = []
+    var wr: list[int] = []
+    var i: int = 0
+    while i < n
+        lists.push(wx, 0)
+        lists.push(wy, 0)
+        lists.push(wr, 0)
+        i = i + 1
+    end
+    var j: int = 0
+    while j < n
+        var bone: SpineBone = player.skeleton.bones[j]
+        const lx: int = player.pose_x_m[j]
+        const ly: int = player.pose_y_m[j]
+        const lr: int = player.pose_rot_m[j]
+        if bone.parent_index < 0
+            lists.set(wx, j, lx)
+            lists.set(wy, j, ly)
+            lists.set(wr, j, lr)
+        else
+            const pi: int = bone.parent_index
+            const parent_x: int = wx[pi]
+            const parent_y: int = wy[pi]
+            const pr: int = wr[pi]
+            const deg: int = pr / 1000
+            const c: int = cos1000(deg)
+            const s: int = sin1000(deg)
+            const px: int = parent_x + (lx * c - ly * s) / 1000
+            const py: int = parent_y + (lx * s + ly * c) / 1000
+            lists.set(wx, j, px)
+            lists.set(wy, j, py)
+            lists.set(wr, j, pr + lr)
+        end
+        lists.push(out, SpineWorldBone {
+            name: bone.name,
+            x: from_milli(wx[j]),
+            y: from_milli(wy[j]),
+            rotation: from_milli(wr[j])
+        })
+        j = j + 1
+    end
+    return out
+end
+
+-- Bind-pose helpers for games that only need names/parents (local milli).
+public bone_local_x(s: SpineSkeleton, index: int) -> float
+    if index < 0 or index >= lists.len(s.bones)
+        return 0.0
+    end
+    var b: SpineBone = s.bones[index]
+    return from_milli(b.x_m)
+end
+
+public bone_local_y(s: SpineSkeleton, index: int) -> float
+    if index < 0 or index >= lists.len(s.bones)
+        return 0.0
+    end
+    var b: SpineBone = s.bones[index]
+    return from_milli(b.y_m)
+end

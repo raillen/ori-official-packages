@@ -1,0 +1,136 @@
+module game.camera_matrix
+
+-- V2.2: look-at + perspective as milli-float 4x4 (column-major OpenGL order).
+-- Pure Ori (no raylib link) so unit tests stay headless.
+
+import ori.math = math
+import ori.math.vec3 = vec3
+import ori.list = lists
+
+public struct CamPose
+    eye_x: float
+    eye_y: float
+    eye_z: float
+    target_x: float
+    target_y: float
+    target_z: float
+    up_x: float
+    up_y: float
+    up_z: float
+    fovy: float
+end
+
+public make_pose(
+    eye: vec3.Vec3,
+    target: vec3.Vec3,
+    up: vec3.Vec3,
+    fovy: float
+) -> CamPose
+    return CamPose {
+        eye_x: eye.x,
+        eye_y: eye.y,
+        eye_z: eye.z,
+        target_x: target.x,
+        target_y: target.y,
+        target_z: target.z,
+        up_x: up.x,
+        up_y: up.y,
+        up_z: up.z,
+        fovy: fovy
+    }
+end
+
+float_to_milli(v: float) -> int
+    return math.round(v * 1000.0)
+end
+
+-- MatrixLookAt-compatible view (eye → target).
+public view_matrix_m(pose: CamPose) -> list[int]
+    const eye: vec3.Vec3 = vec3.Vec3 {
+        x: pose.eye_x,
+        y: pose.eye_y,
+        z: pose.eye_z
+    }
+    const up: vec3.Vec3 = vec3.Vec3 {
+        x: pose.up_x,
+        y: pose.up_y,
+        z: pose.up_z
+    }
+    var vz: vec3.Vec3 = vec3.normalize(vec3.Vec3 {
+        x: pose.eye_x - pose.target_x,
+        y: pose.eye_y - pose.target_y,
+        z: pose.eye_z - pose.target_z
+    })
+    var vx: vec3.Vec3 = vec3.normalize(vec3.cross(up, vz))
+    if vx.x == 0.0 and vx.y == 0.0 and vx.z == 0.0
+        vx = vec3.Vec3 { x: 1.0, y: 0.0, z: 0.0 }
+    end
+    const vy: vec3.Vec3 = vec3.cross(vz, vx)
+    const tx: float = 0.0 - vec3.dot(vx, eye)
+    const ty: float = 0.0 - vec3.dot(vy, eye)
+    const tz: float = 0.0 - vec3.dot(vz, eye)
+    var m: list[int] = []
+    lists.push(m, float_to_milli(vx.x))
+    lists.push(m, float_to_milli(vy.x))
+    lists.push(m, float_to_milli(vz.x))
+    lists.push(m, 0)
+    lists.push(m, float_to_milli(vx.y))
+    lists.push(m, float_to_milli(vy.y))
+    lists.push(m, float_to_milli(vz.y))
+    lists.push(m, 0)
+    lists.push(m, float_to_milli(vx.z))
+    lists.push(m, float_to_milli(vy.z))
+    lists.push(m, float_to_milli(vz.z))
+    lists.push(m, 0)
+    lists.push(m, float_to_milli(tx))
+    lists.push(m, float_to_milli(ty))
+    lists.push(m, float_to_milli(tz))
+    lists.push(m, 1000)
+    return m
+end
+
+public perspective_matrix_m(
+    fovy_deg: float,
+    aspect: float,
+    near_plane: float,
+    far_plane: float
+) -> list[int]
+    var a: float = aspect
+    if a < 0.01
+        a = 1.0
+    end
+    var near_z: float = near_plane
+    if near_z <= 0.0
+        near_z = 0.1
+    end
+    var far_z: float = far_plane
+    if far_z <= near_z
+        far_z = near_z + 1000.0
+    end
+    const half: float = math.deg_to_rad(fovy_deg) * 0.5
+    const s: float = math.sin(half)
+    var c: float = math.cos(half)
+    if math.abs_float(s) < 0.000001
+        c = 1.0
+    end
+    const f: float = c / s
+    const nf: float = 1.0 / (near_z - far_z)
+    var m: list[int] = []
+    lists.push(m, float_to_milli(f / a))
+    lists.push(m, 0)
+    lists.push(m, 0)
+    lists.push(m, 0)
+    lists.push(m, 0)
+    lists.push(m, float_to_milli(f))
+    lists.push(m, 0)
+    lists.push(m, 0)
+    lists.push(m, 0)
+    lists.push(m, 0)
+    lists.push(m, float_to_milli((far_z + near_z) * nf))
+    lists.push(m, -1000)
+    lists.push(m, 0)
+    lists.push(m, 0)
+    lists.push(m, float_to_milli(2.0 * far_z * near_z * nf))
+    lists.push(m, 0)
+    return m
+end

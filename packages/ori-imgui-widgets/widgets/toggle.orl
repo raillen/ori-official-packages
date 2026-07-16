@@ -1,0 +1,73 @@
+module widgets.toggle
+
+-- Boolean toggle switch state (headless product surface).
+-- Product UI draws on/off track; host flips via toggle / set_on.
+
+public struct Toggle
+    on: bool
+    label: string
+    disabled: bool
+end
+
+public create(initial_on: bool) -> Toggle
+    return Toggle {
+        on: initial_on,
+        label: "",
+        disabled: false
+    }
+end
+
+public create_labeled(label: string, initial_on: bool) -> Toggle
+    return Toggle {
+        on: initial_on,
+        label: label,
+        disabled: false
+    }
+end
+
+public set_label(t: Toggle, label: string) -> Toggle
+    var out: Toggle = t
+    out.label = label
+    return out
+end
+
+public label_of(t: Toggle) -> string
+    return t.label
+end
+
+public set_on(t: Toggle, on: bool) -> Toggle
+    var out: Toggle = t
+    if out.disabled
+        return out
+    end
+    out.on = on
+    return out
+end
+
+public is_on(t: Toggle) -> bool
+    return t.on
+end
+
+public is_off(t: Toggle) -> bool
+    return not t.on
+end
+
+-- Flip state when enabled; no-op when disabled.
+public toggle(t: Toggle) -> Toggle
+    if t.disabled
+        return t
+    end
+    var out: Toggle = t
+    out.on = not out.on
+    return out
+end
+
+public set_disabled(t: Toggle, disabled: bool) -> Toggle
+    var out: Toggle = t
+    out.disabled = disabled
+    return out
+end
+
+public is_disabled(t: Toggle) -> bool
+    return t.disabled
+end

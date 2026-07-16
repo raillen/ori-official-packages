@@ -1,0 +1,13 @@
+# Ori ECO package
+*.o
+*.obj
+*.pdb
+*.exp
+*.lib
+*.exe
+*.dll
+/tmp/
+.DS_Store
+*.swp
+*~
+

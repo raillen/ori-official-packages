@@ -1,0 +1,649 @@
+module sample.main
+
+-- engine_test (G1): World + combat/AI patrol + goal + save + camera stack/drive.
+
+imports
+    game.app = app
+    game.draw = draw
+    game.draw3d = draw3d
+    game.camera3d = cam3
+    game.camera_stack = cstack
+    game.camera_drive = cdrive
+    game.color = color
+    game.input = input
+    game.ogame = ogame
+    game.ogame_level = level
+    game.ogame_level_draw = level_draw
+    game.world = world
+    game.world_systems = systems
+    game.world_gameplay = gp
+    game.character_controller = ctrl
+    game.asset_paths = paths
+    game.audio = audio
+    game.audio_buses = buses
+    game.decals = decals
+    game.particles = particles
+    game.postfx = postfx
+    game.inventory = inv
+    game.path_follow = pfollow
+    game.save = save
+    game.world_replicate = rep
+    ori.io = stdio
+    ori.list = lists
+    ori.math = math
+    ori.math.vec2 = vec2
+    ori.math.vec3 = vec3
+    ori.format = fmt
+    ori.convert = convert
+end
+
+const SCENE_PATH: string = "scenes/engine_test.scene.json"
+const PLAYER_CREATE_OGS: string = "-- ogs:print player create\n-- ogs:set_var ready = 1\n-- ogs:call on_ready\n"
+const BLIP_PATH: string = "assets/audio/blip.wav"
+const SHADER_VS: string = "assets/shaders/pbr_lit.vs"
+const SHADER_FS: string = "assets/shaders/pbr_lit.fs"
+-- Slot em /tmp: não exige mkdir no package (GP6 residual).
+const SAVE_DIR: string = "/tmp"
+const SAVE_SLOT: string = "ori_engine_test_g1"
+
+var cam: cam3.Camera3D = cam3.create_perspective(
+    vec3.Vec3 { x: 40.0, y: 36.0, z: 72.0 },
+    vec3.Vec3 { x: 0.0, y: 8.0, z: 24.0 },
+    45.0
+)
+
+var cam_off_x: float = 40.0
+var cam_off_y: float = 35.0
+var cam_off_z: float = 64.0
+const CAM_LOOK_HEIGHT: float = 8.0
+var play_cams: cstack.CamStack = cstack.default_play_stack()
+var cam_clip: cdrive.CamClip = cdrive.default_orbit_clip()
+var cam_drive_on: bool = false
+
+var lvl: level.LevelGeometry = level.empty_level()
+var solids: list[level.SolidPiece] = []
+var solid_count: int = 0
+var w: world.World = world.empty_world()
+var scripts: systems.ScriptHost = systems.empty_script_host()
+var bootstrapped: bool = false
+var live_tick: int = 0
+var show_debug: bool = false
+
+var player_model: draw3d.ModelId = 0
+var player_mesh_ready: bool = false
+var player_mesh_failed: bool = false
+var player_mesh_path: string = ""
+var won: bool = false
+const WIN_RADIUS: float = 14.0
+var gameplay: gp.GameplayHost = gp.empty_host()
+var char_ctrl: ctrl.Controller = ctrl.empty()
+var use_gameplay: bool = true
+var path_roots: paths.PathRoots = paths.empty_roots()
+var mixer: buses.BusMixer = buses.create()
+var blip: audio.SoundId = 0
+var blip_ready: bool = false
+var win_sfx_played: bool = false
+var decal_pool: decals.DecalPool = decals.create(16)
+var fx: particles.Emitter = particles.create_emitter()
+var look: postfx.PostFxState = postfx.create()
+var bag: inv.Inventory = inv.create(8)
+var coin_item: inv.Item = inv.Item {
+    id: "coin",
+    name: "Coin",
+    stackable: true,
+    max_stack: 99
+}
+var show_controller_debug: bool = false
+var patrol: pfollow.PathFollow = pfollow.empty()
+var patrol_eid: world.EntityId = 0
+var patrol_ready: bool = false
+var save_note: string = ""
+
+axis_from_keys(neg_key: int, pos_key: int) -> float
+    var v: float = 0.0
+    if input.key_down(neg_key)
+        v = v - 1.0
+    end
+    if input.key_down(pos_key)
+        v = v + 1.0
+    end
+    return v
+end
+
+read_frame_input() -> systems.FrameInput
+    var fi: systems.FrameInput = systems.empty_input()
+    fi.move_x = axis_from_keys(input.KEY_A, input.KEY_D)
+    fi.move_z = axis_from_keys(input.KEY_W, input.KEY_S)
+    fi.move_y = 0.0
+    if input.key_down(input.KEY_SPACE)
+        fi.move_y = fi.move_y + 1.0
+    end
+    if input.key_down(input.KEY_LEFT_SHIFT)
+        fi.move_y = fi.move_y - 1.0
+    end
+    return fi
+end
+
+sample_entity_paths() -> list[string]
+    var paths: list[string] = []
+    lists.push(paths, "entities/player/entity.json")
+    lists.push(paths, "entities/enemy/entity.json")
+    lists.push(paths, "entities/solid/entity.json")
+    lists.push(paths, "entities/empty/entity.json")
+    return paths
+end
+
+build_patrol_path() -> pfollow.PathFollow
+    var pf: pfollow.PathFollow = pfollow.empty()
+    pf = pfollow.add_waypoint(pf, 20.0, 20.0)
+    pf = pfollow.add_waypoint(pf, -20.0, 20.0)
+    pf = pfollow.add_waypoint(pf, -20.0, 32.0)
+    pf = pfollow.add_waypoint(pf, 20.0, 32.0)
+    pf = pfollow.set_speed(pf, 18.0)
+    return pf
+end
+
+-- B6 / X1: resolve mesh via asset_paths (project-relative).
+ensure_player_mesh(path: string) -> void
+    if player_mesh_ready or player_mesh_failed
+        return
+    end
+    if path == ""
+        player_mesh_failed = true
+        return
+    end
+    const resolved: string = paths.resolve(path_roots, path)
+    player_mesh_path = resolved
+    player_model = draw3d.load_model(resolved)
+    if player_model != 0
+        player_mesh_ready = true
+    else
+        player_mesh_failed = true
+    end
+end
+
+ensure_audio() -> void
+    if blip_ready
+        return
+    end
+    mixer = buses.ensure_init(mixer)
+    const p: string = paths.resolve(path_roots, BLIP_PATH)
+    blip = audio.load_sound(p)
+    if blip != 0
+        blip_ready = true
+    end
+end
+
+-- GP6: restaura contagem de coins do slot (payload = inteiro puro).
+restore_coins_from_save() -> void
+    const text: string = save.load_slot_or(SAVE_DIR, SAVE_SLOT, "0")
+    const n: int = convert.parse_int_or(text, 0)
+    if n > 0
+        bag = inv.add(bag, coin_item, n)
+        save_note = "load " + fmt.number_int(n)
+    else
+        save_note = "no-save"
+    end
+end
+
+persist_coins_to_save() -> void
+    const n: int = inv.count_of(bag, "coin")
+    if save.save_slot(SAVE_DIR, SAVE_SLOT, fmt.number_int(n))
+        save_note = "saved " + fmt.number_int(n)
+    else
+        save_note = "save-fail"
+    end
+end
+
+draw_decals() -> void
+    const n: int = decals.capacity(decal_pool)
+    var i: int = 0
+    while i < n
+        match decals.decal_at(decal_pool, i)
+            case some(d):
+                draw3d.draw_sphere(decals.decal_pos(d), d.size, decals.decal_color(d))
+            case none:
+        end
+        i = i + 1
+    end
+end
+
+setup_enemy_patrol() -> void
+    patrol_ready = false
+    patrol_eid = 0
+    patrol = pfollow.empty()
+    const n: int = world.entity_count(w)
+    var i: int = 0
+    while i < n
+        const e: world.Entity = world.get_entity(w, i)
+        if e.alive and e.meta.entity_type == "enemy"
+            patrol_eid = e.id
+            patrol = build_patrol_path()
+            patrol_ready = true
+            return
+        end
+        i = i + 1
+    end
+end
+
+-- GP4 stage link: patrol XZ; AI chase sobrescreve velocidade se em aggro.
+apply_patrol_velocity() -> void
+    if patrol_ready == false
+        return
+    end
+    if gp.is_entity_dead(gameplay, patrol_eid)
+        return
+    end
+    if pfollow.finished(patrol)
+        patrol = build_patrol_path()
+    end
+    match world.find_by_id(w, patrol_eid)
+        case some(e):
+            const vel: pfollow.VelXZ = pfollow.desired_velocity_xz(
+                patrol,
+                e.transform.x,
+                e.transform.z
+            )
+            w = world.set_velocity(
+                w,
+                patrol_eid,
+                world.Velocity { vx: vel.vx, vy: 0.0, vz: vel.vz }
+            )
+        case none:
+            patrol_ready = false
+    end
+end
+
+advance_patrol_after_move() -> void
+    if patrol_ready == false
+        return
+    end
+    match world.find_by_id(w, patrol_eid)
+        case some(e):
+            patrol = pfollow.advance_if_arrived(patrol, e.transform.x, e.transform.z)
+        case none:
+            patrol_ready = false
+    end
+end
+
+bootstrap() -> void
+    if bootstrapped
+        return
+    end
+    path_roots = paths.with_project("./")
+    path_roots = paths.add_fallback(path_roots, "assets/sample_project/")
+    ensure_audio()
+    -- Prove shader paths resolve (DT1 / X1) without requiring use every frame.
+    const vs: string = paths.resolve(path_roots, SHADER_VS)
+    const fs: string = paths.resolve(path_roots, SHADER_FS)
+    if vs != "" and fs != ""
+        -- paths ready for lit materials
+    end
+    lvl = level.load_level(SCENE_PATH)
+    solids = level.collect_solids(lvl)
+    solid_count = lists.len(solids)
+    match ogame.load_catalog(sample_entity_paths())
+        case ok(cat):
+            match world.spawn_scene_path(world.empty_world(), cat, SCENE_PATH)
+                case ok(loaded):
+                    w = loaded
+                case err(_):
+                    w = world.empty_world()
+            end
+        case err(_):
+            w = world.empty_world()
+    end
+    match world.find_first_of_type(w, "player")
+        case some(p):
+            if p.has_mesh
+                ensure_player_mesh(p.mesh.path)
+            end
+            if use_gameplay
+                gameplay = gp.set_player(gameplay, p.id)
+                gameplay = gp.attach_health(gameplay, p.id, 10)
+            end
+        case none:
+    end
+    if use_gameplay
+        const n: int = world.entity_count(w)
+        var i: int = 0
+        while i < n
+            const e: world.Entity = world.get_entity(w, i)
+            if e.alive and e.meta.entity_type == "enemy"
+                gameplay = gp.attach_health(gameplay, e.id, 3)
+                gameplay = gp.attach_ai(gameplay, e.id, 80.0, 24.0)
+            end
+            i = i + 1
+        end
+        -- 1 enemy na cena → 1 por wave (honestidade do contador).
+        gameplay = gp.start_waves(gameplay, 1, 1)
+        char_ctrl = ctrl.create(8.0, 48.0)
+    end
+    setup_enemy_patrol()
+    restore_coins_from_save()
+    bootstrapped = true
+end
+
+nudge_follow_offset(dt: float) -> void
+    if cam_drive_on
+        return
+    end
+    const speed: float = 40.0 * dt
+    play_cams = cstack.nudge_active_offset(
+        play_cams,
+        axis_from_keys(input.KEY_LEFT, input.KEY_RIGHT) * speed,
+        0.0,
+        axis_from_keys(input.KEY_UP, input.KEY_DOWN) * speed
+    )
+    const off: vec3.Vec3 = cstack.offset_of_active(play_cams)
+    cam_off_x = off.x
+    cam_off_y = off.y
+    cam_off_z = off.z
+end
+
+tick_cam_drive(dt: float) -> void
+    if cam_drive_on == false
+        return
+    end
+    const dt_ms: int = math.round(dt * 1000.0)
+    cam_clip = cdrive.tick(cam_clip, dt_ms)
+    play_cams = cdrive.apply_to_stack(cam_clip, play_cams)
+    const off: vec3.Vec3 = cstack.offset_of_active(play_cams)
+    cam_off_x = off.x
+    cam_off_y = off.y
+    cam_off_z = off.z
+end
+
+handle_cam_stack_keys() -> void
+    if input.key_pressed(input.KEY_V)
+        play_cams = cstack.next_cam(play_cams)
+    end
+    if input.key_pressed(input.KEY_2)
+        play_cams = cstack.set_active(play_cams, 1)
+    end
+    if input.key_pressed(input.KEY_3)
+        play_cams = cstack.set_active(play_cams, 2)
+    end
+    if input.key_pressed(input.KEY_4)
+        play_cams = cstack.set_active(play_cams, 3)
+    end
+end
+
+follow_player_camera() -> void
+    match world.find_first_of_type(w, "player")
+        case some(p):
+            const target: vec3.Vec3 = vec3.Vec3 {
+                x: p.transform.x,
+                y: p.transform.y,
+                z: p.transform.z
+            }
+            const pose: cstack.CamPose = cstack.resolve_pose(play_cams, target)
+            cam = cam3.set_position(cam, pose.position)
+            cam = cam3.look_at(cam, pose.target)
+            cam = cam3.set_fovy(cam, pose.fovy)
+        case none:
+    end
+end
+
+-- Squared compare (no sqrt).
+near_xz(ax: float, az: float, bx: float, bz: float, radius: float) -> bool
+    const dx: float = ax - bx
+    const dz: float = az - bz
+    return dx * dx + dz * dz <= radius * radius
+end
+
+check_win_condition() -> void
+    if won
+        return
+    end
+    match world.find_by_instance(w, "inst_goal")
+        case some(goal):
+            match world.find_first_of_type(w, "player")
+                case some(p):
+                    if near_xz(
+                        p.transform.x,
+                        p.transform.z,
+                        goal.transform.x,
+                        goal.transform.z,
+                        WIN_RADIUS
+                    )
+                        won = true
+                        bag = inv.add(bag, coin_item, 1)
+                        persist_coins_to_save()
+                        if blip_ready and win_sfx_played == false
+                            buses.play_sfx(mixer, blip)
+                            win_sfx_played = true
+                        end
+                        decal_pool = decals.spawn(
+                            decal_pool,
+                            goal.transform.x,
+                            goal.transform.y,
+                            goal.transform.z,
+                            4.0,
+                            3.0
+                        )
+                        fx = particles.emit(
+                            fx,
+                            vec2.Vec2 { x: goal.transform.x, y: goal.transform.z },
+                            vec2.Vec2 { x: 0.0, y: -20.0 },
+                            0.8,
+                            6.0,
+                            color.YELLOW
+                        )
+                    end
+                case none:
+            end
+        case none:
+    end
+end
+
+draw_entities(view: vec3.Vec3) -> void
+    const n: int = world.entity_count(w)
+    var i: int = 0
+    while i < n
+        const e: world.Entity = world.get_entity(w, i)
+        if e.alive
+            const pos: vec3.Vec3 = vec3.Vec3 {
+                x: e.transform.x,
+                y: e.transform.y,
+                z: e.transform.z
+            }
+            if e.meta.instance_id == "inst_goal"
+                draw3d.draw_sphere(pos, 6.0, color.YELLOW)
+                if show_debug
+                    draw3d.draw_sphere_wires(pos, WIN_RADIUS, 8, 12, color.ORANGE)
+                end
+            elif e.meta.entity_type == "enemy"
+                -- Inimigo: esfera vermelha (sem GLB) + wires de aggro se debug.
+                draw3d.draw_sphere(pos, 5.0, color.RED)
+                if show_debug
+                    draw3d.draw_sphere_wires(pos, 80.0, 8, 12, color.MAROON)
+                end
+            elif e.has_mesh and player_mesh_ready
+                level_draw.draw_mesh_at(
+                    player_model,
+                    pos,
+                    vec3.Vec3 {
+                        x: e.mesh.scale,
+                        y: e.mesh.scale,
+                        z: e.mesh.scale
+                    },
+                    0.0,
+                    e.transform.ry,
+                    0.0,
+                    color.WHITE,
+                    view,
+                    0.05,
+                    0.75
+                )
+            elif e.has_collider
+                -- B6 fallback: sphere when GLB missing/failed
+                draw3d.draw_sphere(pos, e.collider.radius, color.GREEN)
+            end
+            if show_debug and e.has_collider and e.meta.instance_id != "inst_goal"
+                draw3d.draw_sphere_wires(
+                    pos,
+                    e.collider.radius,
+                    8,
+                    12,
+                    color.WHITE
+                )
+            end
+        end
+        i = i + 1
+    end
+end
+
+on_update(dt: float) -> void
+    bootstrap()
+    if input.key_pressed(input.KEY_C)
+        show_debug = not show_debug
+    end
+    if input.key_pressed(input.KEY_F)
+        look = postfx.toggle_fog(look)
+    end
+    if input.key_pressed(input.KEY_1)
+        show_controller_debug = not show_controller_debug
+    end
+    -- R5.2: T toggles timeline camera drive (keyframed offsets).
+    if input.key_pressed(input.KEY_T)
+        cam_drive_on = not cam_drive_on
+        if cam_drive_on
+            cam_clip = cdrive.default_orbit_clip()
+            cam_clip = cdrive.play(cam_clip)
+            play_cams = cstack.set_active_by_id(play_cams, "chase")
+        else
+            cam_clip = cdrive.pause(cam_clip)
+        end
+    end
+    -- G1: R reloads scene after win (soft restart).
+    if input.key_pressed(input.KEY_R)
+        bootstrapped = false
+        won = false
+        win_sfx_played = false
+        gameplay = gp.empty_host()
+        bag = inv.create(8)
+        patrol_ready = false
+        bootstrap()
+    end
+    handle_cam_stack_keys()
+    if won == false
+        const fi: systems.FrameInput = read_frame_input()
+        w = systems.input_system(w, fi)
+        scripts = systems.tick_scripts(w, scripts, dt, PLAYER_CREATE_OGS)
+        if use_gameplay
+            apply_patrol_velocity()
+            w = gp.ai_chase_system(gameplay, w, dt)
+            gameplay = gp.tick_i_frames(gameplay, 16)
+            gameplay = gp.contact_combat_system(gameplay, w, 14.0)
+            gameplay = gp.tick_waves(gameplay)
+            w = gp.despawn_dead(gameplay, w)
+        end
+        w = systems.move_system(w, dt)
+        if use_gameplay
+            advance_patrol_after_move()
+        end
+        w = systems.collision_system(w, solids)
+        check_win_condition()
+    end
+    decal_pool = decals.tick(decal_pool, dt)
+    fx = particles.update(fx, dt)
+    nudge_follow_offset(dt)
+    tick_cam_drive(dt)
+    follow_player_camera()
+    -- Live link (Studio fase A): snapshot ws: no stdout a ~4Hz.
+    -- io.print faz flush; o editor lê via play_runner e desenha ao vivo.
+    live_tick = live_tick + 1
+    if live_tick - (live_tick / 15) * 15 == 0
+        stdio.print(rep.encode_world(w, live_tick))
+    end
+end
+
+on_draw() -> void
+    const view: vec3.Vec3 = cam3.position_of(cam)
+    cam3.begin_mode(cam)
+    draw3d.draw_grid(16, 8.0)
+    if bootstrapped
+        -- Cached solids; unlit cubes in sample base path (PBR optional later).
+        level_draw.draw_level_pieces_opts(lvl, solids, view, show_debug, false, false)
+    end
+    draw_entities(view)
+    draw_decals()
+    if show_controller_debug
+        match world.find_first_of_type(w, "player")
+            case some(p):
+                draw3d.draw_sphere_wires(
+                    vec3.Vec3 {
+                        x: p.transform.x,
+                        y: p.transform.y,
+                        z: p.transform.z
+                    },
+                    8.0,
+                    8,
+                    12,
+                    color.BLUE
+                )
+            case none:
+        end
+    end
+    cam3.end_mode()
+    particles.draw_all(fx)
+    if use_gameplay
+        draw.draw_text(
+            gp.hud_line(gameplay),
+            vec2.Vec2 { x: 10.0, y: 36.0 },
+            16,
+            color.GRAY
+        )
+    end
+    if won
+        draw.draw_text(
+            "YOU WIN · coin saved · R restarts",
+            vec2.Vec2 { x: 10.0, y: 10.0 },
+            20,
+            color.YELLOW
+        )
+    else
+        draw.draw_text(
+            "WASD goal · touch red enemy · V/2-4 cam · T drive · C debug · R restart",
+            vec2.Vec2 { x: 10.0, y: 10.0 },
+            16,
+            color.WHITE
+        )
+    end
+    var cam_hud: string = cstack.hud_line(play_cams)
+    if cam_drive_on
+        cam_hud = cam_hud + " · drive t=" + fmt.number_int(cdrive.playhead_ms(cam_clip))
+    end
+    if patrol_ready
+        cam_hud = cam_hud + " · patrol wp=" + fmt.number_int(pfollow.current_index(patrol))
+    end
+    draw.draw_text(
+        cam_hud,
+        vec2.Vec2 { x: 10.0, y: 56.0 },
+        14,
+        color.BLUE
+    )
+    draw.draw_text(
+        "fps≈" + fmt.number_int(app.fps()),
+        vec2.Vec2 { x: 10.0, y: 76.0 },
+        14,
+        color.GRAY
+    )
+    var hud: string = postfx.status_line(look)
+    if player_mesh_ready
+        hud = hud + " · mesh OK"
+    elif player_mesh_failed
+        hud = hud + " · mesh FALLBACK"
+    end
+    hud = hud + " · coins " + fmt.number_int(inv.count_of(bag, "coin"))
+    hud = hud + " · " + save_note
+    if won
+        hud = hud + " · WON"
+    end
+    draw.draw_text(hud, vec2.Vec2 { x: 10.0, y: 96.0 }, 14, color.LIGHTGRAY)
+end
+
+main()
+    app.run_window("engine_test · Ori Game", 1280, 720, on_update, on_draw)
+end

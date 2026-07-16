@@ -1,0 +1,55 @@
+module app.smoke_imnodes
+
+imports
+    imnodes.editor = ed
+    ori.io = io
+end
+
+main()
+    -- editor frame API is callable headless (no-ops without ORI_IMNODES_FULL)
+    ed.create_context()
+    ed.begin_node_editor()
+    ed.begin_node(1)
+    ed.begin_output_attr(10)
+    ed.end_attr()
+    ed.end_node()
+    ed.begin_node(2)
+    ed.begin_input_attr(20)
+    ed.end_attr()
+    ed.end_node()
+    ed.link(1, 10, 20)
+    ed.end_node_editor()
+    ed.destroy_context()
+
+    -- bookkeeping path (testable without clicks / ImGui frame)
+    ed.graph_clear()
+    if not ed.graph_add_node(1)
+        io.println("node_fail")
+        return
+    end
+    if not ed.graph_add_node(2)
+        io.println("node2_fail")
+        return
+    end
+    if not ed.graph_add_pin(10, ed.PIN_OUTPUT)
+        io.println("pin_out_fail")
+        return
+    end
+    if not ed.graph_add_pin(20, ed.PIN_INPUT)
+        io.println("pin_in_fail")
+        return
+    end
+    if not ed.graph_add_link_id(1, 10, 20)
+        io.println("link_fail")
+        return
+    end
+    if ed.graph_node_count() != 2 or ed.graph_pin_count() != 2 or ed.graph_link_count() != 1
+        io.println("count_fail")
+        return
+    end
+    if ed.graph_link_start(0) != 10 or ed.graph_link_end(0) != 20
+        io.println("link_query_fail")
+        return
+    end
+    io.println("ok")
+end

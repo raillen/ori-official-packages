@@ -1,0 +1,592 @@
+module imgui.ui
+
+import ori.mem = mem
+import ori.fs = fs
+
+-- Dear ImGui via C host (GLFW + OpenGL3). Prefer int at FFI boundary.
+
+extern c
+    public ori_imgui_init(width: int, height: int, title_ptr: int) -> int
+    public ori_imgui_shutdown() -> void
+    public ori_imgui_should_close() -> int
+    public ori_imgui_begin_frame() -> void
+    public ori_imgui_end_frame() -> void
+    public ori_imgui_begin(name_ptr: int, flags: int) -> int
+    public ori_imgui_end() -> void
+    public ori_imgui_button(label_ptr: int) -> int
+    public ori_imgui_small_button(label_ptr: int) -> int
+    public ori_imgui_text(text_ptr: int) -> void
+    public ori_imgui_text_colored(r: int, g: int, b: int, a: int, text_ptr: int) -> void
+    public ori_imgui_checkbox(label_ptr: int, checked: int) -> int
+    public ori_imgui_slider_int(label_ptr: int, value: int, v_min: int, v_max: int) -> int
+    public ori_imgui_slider_float_milli(label_ptr: int, value_milli: int, v_min_milli: int, v_max_milli: int) -> int
+    public ori_imgui_drag_int(label_ptr: int, value: int, v_min: int, v_max: int) -> int
+    public ori_imgui_progress_bar(fraction_milli: int, overlay_ptr: int) -> void
+    public ori_imgui_collapsing_header(label_ptr: int) -> int
+    public ori_imgui_tree_node(label_ptr: int) -> int
+    public ori_imgui_tree_pop() -> void
+    public ori_imgui_separator() -> void
+    public ori_imgui_same_line() -> void
+    public ori_imgui_spacing() -> void
+    public ori_imgui_bullet_text(text_ptr: int) -> void
+    public ori_imgui_want_capture_mouse() -> int
+    public ori_imgui_want_capture_keyboard() -> int
+    public ori_imgui_is_viewport_hovered() -> int
+    public ori_imgui_set_next_window_size(w: int, h: int) -> void
+    public ori_imgui_set_next_window_pos(x: int, y: int) -> void
+    public ori_imgui_input_text(label_ptr: int) -> int
+    public ori_imgui_input_text_slot(label_ptr: int, slot: int) -> int
+    public ori_imgui_input_text_multiline(label_ptr: int, slot: int, height: int) -> int
+    public ori_imgui_input_text_to_path(path_ptr: int) -> int
+    public ori_imgui_input_text_slot_to_path(slot: int, path_ptr: int) -> int
+    public ori_imgui_input_text_set(text_ptr: int) -> void
+    public ori_imgui_input_text_slot_set(slot: int, text_ptr: int) -> void
+    public ori_imgui_input_text_select(slot: int) -> void
+    public ori_imgui_input_text_clear(slot: int) -> void
+    public ori_imgui_input_text_len(slot: int) -> int
+    public ori_imgui_combo(label_ptr: int, current: int, count: int, a0: int, a1: int, a2: int, a3: int, a4: int, a5: int, a6: int, a7: int) -> int
+    public ori_imgui_begin_child(id_ptr: int, w: int, h: int, border: int) -> int
+    public ori_imgui_end_child() -> void
+    public ori_imgui_begin_main_menu_bar() -> int
+    public ori_imgui_end_main_menu_bar() -> void
+    public ori_imgui_begin_menu(label_ptr: int) -> int
+    public ori_imgui_end_menu() -> void
+    public ori_imgui_menu_item(label_ptr: int) -> int
+    -- P2-A: attach to existing raylib window (game.app)
+    public ori_imgui_init_raylib() -> int
+    public ori_imgui_begin_frame_raylib() -> void
+    public ori_imgui_end_frame_raylib() -> void
+    public ori_imgui_is_raylib_mode() -> int
+    -- Tier 0 foundation
+    public ori_imgui_dock_space_over_viewport() -> void
+    public ori_imgui_dock_space_studio() -> void
+    public ori_imgui_apply_studio_dock_layout() -> void
+    public ori_imgui_dock_space(id_ptr: int, w: int, h: int) -> int
+    public ori_imgui_begin_table(id_ptr: int, columns: int, flags: int) -> int
+    public ori_imgui_end_table() -> void
+    public ori_imgui_table_next_row() -> void
+    public ori_imgui_table_next_column() -> int
+    public ori_imgui_table_set_column_index(column: int) -> int
+    public ori_imgui_table_setup_column(label_ptr: int, flags: int) -> void
+    public ori_imgui_table_headers_row() -> void
+    public ori_imgui_selectable(label_ptr: int, selected: int) -> int
+    public ori_imgui_is_item_clicked() -> int
+    public ori_imgui_columns(count: int, id_ptr: int, border: int) -> void
+    public ori_imgui_next_column() -> void
+    -- Tier 1
+    public ori_imgui_open_popup(id_ptr: int) -> void
+    public ori_imgui_begin_popup_modal(name_ptr: int) -> int
+    public ori_imgui_begin_popup(id_ptr: int) -> int
+    public ori_imgui_end_popup() -> void
+    public ori_imgui_close_current_popup() -> void
+    public ori_imgui_plot_clear() -> void
+    public ori_imgui_plot_push_milli(value_milli: int) -> void
+    public ori_imgui_plot_lines(label_ptr: int, scale_min_milli: int, scale_max_milli: int, w: int, h: int) -> void
+    public ori_imgui_plot_count() -> int
+    public ori_imgui_cursor_screen_x() -> int
+    public ori_imgui_cursor_screen_y() -> int
+    public ori_imgui_set_cursor_screen(x: int, y: int) -> void
+    public ori_imgui_dummy(w: int, h: int) -> void
+    public ori_imgui_draw_line(x0: int, y0: int, x1: int, y1: int, r: int, g: int, b: int, a: int, thick: int) -> void
+    public ori_imgui_draw_rect(x: int, y: int, w: int, h: int, r: int, g: int, b: int, a: int, filled: int) -> void
+    public ori_imgui_is_mouse_clicked(button: int) -> int
+    public ori_imgui_is_mouse_down(button: int) -> int
+    public ori_imgui_is_mouse_released(button: int) -> int
+    public ori_imgui_mouse_x() -> int
+    public ori_imgui_mouse_y() -> int
+    public ori_imgui_is_item_active() -> int
+    public ori_imgui_is_item_hovered() -> int
+    public ori_imgui_text_disabled(text_ptr: int) -> void
+    -- Multi-context (editor vs game / secondary panels)
+    public ori_imgui_create_context() -> int
+    public ori_imgui_set_current_context(id: int) -> int
+    public ori_imgui_current_context() -> int
+    public ori_imgui_destroy_context(id: int) -> void
+    public ori_imgui_context_is_live(id: int) -> int
+    public ori_imgui_max_contexts() -> int
+    -- Tier 2 style / image
+    public ori_imgui_style_colors_dark() -> void
+    public ori_imgui_style_colors_light() -> void
+    public ori_imgui_style_colors_classic() -> void
+    public ori_imgui_style_colors_spectrum() -> void
+    public ori_imgui_style_colors_spectrum_light() -> void
+    public ori_imgui_push_style_color(idx: int, r: int, g: int, b: int, a: int) -> void
+    public ori_imgui_pop_style_color(count: int) -> void
+    public ori_imgui_show_style_editor() -> void
+    public ori_imgui_image(tex_id: int, w: int, h: int) -> void
+    public ori_imgui_image_button(id_ptr: int, tex_id: int, w: int, h: int) -> int
+end
+
+-- Table flags (ImGuiTableFlags subset).
+public const TABLE_RESIZABLE: int = 1
+public const TABLE_ROW_BG: int = 64
+-- Borders = InnerH|OuterH|InnerV|OuterV = 128+256+512+1024
+public const TABLE_BORDERS: int = 1920
+
+public init(width: int, height: int, title: string) -> bool
+    return ori_imgui_init(width, height, mem.string_as_ptr(title)) == 0
+end
+
+-- Attach ImGui to the current raylib / game.app window (no second window).
+public init_raylib() -> bool
+    return ori_imgui_init_raylib() == 0
+end
+
+public shutdown() -> void
+    ori_imgui_shutdown()
+end
+
+public should_close() -> bool
+    return ori_imgui_should_close() != 0
+end
+
+public begin_frame() -> void
+    ori_imgui_begin_frame()
+end
+
+public end_frame() -> void
+    ori_imgui_end_frame()
+end
+
+-- Call inside game on_draw(), after world draw, before EndDrawing.
+public begin_frame_raylib() -> void
+    ori_imgui_begin_frame_raylib()
+end
+
+public end_frame_raylib() -> void
+    ori_imgui_end_frame_raylib()
+end
+
+public is_raylib_mode() -> bool
+    return ori_imgui_is_raylib_mode() != 0
+end
+
+public begin_window(name: string) -> bool
+    return ori_imgui_begin(mem.string_as_ptr(name), 0) != 0
+end
+
+public end_window() -> void
+    ori_imgui_end()
+end
+
+public button(label: string) -> bool
+    return ori_imgui_button(mem.string_as_ptr(label)) != 0
+end
+
+public small_button(label: string) -> bool
+    return ori_imgui_small_button(mem.string_as_ptr(label)) != 0
+end
+
+public text(label: string) -> void
+    ori_imgui_text(mem.string_as_ptr(label))
+end
+
+public text_colored(r: int, g: int, b: int, a: int, label: string) -> void
+    ori_imgui_text_colored(r, g, b, a, mem.string_as_ptr(label))
+end
+
+public checkbox(label: string, checked: bool) -> bool
+    var c: int = 0
+    if checked
+        c = 1
+    end
+    return ori_imgui_checkbox(mem.string_as_ptr(label), c) != 0
+end
+
+public slider_int(label: string, value: int, v_min: int, v_max: int) -> int
+    return ori_imgui_slider_int(mem.string_as_ptr(label), value, v_min, v_max)
+end
+
+-- Float slider via milli-int (value * 1000). Avoids float at FFI boundary.
+public slider_float_milli(label: string, value_milli: int, v_min_milli: int, v_max_milli: int) -> int
+    return ori_imgui_slider_float_milli(mem.string_as_ptr(label), value_milli, v_min_milli, v_max_milli)
+end
+
+public drag_int(label: string, value: int, v_min: int, v_max: int) -> int
+    return ori_imgui_drag_int(mem.string_as_ptr(label), value, v_min, v_max)
+end
+
+public progress_bar(fraction_milli: int, overlay: string) -> void
+    ori_imgui_progress_bar(fraction_milli, mem.string_as_ptr(overlay))
+end
+
+public collapsing_header(label: string) -> bool
+    return ori_imgui_collapsing_header(mem.string_as_ptr(label)) != 0
+end
+
+public tree_node(label: string) -> bool
+    return ori_imgui_tree_node(mem.string_as_ptr(label)) != 0
+end
+
+public tree_pop() -> void
+    ori_imgui_tree_pop()
+end
+
+public separator() -> void
+    ori_imgui_separator()
+end
+
+public same_line() -> void
+    ori_imgui_same_line()
+end
+
+public spacing() -> void
+    ori_imgui_spacing()
+end
+
+public bullet_text(label: string) -> void
+    ori_imgui_bullet_text(mem.string_as_ptr(label))
+end
+
+public want_capture_mouse() -> bool
+    return ori_imgui_want_capture_mouse() != 0
+end
+
+public want_capture_keyboard() -> bool
+    return ori_imgui_want_capture_keyboard() != 0
+end
+
+-- True when cursor is over empty central dock (3D free; not Hierarchy/Inspector).
+public is_viewport_hovered() -> bool
+    return ori_imgui_is_viewport_hovered() != 0
+end
+
+public set_next_window_size(w: int, h: int) -> void
+    ori_imgui_set_next_window_size(w, h)
+end
+
+public set_next_window_pos(x: int, y: int) -> void
+    ori_imgui_set_next_window_pos(x, y)
+end
+
+-- Select active input-text slot (0..3) for input_text / input_text_set / input_text_value.
+public input_text_select(slot: int) -> void
+    ori_imgui_input_text_select(slot)
+end
+
+public input_text(label: string) -> bool
+    return ori_imgui_input_text(mem.string_as_ptr(label)) != 0
+end
+
+public input_text_slot(label: string, slot: int) -> bool
+    return ori_imgui_input_text_slot(mem.string_as_ptr(label), slot) != 0
+end
+
+public input_text_multiline(label: string, slot: int, height: int) -> bool
+    return ori_imgui_input_text_multiline(mem.string_as_ptr(label), slot, height) != 0
+end
+
+public input_text_value() -> string
+    const path: string = "/tmp/ori_imgui_input_text.tmp"
+    if ori_imgui_input_text_to_path(mem.string_as_ptr(path)) != 0
+        return ""
+    end
+    return fs.read_text_or(path, "")
+end
+
+public input_text_slot_value(slot: int) -> string
+    const path: string = "/tmp/ori_imgui_input_text_slot.tmp"
+    if ori_imgui_input_text_slot_to_path(slot, mem.string_as_ptr(path)) != 0
+        return ""
+    end
+    return fs.read_text_or(path, "")
+end
+
+public input_text_set(value: string) -> void
+    ori_imgui_input_text_set(mem.string_as_ptr(value))
+end
+
+public input_text_slot_set(slot: int, value: string) -> void
+    ori_imgui_input_text_slot_set(slot, mem.string_as_ptr(value))
+end
+
+public input_text_clear(slot: int) -> void
+    ori_imgui_input_text_clear(slot)
+end
+
+public input_text_len(slot: int) -> int
+    return ori_imgui_input_text_len(slot)
+end
+
+-- Combo with up to 8 fixed labels (pass empty string for unused slots).
+public combo(label: string, current: int, count: int, a0: string, a1: string, a2: string, a3: string, a4: string, a5: string, a6: string, a7: string) -> int
+    return ori_imgui_combo(
+        mem.string_as_ptr(label), current, count,
+        mem.string_as_ptr(a0), mem.string_as_ptr(a1), mem.string_as_ptr(a2), mem.string_as_ptr(a3),
+        mem.string_as_ptr(a4), mem.string_as_ptr(a5), mem.string_as_ptr(a6), mem.string_as_ptr(a7)
+    )
+end
+
+public begin_child(id: string, w: int, h: int, border: bool) -> bool
+    var b: int = 0
+    if border
+        b = 1
+    end
+    return ori_imgui_begin_child(mem.string_as_ptr(id), w, h, b) != 0
+end
+
+public end_child() -> void
+    ori_imgui_end_child()
+end
+
+public begin_main_menu_bar() -> bool
+    return ori_imgui_begin_main_menu_bar() != 0
+end
+
+public end_main_menu_bar() -> void
+    ori_imgui_end_main_menu_bar()
+end
+
+public begin_menu(label: string) -> bool
+    return ori_imgui_begin_menu(mem.string_as_ptr(label)) != 0
+end
+
+public end_menu() -> void
+    ori_imgui_end_menu()
+end
+
+public menu_item(label: string) -> bool
+    return ori_imgui_menu_item(mem.string_as_ptr(label)) != 0
+end
+
+-- ── Tier 0: docking / tables / selectable ─────────────────
+
+public dock_space_over_viewport() -> void
+    ori_imgui_dock_space_over_viewport()
+end
+
+-- Studio host: full-window dockspace with transparent central node (3D viewport).
+public dock_space_studio() -> void
+    ori_imgui_dock_space_studio()
+end
+
+-- Godot/Unity-like split: Hierarchy|Viewport|Inspector + bottom tabs.
+public apply_studio_dock_layout() -> void
+    ori_imgui_apply_studio_dock_layout()
+end
+
+public dock_space(id: string, w: int, h: int) -> int
+    return ori_imgui_dock_space(mem.string_as_ptr(id), w, h)
+end
+
+public begin_table(id: string, columns: int, flags: int) -> bool
+    return ori_imgui_begin_table(mem.string_as_ptr(id), columns, flags) != 0
+end
+
+public end_table() -> void
+    ori_imgui_end_table()
+end
+
+public table_next_row() -> void
+    ori_imgui_table_next_row()
+end
+
+public table_next_column() -> bool
+    return ori_imgui_table_next_column() != 0
+end
+
+public table_set_column_index(column: int) -> bool
+    return ori_imgui_table_set_column_index(column) != 0
+end
+
+public table_setup_column(label: string) -> void
+    ori_imgui_table_setup_column(mem.string_as_ptr(label), 0)
+end
+
+public table_headers_row() -> void
+    ori_imgui_table_headers_row()
+end
+
+public selectable(label: string, selected: bool) -> bool
+    var s: int = 0
+    if selected
+        s = 1
+    end
+    return ori_imgui_selectable(mem.string_as_ptr(label), s) != 0
+end
+
+public is_item_clicked() -> bool
+    return ori_imgui_is_item_clicked() != 0
+end
+
+public columns(count: int, id: string, border: bool) -> void
+    var b: int = 0
+    if border
+        b = 1
+    end
+    ori_imgui_columns(count, mem.string_as_ptr(id), b)
+end
+
+public next_column() -> void
+    ori_imgui_next_column()
+end
+
+-- ── Tier 1: popup / plot / draw ───────────────────────────
+
+public open_popup(id: string) -> void
+    ori_imgui_open_popup(mem.string_as_ptr(id))
+end
+
+public begin_popup_modal(name: string) -> bool
+    return ori_imgui_begin_popup_modal(mem.string_as_ptr(name)) != 0
+end
+
+public begin_popup(id: string) -> bool
+    return ori_imgui_begin_popup(mem.string_as_ptr(id)) != 0
+end
+
+public end_popup() -> void
+    ori_imgui_end_popup()
+end
+
+public close_current_popup() -> void
+    ori_imgui_close_current_popup()
+end
+
+public plot_clear() -> void
+    ori_imgui_plot_clear()
+end
+
+public plot_push_milli(value_milli: int) -> void
+    ori_imgui_plot_push_milli(value_milli)
+end
+
+public plot_lines(label: string, scale_min_milli: int, scale_max_milli: int, w: int, h: int) -> void
+    ori_imgui_plot_lines(mem.string_as_ptr(label), scale_min_milli, scale_max_milli, w, h)
+end
+
+public plot_count() -> int
+    return ori_imgui_plot_count()
+end
+
+public cursor_screen_x() -> int
+    return ori_imgui_cursor_screen_x()
+end
+
+public cursor_screen_y() -> int
+    return ori_imgui_cursor_screen_y()
+end
+
+public set_cursor_screen(x: int, y: int) -> void
+    ori_imgui_set_cursor_screen(x, y)
+end
+
+public dummy(w: int, h: int) -> void
+    ori_imgui_dummy(w, h)
+end
+
+public draw_line(x0: int, y0: int, x1: int, y1: int, r: int, g: int, b: int, a: int, thick: int) -> void
+    ori_imgui_draw_line(x0, y0, x1, y1, r, g, b, a, thick)
+end
+
+public draw_rect(x: int, y: int, w: int, h: int, r: int, g: int, b: int, a: int, filled: bool) -> void
+    var f: int = 0
+    if filled
+        f = 1
+    end
+    ori_imgui_draw_rect(x, y, w, h, r, g, b, a, f)
+end
+
+public is_mouse_clicked(button: int) -> bool
+    return ori_imgui_is_mouse_clicked(button) != 0
+end
+
+public is_mouse_down(button: int) -> bool
+    return ori_imgui_is_mouse_down(button) != 0
+end
+
+public is_mouse_released(button: int) -> bool
+    return ori_imgui_is_mouse_released(button) != 0
+end
+
+public mouse_x() -> int
+    return ori_imgui_mouse_x()
+end
+
+public mouse_y() -> int
+    return ori_imgui_mouse_y()
+end
+
+public is_item_active() -> bool
+    return ori_imgui_is_item_active() != 0
+end
+
+public is_item_hovered() -> bool
+    return ori_imgui_is_item_hovered() != 0
+end
+
+public text_disabled(label: string) -> void
+    ori_imgui_text_disabled(mem.string_as_ptr(label))
+end
+
+-- Multi-context (editor vs game). Slot 0 is primary after init/init_raylib.
+-- create_context allocates an extra isolated ImGui context (returns slot id or -1).
+-- set_current_context switches which context subsequent widgets target.
+-- destroy_context frees an extra slot (never destroys primary slot 0).
+public create_context() -> int
+    return ori_imgui_create_context()
+end
+
+public set_current_context(id: int) -> bool
+    return ori_imgui_set_current_context(id) == 0
+end
+
+public current_context() -> int
+    return ori_imgui_current_context()
+end
+
+public destroy_context(id: int) -> void
+    ori_imgui_destroy_context(id)
+end
+
+public context_is_live(id: int) -> bool
+    return ori_imgui_context_is_live(id) != 0
+end
+
+public max_contexts() -> int
+    return ori_imgui_max_contexts()
+end
+
+public style_colors_dark() -> void
+    ori_imgui_style_colors_dark()
+end
+
+public style_colors_light() -> void
+    ori_imgui_style_colors_light()
+end
+
+public style_colors_classic() -> void
+    ori_imgui_style_colors_classic()
+end
+
+-- Adobe Spectrum-inspired (dark default for Studio).
+public style_colors_spectrum() -> void
+    ori_imgui_style_colors_spectrum()
+end
+
+public style_colors_spectrum_light() -> void
+    ori_imgui_style_colors_spectrum_light()
+end
+
+public push_style_color(idx: int, r: int, g: int, b: int, a: int) -> void
+    ori_imgui_push_style_color(idx, r, g, b, a)
+end
+
+public pop_style_color(count: int) -> void
+    ori_imgui_pop_style_color(count)
+end
+
+public show_style_editor() -> void
+    ori_imgui_show_style_editor()
+end
+
+-- Draw a GPU texture by opaque id (OpenGL GLuint / raylib Texture.id as int).
+public image(tex_id: int, w: int, h: int) -> void
+    ori_imgui_image(tex_id, w, h)
+end
+
+-- Clickable image button; id must be unique among siblings. Returns true if clicked.
+public image_button(id: string, tex_id: int, w: int, h: int) -> bool
+    return ori_imgui_image_button(mem.string_as_ptr(id), tex_id, w, h) != 0
+end
+

@@ -1,0 +1,167 @@
+module test.widgets
+
+imports
+    widgets.knob = knob
+    widgets.toggle = toggle
+    widgets.spinner = spinner
+    widgets.spectrum = spectrum
+    ori.test = test
+end
+
+@test
+knob_value_milli_and_angle()
+    var k: knob.Knob = knob.create(0, 1000, 0)
+    test.equal_int(knob.value_milli_of(k), 0)
+    test.equal_int(knob.normalized_milli_of(k), 0)
+    test.equal_int(knob.angle_milli_deg_of(k), 0)
+
+    k = knob.set_value_milli(k, 500)
+    test.equal_int(knob.value_milli_of(k), 500)
+    test.equal_int(knob.normalized_milli_of(k), 500)
+    test.equal_int(knob.angle_milli_deg_of(k), knob.DEFAULT_SWEEP_MILLI_DEG / 2)
+
+    k = knob.set_value_milli(k, 2000)
+    test.equal_int(knob.value_milli_of(k), 1000)
+    k = knob.set_value_milli(k, -50)
+    test.equal_int(knob.value_milli_of(k), 0)
+
+    k = knob.create(-1000, 1000, 0)
+    k = knob.set_normalized_milli(k, 750)
+    test.equal_int(knob.value_milli_of(k), 500)
+    k = knob.nudge_value_milli(k, -200)
+    test.equal_int(knob.value_milli_of(k), 300)
+
+    k = knob.set_from_angle_milli_deg(k, knob.sweep_milli_deg_of(k))
+    test.equal_int(knob.normalized_milli_of(k), 1000)
+    test.equal_int(knob.value_milli_of(k), 1000)
+
+    k = knob.set_label(k, "Gain")
+    test.equal_text(knob.label_of(k), "Gain")
+    k = knob.set_active(k, true)
+    test.assert(knob.is_active(k), "active")
+end
+
+@test
+toggle_bool_and_disabled()
+    var t: toggle.Toggle = toggle.create(false)
+    test.assert(toggle.is_off(t), "starts off")
+    test.assert(not toggle.is_disabled(t), "enabled")
+
+    t = toggle.toggle(t)
+    test.assert(toggle.is_on(t), "flipped on")
+    t = toggle.toggle(t)
+    test.assert(toggle.is_off(t), "flipped off")
+
+    t = toggle.set_on(t, true)
+    test.assert(toggle.is_on(t), "set on")
+    t = toggle.set_disabled(t, true)
+    test.assert(toggle.is_disabled(t), "disabled")
+    t = toggle.toggle(t)
+    test.assert(toggle.is_on(t), "disabled blocks toggle")
+    t = toggle.set_on(t, false)
+    test.assert(toggle.is_on(t), "disabled blocks set_on")
+
+    t = toggle.set_disabled(t, false)
+    t = toggle.set_on(t, false)
+    test.assert(toggle.is_off(t), "re-enabled set")
+    t = toggle.set_label(t, "Mute")
+    test.equal_text(toggle.label_of(t), "Mute")
+
+    var labeled: toggle.Toggle = toggle.create_labeled("FX", true)
+    test.assert(toggle.is_on(labeled), "labeled on")
+    test.equal_text(toggle.label_of(labeled), "FX")
+end
+
+@test
+spinner_phase_tick_wrap()
+    var s: spinner.Spinner = spinner.create_with_speed(1000)
+    test.equal_int(spinner.phase_milli_of(s), 0)
+    test.assert(spinner.is_active(s), "starts active")
+    test.equal_int(spinner.speed_milli_of(s), 1000)
+
+    s = spinner.tick(s, 250)
+    test.equal_int(spinner.phase_milli_of(s), 250)
+    s = spinner.tick(s, 800)
+    -- 250 + 800 = 1050 → wrap to 50
+    test.equal_int(spinner.phase_milli_of(s), 50)
+
+    s = spinner.set_phase_milli(s, 999)
+    test.equal_int(spinner.phase_milli_of(s), 999)
+    s = spinner.tick(s, 2)
+    test.equal_int(spinner.phase_milli_of(s), 1)
+
+    const ang: int = spinner.phase_angle_milli_deg_of(s)
+    test.assert(ang >= 0, "angle non-neg")
+    test.assert(ang < 360000, "angle under circle")
+
+    s = spinner.stop(s)
+    test.assert(not spinner.is_active(s), "stopped")
+    const frozen: int = spinner.phase_milli_of(s)
+    s = spinner.tick(s, 5000)
+    test.equal_int(spinner.phase_milli_of(s), frozen)
+
+    s = spinner.start(s)
+    s = spinner.reset(s)
+    test.equal_int(spinner.phase_milli_of(s), 0)
+    test.assert(spinner.is_active(s), "started after reset")
+
+    s = spinner.set_speed_milli(s, 2000)
+    s = spinner.tick(s, 500)
+    -- 500ms * 2000 milli-turns/s / 1000 = 1000 → wrap to 0
+    test.equal_int(spinner.phase_milli_of(s), 0)
+end
+
+@test
+spectrum_theme_load_and_colors()
+    var dark: spectrum.Theme = spectrum.load_dark()
+    test.equal_text(spectrum.name_of(dark), "dark")
+    test.equal_int(spectrum.background_of(dark).r, 30)
+
+    var light: spectrum.Theme = spectrum.load_light()
+    test.equal_text(spectrum.name_of(light), "light")
+    test.assert(spectrum.background_of(light).r > spectrum.background_of(dark).r, "light bg brighter")
+
+    var classic: spectrum.Theme = spectrum.load_classic()
+    test.equal_text(spectrum.name_of(classic), "classic")
+
+    var spec: spectrum.Theme = spectrum.load_spectrum()
+    test.equal_text(spectrum.name_of(spec), "spectrum")
+    test.assert(not spectrum.equal_color(spectrum.primary_of(spec), spectrum.accent_of(spec)), "accent differs")
+
+    var via_id: spectrum.Theme = spectrum.load_style(spectrum.STYLE_LIGHT)
+    test.equal_text(spectrum.name_of(via_id), "light")
+    via_id = spectrum.load_style(99)
+    test.equal_text(spectrum.name_of(via_id), "dark")
+
+    const a: spectrum.ColorRgba = spectrum.rgb(0, 0, 0)
+    const b: spectrum.ColorRgba = spectrum.rgb(200, 100, 0)
+    const mid: spectrum.ColorRgba = spectrum.lerp_color(a, b, 500)
+    test.equal_int(mid.r, 100)
+    test.equal_int(mid.g, 50)
+    test.equal_int(mid.b, 0)
+    test.equal_int(mid.a, 255)
+
+    const red: spectrum.ColorRgba = spectrum.spectrum_color_at(0)
+    test.equal_int(red.r, 255)
+    test.equal_int(red.g, 0)
+
+    const packed: int = spectrum.pack_rgba(spectrum.rgba(10, 20, 30, 40))
+    const back: spectrum.ColorRgba = spectrum.unpack_rgba(packed)
+    test.equal_int(back.r, 10)
+    test.equal_int(back.g, 20)
+    test.equal_int(back.b, 30)
+    test.equal_int(back.a, 40)
+
+    dark = spectrum.set_primary(dark, spectrum.rgb(1, 2, 3))
+    test.equal_int(spectrum.primary_of(dark).r, 1)
+    dark = spectrum.set_accent(dark, spectrum.rgb(4, 5, 6))
+    test.equal_int(spectrum.accent_of(dark).g, 5)
+    dark = spectrum.with_name(dark, "custom")
+    test.equal_text(spectrum.name_of(dark), "custom")
+
+    test.assert(spectrum.equal_color(spectrum.ok_color_of(light), spectrum.ok_color_of(light)), "eq self")
+    test.assert(spectrum.warn_color_of(dark).r > 0, "warn")
+    test.assert(spectrum.err_color_of(dark).r > 0, "err")
+    test.assert(spectrum.muted_of(dark).r > 0, "muted")
+    test.assert(spectrum.text_of(dark).r > 0, "text")
+end

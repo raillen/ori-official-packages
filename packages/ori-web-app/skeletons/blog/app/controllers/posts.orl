@@ -1,0 +1,57 @@
+module app.controllers.posts
+
+-- In-memory sample posts. Replace with a real store later.
+-- Clean-code: controller only maps request → data → render.
+
+import app.application = app
+import web = web
+import templates = tpl
+import ori.list = lists
+import ori.map = maps
+import ori.convert = conv
+
+var TITLES: list[string] = []
+var BODIES: list[string] = []
+
+seed_if_empty() -> void
+    if lists.len(TITLES) > 0
+        return
+    end
+    lists.push(TITLES, "Hello from Ori")
+    lists.push(BODIES, "This post is rendered with ori-templates.")
+    lists.push(TITLES, "Clean controllers")
+    lists.push(BODIES, "Keep handlers small; put domain logic in modules when it grows.")
+end
+
+public index(req: web.Request) -> web.ActionResult
+    seed_if_empty()
+    var d: tpl.Data = tpl.empty_data()
+    tpl.set_value(d, "title", "Posts")
+    tpl.set_list(d, "titles", TITLES)
+    if lists.len(TITLES) == 0
+        tpl.set_value(d, "empty", "true")
+    else
+        tpl.set_value(d, "empty", "false")
+    end
+    return app.render("posts/index", req, d)
+end
+
+public show(req: web.Request) -> web.ActionResult
+    seed_if_empty()
+    var id: string = "0"
+    if some(v) = maps.try_get(req.params, "id")
+        id = v
+    end
+    const idx: int = conv.parse_int_or(id, -1)
+    if idx < 0
+        return ok(web.not_found())
+    end
+    if idx >= lists.len(TITLES)
+        return ok(web.not_found())
+    end
+    var d: tpl.Data = tpl.empty_data()
+    tpl.set_value(d, "title", TITLES[idx])
+    tpl.set_value(d, "body", BODIES[idx])
+    tpl.set_value(d, "id", id)
+    return app.render("posts/show", req, d)
+end

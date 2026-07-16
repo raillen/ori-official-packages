@@ -1,0 +1,28 @@
+module test.tween
+
+imports
+    ori.test = test
+    game.tween = tween
+end
+
+@test
+linear_endpoints()
+    test.assert(tween.linear(0.0) == 0.0, "t0")
+    test.assert(tween.linear(1.0) == 1.0, "t1")
+end
+
+@test
+tween_float_mid()
+    const v: float = tween.tween_float(0.0, 10.0, 0.5)
+    test.assert(v > 0.0 and v < 10.0, "mid")
+end
+
+@test
+tween_struct_finishes()
+    var tw: tween.Tween = tween.create(0.0, 100.0, 1.0)
+    tw = tween.update(tw, 0.5)
+    test.assert(tw.active, "half")
+    tw = tween.update(tw, 0.6)
+    test.assert(tween.finished(tw), "done")
+    test.assert(tween.value(tw) == 100.0, "end value")
+end

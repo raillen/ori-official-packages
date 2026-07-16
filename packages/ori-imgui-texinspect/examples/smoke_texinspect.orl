@@ -1,0 +1,87 @@
+module app.smoke_texinspect
+
+imports
+    texinspect.inspect = insp
+    texinspect.zoom = zoom
+    texinspect.channels = ch
+    ori.io = io
+end
+
+-- Headless smoke: texture id, zoom, channel toggle — no GUI.
+main()
+    var i: insp.Inspect = insp.create(12345, 512, 256)
+    if insp.texture_id_of(i) != 12345
+        io.println("texture_id_fail")
+        return
+    end
+    if insp.width_of(i) != 512
+        io.println("width_fail")
+        return
+    end
+    if insp.height_of(i) != 256
+        io.println("height_fail")
+        return
+    end
+
+    i = insp.open_ui(i)
+    if not insp.is_open(i)
+        io.println("open_fail")
+        return
+    end
+
+    i = insp.set_zoom_milli(i, 2000)
+    if insp.zoom_milli_of(i) != 2000
+        io.println("zoom_set_fail")
+        return
+    end
+    if insp.display_width(i) != 1024
+        io.println("display_w_fail")
+        return
+    end
+    if insp.display_height(i) != 512
+        io.println("display_h_fail")
+        return
+    end
+
+    i = insp.zoom_in(i, zoom.ZOOM_STEP_MILLI)
+    if insp.zoom_milli_of(i) != 2250
+        io.println("zoom_in_fail")
+        return
+    end
+
+    i = insp.toggle_channel_r(i)
+    if insp.show_channel_r(i)
+        io.println("toggle_r_fail")
+        return
+    end
+    if not insp.show_channel_g(i)
+        io.println("g_should_on")
+        return
+    end
+    if insp.channel_mask_of(i) != 14
+        io.println("mask_fail")
+        return
+    end
+
+    var c: ch.Channels = ch.create_mask(3)
+    if not ch.show_r(c)
+        io.println("mask3_r_fail")
+        return
+    end
+    if not ch.show_g(c)
+        io.println("mask3_g_fail")
+        return
+    end
+    if ch.show_b(c)
+        io.println("mask3_b_fail")
+        return
+    end
+
+    i = insp.close(i)
+    if insp.is_open(i)
+        io.println("close_fail")
+        return
+    end
+
+    io.println("ok")
+end

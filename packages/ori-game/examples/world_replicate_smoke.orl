@@ -1,0 +1,61 @@
+module app.world_replicate_smoke
+
+-- R7.2+: headless capture → encode → apply_message roundtrip.
+
+imports
+    game.world = world
+    game.world_replicate = wr
+    ori.io = io
+end
+
+main()
+    var w: world.World = world.empty_world()
+    var t0: world.Transform = world.empty_transform()
+    t0.x = 1.5
+    t0.y = 2.0
+    t0.z = -3.25
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "a",
+            entity_type: "player",
+            primary_tag: "player"
+        },
+        t0
+    )
+    var t1: world.Transform = world.empty_transform()
+    t1.x = 10.0
+    t1.y = 0.0
+    t1.z = 4.0
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "b",
+            entity_type: "enemy",
+            primary_tag: "enemy"
+        },
+        t1
+    )
+    const id0: world.EntityId = world.get_entity(w, 0).id
+    const msg: string = wr.encode_world(w, 1)
+    if wr.is_ws_message(msg) == false
+        io.print("fail")
+        return
+    end
+    var bad: world.Transform = world.empty_transform()
+    bad.x = 0.0
+    bad.y = 0.0
+    bad.z = 0.0
+    w = world.set_transform(w, id0, bad)
+    w = wr.apply_message(w, msg)
+    match world.find_by_id(w, id0)
+        case some(e):
+            if e.transform.x > 1.4 and e.transform.x < 1.6
+                io.print("ok")
+            else
+                io.print("fail")
+            end
+        case none:
+            io.print("fail")
+    end
+end

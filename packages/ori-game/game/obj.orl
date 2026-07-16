@@ -1,0 +1,126 @@
+module game.obj
+
+-- Thin glue: Wavefront OBJ via package `fast_obj` (`fast_obj.mesh`).
+-- Path-dep `fast_obj` on ori_game; links `ori_fast_obj_shim`. No mesh upload.
+-- Note: package module is `fast_obj.mesh` (not `*.load`) so dual path-dep with
+-- `cgltf.loader` does not hit last-segment import ambiguity.
+-- 0.2: materials + interleaved mesh export [px,py,pz,nx,ny,nz,u,v]*V.
+
+import fast_obj.mesh = obj
+
+-- Load Wavefront OBJ from path. Returns true on success.
+public load(path: string) -> bool
+    return obj.load(path)
+end
+
+public free() -> void
+    obj.free()
+end
+
+-- Includes dummy zero entry at index 0 (fast_obj convention).
+public position_count() -> int
+    return obj.position_count()
+end
+
+public face_count() -> int
+    return obj.face_count()
+end
+
+public normal_count() -> int
+    return obj.normal_count()
+end
+
+public texcoord_count() -> int
+    return obj.texcoord_count()
+end
+
+public index_count() -> int
+    return obj.index_count()
+end
+
+public material_count() -> int
+    return obj.material_count()
+end
+
+public material_name_len(mat_i: int) -> int
+    return obj.material_name_len(mat_i)
+end
+
+public material_name_byte(mat_i: int, offset: int) -> int
+    return obj.material_name_byte(mat_i, offset)
+end
+
+-- Real vertex index (0-based); returns milli-float (value * 1000).
+public pos_m(vertex_index: int, axis: int) -> int
+    return obj.pos_m(vertex_index, axis)
+end
+
+public normal_m(normal_index: int, axis: int) -> int
+    return obj.normal_m(normal_index, axis)
+end
+
+public texcoord_m(texcoord_index: int, axis: int) -> int
+    return obj.texcoord_m(texcoord_index, axis)
+end
+
+-- Face-corner attribute indices (fast_obj 1-based; 0 = missing).
+public index_p(i: int) -> int
+    return obj.index_p(i)
+end
+
+public index_t(i: int) -> int
+    return obj.index_t(i)
+end
+
+public index_n(i: int) -> int
+    return obj.index_n(i)
+end
+
+-- Flatten to interleaved float mesh [px,py,pz,nx,ny,nz,u,v]*V.
+public export_mesh() -> bool
+    return obj.export_mesh()
+end
+
+public export_vertex_count() -> int
+    return obj.export_vertex_count()
+end
+
+public export_index_count() -> int
+    return obj.export_index_count()
+end
+
+public export_float_count() -> int
+    return obj.export_float_count()
+end
+
+public export_float_m(i: int) -> int
+    return obj.export_float_m(i)
+end
+
+public export_index(i: int) -> int
+    return obj.export_index(i)
+end
+
+public export_pos_m(vert_i: int, axis: int) -> int
+    return obj.export_pos_m(vert_i, axis)
+end
+
+public export_normal_m(vert_i: int, axis: int) -> int
+    return obj.export_normal_m(vert_i, axis)
+end
+
+public export_uv_m(vert_i: int, axis: int) -> int
+    return obj.export_uv_m(vert_i, axis)
+end
+
+public export_floats_ptr() -> int
+    return obj.export_floats_ptr()
+end
+
+public export_indices_ptr() -> int
+    return obj.export_indices_ptr()
+end
+
+public export_sum_m() -> int
+    return obj.export_sum_m()
+end

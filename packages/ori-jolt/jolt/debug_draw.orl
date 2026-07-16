@@ -1,0 +1,77 @@
+module jolt.debug_draw
+
+-- 3D physics debug draw via `game.draw3d`. Path-dep `ori_game`.
+-- Pass half-extents / radius in meters (not milli) at draw time.
+
+import jolt.dynamics = jolt
+import jolt.units = units
+import game.draw3d = draw3d
+import game.color = color
+import ori.math.vec3 = vec3
+
+public body_pos(body: jolt.Body) -> vec3.Vec3
+    return vec3.Vec3 {
+        x: units.milli_to_meters(jolt.body_x_m(body)),
+        y: units.milli_to_meters(jolt.body_y_m(body)),
+        z: units.milli_to_meters(jolt.body_z_m(body))
+    }
+end
+
+public draw_box(
+    body: jolt.Body,
+    half_x_m: float,
+    half_y_m: float,
+    half_z_m: float,
+    fill: color.Color
+) -> void
+    const p: vec3.Vec3 = body_pos(body)
+    draw3d.draw_cube(p, half_x_m * 2.0, half_y_m * 2.0, half_z_m * 2.0, fill)
+end
+
+public draw_box_wires(
+    body: jolt.Body,
+    half_x_m: float,
+    half_y_m: float,
+    half_z_m: float,
+    outline: color.Color
+) -> void
+    const p: vec3.Vec3 = body_pos(body)
+    draw3d.draw_cube_wires(p, half_x_m * 2.0, half_y_m * 2.0, half_z_m * 2.0, outline)
+end
+
+public draw_sphere(body: jolt.Body, radius_m: float, fill: color.Color) -> void
+    draw3d.draw_sphere(body_pos(body), radius_m, fill)
+end
+
+public draw_sphere_wires(
+    body: jolt.Body,
+    radius_m: float,
+    rings: int,
+    slices: int,
+    outline: color.Color
+) -> void
+    draw3d.draw_sphere_wires(body_pos(body), radius_m, rings, slices, outline)
+end
+
+public draw_capsule(
+    body: jolt.Body,
+    half_height_m: float,
+    radius_m: float,
+    fill: color.Color
+) -> void
+    const p: vec3.Vec3 = body_pos(body)
+    const start: vec3.Vec3 = vec3.Vec3 { x: p.x, y: p.y - half_height_m, z: p.z }
+    const end_pos: vec3.Vec3 = vec3.Vec3 { x: p.x, y: p.y + half_height_m, z: p.z }
+    draw3d.draw_capsule(start, end_pos, radius_m, 8, 4, fill)
+end
+
+public draw_constraint_line(a: jolt.Body, b: jolt.Body, c: color.Color) -> void
+    const pa: vec3.Vec3 = body_pos(a)
+    const pb: vec3.Vec3 = body_pos(b)
+    const dir: vec3.Vec3 = vec3.Vec3 { x: pb.x - pa.x, y: pb.y - pa.y, z: pb.z - pa.z }
+    draw3d.draw_ray(pa, dir, c)
+end
+
+public draw_grid(slices: int, spacing: float) -> void
+    draw3d.draw_grid(slices, spacing)
+end

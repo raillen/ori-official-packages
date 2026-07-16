@@ -1,0 +1,56 @@
+module app.hello_raygui
+
+imports
+    raylib_raw = rl
+    raygui.ui = ui
+    ori.mem = mem
+end
+
+var volume: float = 0.5
+var load_prog: float = 0.35
+var muted: bool = false
+var turbo: bool = false
+var clicks: int = 0
+var count: int = 5
+var level: int = 1
+var edit_spin: bool = false
+var edit_val: bool = false
+var edit_text: bool = true
+var theme_idx: int = 0
+var list_idx: int = 0
+var drop_edit: bool = false
+
+main()
+    const title: int = mem.string_as_ptr("Ori + raygui 0.2")
+    rl.InitWindow(480, 420, title)
+    rl.SetTargetFPS(60)
+    ui.textbox_set("player")
+    ui.set_style(ui.STYLE_DEFAULT, ui.PROP_TEXT_SIZE, 16)
+    while not rl.WindowShouldClose()
+        rl.BeginDrawing()
+        rl.ClearBackground(30, 30, 36, 255)
+        ui.panel(10.0, 10.0, 460.0, 370.0, "Demo")
+        ui.label(20.0, 24.0, 360.0, 24.0, "Hello raygui from Ori")
+        ui.line(20.0, 48.0, 420.0, 12.0, "")
+        if ui.button(20.0, 70.0, 120.0, 32.0, "Click me")
+            clicks = clicks + 1
+            load_prog = load_prog + 0.05
+            if load_prog > 1.0
+                load_prog = 0.0
+            end
+        end
+        muted = ui.checkbox(160.0, 74.0, 24.0, 24.0, "Muted", muted)
+        turbo = ui.toggle(280.0, 70.0, 100.0, 32.0, "Turbo", turbo)
+        volume = ui.slider(20.0, 120.0, 200.0, 24.0, volume, 0.0, 1.0)
+        load_prog = ui.progress_bar(20.0, 156.0, 240.0, 20.0, load_prog, 0.0, 1.0)
+        count = ui.spinner(20.0, 190.0, 120.0, 28.0, "N", count, 0, 99, edit_spin)
+        level = ui.value_box(160.0, 190.0, 100.0, 28.0, "Lv", level, 1, 50, edit_val)
+        const _tb: bool = ui.textbox(20.0, 232.0, 200.0, 28.0, edit_text)
+        theme_idx = ui.dropdown(240.0, 232.0, 140.0, 28.0, "Dark;Light;Retro", theme_idx, drop_edit)
+        list_idx = ui.list_view(20.0, 280.0, 200.0, 80.0, "Alpha;Bravo;Charlie;Delta", list_idx)
+        ui.group_box(240.0, 280.0, 200.0, 80.0, "Group")
+        ui.status_bar(0.0, 390.0, 480.0, 30.0, "status")
+        rl.EndDrawing()
+    end
+    rl.CloseWindow()
+end

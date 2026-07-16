@@ -1,0 +1,31 @@
+module app.character_frame_test
+
+imports
+    jolt.dynamics = jolt
+    jolt.character_ctrl = ctrl
+    jolt.units = units
+    ori.io = io
+end
+
+main()
+    const g: int = units.gravity_earth_y_m()
+    var sys: jolt.System = jolt.create_system(0, g, 0)
+    const floor: jolt.Body = jolt.create_static_floor(sys, 0)
+    var c: ctrl.Controller = ctrl.create(sys, 0, 2000, 0, 300, 500, 3000, 4500)
+    c = ctrl.set_wish_dir(c, 1000, 0)
+    c = ctrl.set_jump_pressed(c, true)
+    const dt: int = units.step_60hz_micros()
+    var i: int = 0
+    while i < 90
+        c = ctrl.tick(c, sys, dt)
+        i = i + 1
+    end
+    if ctrl.x_m(c) > 0
+        io.print("framed")
+    else
+        io.print("stuck")
+    end
+    ctrl.destroy(c)
+    jolt.destroy_body(floor)
+    jolt.destroy_system(sys)
+end

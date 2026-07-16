@@ -1,0 +1,233 @@
+module test.phase_g_l
+
+-- Smoke tests for runtime slices G–L (controller, layers, triggers, gameplay, scene helpers).
+
+imports
+    game.character_controller = ctrl
+    game.collision_layers = layers
+    game.world_triggers = trig
+    game.world_gameplay = gp
+    game.world = world
+    game.ogame_scene = scene
+    game.ogame_level = level
+    game.ogame_level_tools = ltools
+    game.multi_scene = mscene
+    game.tilemap = tilemap
+    ori.math = math
+    ori.test = test
+    ori.list = lists
+    ori.string = str
+end
+
+spawn_tagged(w: world.World, tag: string, x: float, z: float) -> world.World
+    var t: world.Transform = world.empty_transform()
+    t.x = x
+    t.z = z
+    return world.spawn_entity(w, world.EntityMeta {
+        instance_id: "t_" + tag,
+        entity_type: tag,
+        primary_tag: tag
+    }, t)
+end
+
+@test
+ai_chase_speed_is_constant()
+    var w: world.World = world.empty_world()
+    w = spawn_tagged(w, "player", 0.0, 0.0)
+    w = spawn_tagged(w, "enemy", 50.0, 0.0)
+    const pid: world.EntityId = world.get_entity(w, 0).id
+    const eid: world.EntityId = world.get_entity(w, 1).id
+    var host: gp.GameplayHost = gp.empty_host()
+    host = gp.set_player(host, pid)
+    host = gp.attach_ai(host, eid, 80.0, 24.0)
+    w = gp.ai_chase_system(host, w, 0.016)
+    -- Regression: old speed/d² gave ~0.5 u/s at d=50; must be ~24.
+    const e: world.Entity = world.get_entity(w, 1)
+    const mag: float = math.hypot(e.velocity.vx, e.velocity.vz)
+    test.assert(mag > 23.9 and mag < 24.1, "chase speed ~24")
+end
+
+@test
+wave_respawn_reaches_win()
+    var w: world.World = world.empty_world()
+    w = spawn_tagged(w, "player", 0.0, 0.0)
+    const pid: world.EntityId = world.get_entity(w, 0).id
+    var host: gp.GameplayHost = gp.empty_host()
+    host = gp.set_player(host, pid)
+    host = gp.start_waves(host, 2, 2)
+    -- Wave 1 spawn + attach.
+    w = gp.spawn_wave_enemies(w, 2, 0.0, 0.0, 8.0, 40.0)
+    host = gp.attach_new_enemies(host, w, 1, 80.0, 24.0)
+    test.equal_int(lists.len(host.ais), 2)
+    -- Kill wave 1 (i_frames 0 so both damage calls land).
+    var i: int = 0
+    const n: int = world.entity_count(w)
+    while i < n
+        const e: world.Entity = world.get_entity(w, i)
+        if e.alive and e.meta.entity_type == "enemy"
+            host = gp.damage_entity(host, e.id, 1, 0)
+            host.waves.enemies_alive = host.waves.enemies_alive - 1
+        end
+        i = i + 1
+    end
+    w = gp.despawn_dead(host, w)
+    host = gp.tick_waves(host)
+    test.equal_int(host.waves.wave_index, 2)
+    -- Wave 2 spawn: new enemies must get fresh slots.
+    w = gp.spawn_wave_enemies(w, 2, 0.0, 0.0, 8.0, 40.0)
+    host = gp.attach_new_enemies(host, w, 1, 80.0, 24.0)
+    test.equal_int(lists.len(host.ais), 4)
+    test.equal_int(world.live_count(w), 3)
+end
+
+@test
+controller_creates_grounded_false()
+    const c: ctrl.Controller = ctrl.create(8.0, 40.0)
+    test.assert(ctrl.is_grounded(c) == false, "starts not grounded")
+    test.assert(c.radius == 8.0, "radius")
+end
+
+@test
+layer_names_round_trip()
+    test.assert(layers.name_of(layers.LAYER_PLAYER) == "Player", "name")
+    test.assert(layers.id_of_name("Enemy") == layers.LAYER_ENEMY, "id")
+    test.assert(layers.layers_interact(layers.LAYER_PLAYER, layers.LAYER_ENEMY), "pve")
+end
+
+@test
+trigger_enter_exit()
+    var host: trig.TriggerHost = trig.empty_host()
+    host = trig.add_volume(host, trig.make_volume("goal", 0.0, 0.0, 0.0, 10.0, 10.0, 10.0))
+    var w: world.World = world.empty_world()
+    var t: world.Transform = world.empty_transform()
+    t.x = 0.0
+    t.y = 0.0
+    t.z = 0.0
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "p",
+            entity_type: "player",
+            primary_tag: "player"
+        },
+        t
+    )
+    const eid: world.EntityId = world.get_entity(w, 0).id
+    host = trig.tick(host, w)
+    test.assert(trig.is_entity_inside(host, "goal", eid), "inside after tick")
+end
+
+@test
+make_instance_and_override()
+    var inst: scene.SceneInstance = scene.make_instance("inst_new", "enemy", 1.0, 2.0, 3.0)
+    test.assert(inst.entity == "enemy", "entity")
+    inst = scene.set_float_override(inst, "mesh_scale", 12.0)
+    test.assert(scene.override_float(inst, "mesh_scale", 0.0) == 12.0, "override")
+end
+
+@test
+subtract_carves_solids()
+    var lvl: level.LevelGeometry = level.empty_level()
+    lvl = ltools.add_box_brush(lvl, "b1", 0.0, 8.0, 0.0, 32.0, 16.0, 32.0)
+    const n0: int = lists.len(level.collect_solids(lvl))
+    lvl = ltools.add_subtract_box(lvl, "cut", 0.0, 8.0, 0.0, 8.0, 8.0, 8.0)
+    const n1: int = lists.len(level.collect_solids(lvl))
+    test.assert(ltools.subtract_count(lvl) == 1, "one subtract")
+    -- CSG may split/remove pieces; solids list must remain usable.
+    test.assert(n1 >= 0, "solids ok")
+    test.assert(n0 >= 1, "had solids")
+end
+
+@test
+scene_stack_push_pop()
+    var st: mscene.SceneStack = mscene.empty_stack()
+    st = mscene.stack_push(st, "a.scene.json")
+    st = mscene.stack_push(st, "b.scene.json")
+    test.assert(mscene.stack_depth(st) == 2, "depth 2")
+    test.assert(mscene.stack_top(st) == "b.scene.json", "top b")
+    st = mscene.stack_pop(st)
+    test.assert(mscene.stack_top(st) == "a.scene.json", "top a")
+end
+
+@test
+tilemap_serialize_has_dims()
+    var tm: tilemap.Tilemap = tilemap.create(2, 2, 16.0)
+    tm = tilemap.paint(tm, 0, 0, 1)
+    const s: string = tilemap.serialize_compact(tm)
+    test.assert(str_has_prefix(s, "2,2,"), "prefix dims")
+end
+
+str_has_prefix(s: string, prefix: string) -> bool
+    const n: int = str.len(prefix)
+    if str.len(s) < n
+        return false
+    end
+    return str.slice(s, 0, n) == prefix
+end
+
+@test
+gameplay_damage_and_hud()
+    var host: gp.GameplayHost = gp.empty_host()
+    var w: world.World = world.empty_world()
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "p1",
+            entity_type: "player",
+            primary_tag: "player"
+        },
+        world.empty_transform()
+    )
+    const pid: world.EntityId = world.get_entity(w, 0).id
+    host = gp.set_player(host, pid)
+    host = gp.attach_health(host, pid, 10)
+    host = gp.damage_entity(host, pid, 3, 0)
+    match gp.get_health(host, pid)
+        case some(h):
+            test.assert(h.current == 7, "hp 7")
+        case none:
+            test.assert(false, "has health")
+    end
+    const line: string = gp.hud_line(host)
+    test.assert(str_len_gt0(line), "hud non-empty")
+end
+
+str_len_gt0(s: string) -> bool
+    return str.len(s) > 0
+end
+
+@test
+parent_world_transform()
+    var w: world.World = world.empty_world()
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "root",
+            entity_type: "empty",
+            primary_tag: ""
+        },
+        world.Transform {
+            x: 10.0, y: 0.0, z: 0.0,
+            rx: 0.0, ry: 0.0, rz: 0.0,
+            sx: 1.0, sy: 1.0, sz: 1.0
+        }
+    )
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "child",
+            entity_type: "empty",
+            primary_tag: ""
+        },
+        world.Transform {
+            x: 5.0, y: 0.0, z: 0.0,
+            rx: 0.0, ry: 0.0, rz: 0.0,
+            sx: 1.0, sy: 1.0, sz: 1.0
+        }
+    )
+    const root: world.EntityId = world.get_entity(w, 0).id
+    const child: world.EntityId = world.get_entity(w, 1).id
+    w = world.set_parent(w, child, root)
+    const wt: world.Transform = world.world_transform_of(w, child)
+    test.assert(wt.x == 15.0, "world x = 15")
+end

@@ -1,0 +1,83 @@
+module test.nav_bake
+
+-- Pure geometry checks (nav_bake_geom — no recast native link).
+
+imports
+    game.nav_bake_geom = bake
+    game.ogame_level = level
+    ori.test = test
+end
+
+@test
+solid_top_face_corners()
+    const s: level.SolidPiece = level.SolidPiece {
+        x: 10.0,
+        y: 0.0,
+        z: 20.0,
+        sx: 4.0,
+        sy: 2.0,
+        sz: 6.0,
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 255,
+        metallic: 0.0,
+        roughness: 1.0,
+        layer: 1,
+        collider: true
+    }
+    const face: bake.TopFaceM = bake.solid_top_face_m(s)
+    test.assert(face.ok, "ok")
+    test.equal_int(face.c0.y, 1000)
+    test.equal_int(face.c1.y, 1000)
+    test.equal_int(face.c0.x, 8000)
+    test.equal_int(face.c1.x, 12000)
+    test.equal_int(face.c2.x, 12000)
+    test.equal_int(face.c3.x, 8000)
+    test.equal_int(face.c0.z, 17000)
+    test.equal_int(face.c2.z, 23000)
+end
+
+@test
+non_collider_skipped()
+    const s: level.SolidPiece = level.SolidPiece {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        sx: 10.0,
+        sy: 1.0,
+        sz: 10.0,
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 255,
+        metallic: 0.0,
+        roughness: 1.0,
+        layer: 1,
+        collider: false
+    }
+    const face: bake.TopFaceM = bake.solid_top_face_m(s)
+    test.assert(face.ok == false, "skip non-collider")
+end
+
+@test
+tiny_solid_skipped()
+    const s: level.SolidPiece = level.SolidPiece {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        sx: 0.1,
+        sy: 1.0,
+        sz: 0.1,
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 255,
+        metallic: 0.0,
+        roughness: 1.0,
+        layer: 1,
+        collider: true
+    }
+    const face: bake.TopFaceM = bake.solid_top_face_m(s)
+    test.assert(face.ok == false, "skip tiny")
+end

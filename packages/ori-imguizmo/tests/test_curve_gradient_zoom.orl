@@ -1,0 +1,125 @@
+module test.curve_gradient_zoom
+
+imports
+    imguizmo.curve = curve
+    imguizmo.gradient = grad
+    imguizmo.zoom = zoom
+    ori.test = test
+end
+
+@test
+curve_sample_and_edit_points()
+    curve.clear()
+    test.equal_int(curve.point_count(), 0)
+    test.equal_int(curve.sample_m(500), 0)
+
+    const i0: int = curve.add_point_m(0, 0)
+    const i1: int = curve.add_point_m(1000, 1000)
+    test.assert(i0 >= 0, "add0")
+    test.assert(i1 >= 0, "add1")
+    test.equal_int(curve.point_count(), 2)
+    test.equal_int(curve.sample_m(0), 0)
+    test.equal_int(curve.sample_m(1000), 1000)
+    test.equal_int(curve.sample_m(500), 500)
+
+    -- Mid insert then re-sample
+    curve.add_point_m(500, 250)
+    test.equal_int(curve.point_count(), 3)
+    test.equal_int(curve.sample_m(500), 250)
+
+    -- Edit first point value (after sort index 0 is t=0)
+    test.equal_int(curve.set_point_m(0, 0, 100), 0)
+    test.equal_int(curve.sample_m(0), 100)
+
+    -- Headless edit UI is a no-op
+    test.is_false(curve.edit())
+end
+
+@test
+curve_unsorted_add_sorts_by_t()
+    curve.clear()
+    curve.add_point_m(800, 800)
+    curve.add_point_m(200, 200)
+    curve.add_point_m(500, 500)
+    test.equal_int(curve.point_count(), 3)
+    test.equal_int(curve.point_t_m(0), 200)
+    test.equal_int(curve.point_t_m(1), 500)
+    test.equal_int(curve.point_t_m(2), 800)
+    test.equal_int(curve.sample_m(350), 350)
+end
+
+@test
+gradient_stops_and_sample()
+    grad.clear()
+    test.equal_int(grad.stop_count(), 0)
+    test.equal_int(grad.sample_r_m(500), 0)
+
+    -- black @0 → white @1 (milli channels)
+    grad.add_stop_m(0, 0, 0, 1000, 0)
+    grad.add_stop_m(1000, 1000, 1000, 1000, 1000)
+    test.equal_int(grad.stop_count(), 2)
+    test.equal_int(grad.sample_r_m(0), 0)
+    test.equal_int(grad.sample_r_m(1000), 1000)
+    test.equal_int(grad.sample_r_m(500), 500)
+    test.equal_int(grad.sample_g_m(500), 500)
+    test.equal_int(grad.sample_b_m(500), 500)
+    test.equal_int(grad.sample_a_m(500), 1000)
+
+    -- Mid red stop
+    grad.add_stop_m(1000, 0, 0, 1000, 500)
+    test.equal_int(grad.stop_count(), 3)
+    test.equal_int(grad.sample_r_m(500), 1000)
+    test.equal_int(grad.sample_g_m(500), 0)
+
+    test.is_false(grad.edit())
+end
+
+@test
+gradient_stop_accessors()
+    grad.clear()
+    grad.add_stop_m(100, 200, 300, 400, 250)
+    test.equal_int(grad.stop_r_m(0), 100)
+    test.equal_int(grad.stop_g_m(0), 200)
+    test.equal_int(grad.stop_b_m(0), 300)
+    test.equal_int(grad.stop_a_m(0), 400)
+    test.equal_int(grad.stop_t_m(0), 250)
+    test.equal_int(grad.set_stop_m(0, 10, 20, 30, 40, 100), 0)
+    test.equal_int(grad.stop_r_m(0), 10)
+    test.equal_int(grad.stop_t_m(0), 100)
+end
+
+@test
+zoom_range_view_and_span()
+    zoom.reset()
+    test.equal_int(zoom.lower_m(), 0)
+    test.equal_int(zoom.higher_m(), 1000)
+    test.equal_int(zoom.view_lower_m(), 0)
+    test.equal_int(zoom.view_higher_m(), 1000)
+    test.equal_int(zoom.span_m(), 1000)
+
+    zoom.set_range_m(0, 2000)
+    zoom.set_view_m(500, 1500)
+    test.equal_int(zoom.lower_m(), 0)
+    test.equal_int(zoom.higher_m(), 2000)
+    test.equal_int(zoom.view_lower_m(), 500)
+    test.equal_int(zoom.view_higher_m(), 1500)
+    test.equal_int(zoom.span_m(), 1000)
+
+    -- Tighter view ⇒ smaller span (more zoomed in)
+    zoom.set_view_m(900, 1100)
+    test.equal_int(zoom.span_m(), 200)
+
+    -- Headless slider is a no-op
+    test.is_false(zoom.slider())
+end
+
+@test
+zoom_clips_view_to_range()
+    zoom.reset()
+    zoom.set_range_m(0, 1000)
+    zoom.set_view_m(-500, 500)
+    -- Clipped so view stays inside [0,1000]
+    test.assert(zoom.view_lower_m() >= 0, "view_lo_clip")
+    test.assert(zoom.view_higher_m() <= 1000, "view_hi_clip")
+    test.assert(zoom.span_m() > 0, "span_positive")
+end

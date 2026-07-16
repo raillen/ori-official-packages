@@ -1,0 +1,25 @@
+module test.engine
+
+imports
+    ori.test = test
+    game.engine = engine
+    game.timer = timer
+    ori.math.vec2 = vec2
+end
+
+@test
+spawn_and_count()
+    var eng: engine.Engine = engine.create_engine()
+    eng = engine.spawn_entity(eng, vec2.Vec2 { x: 1.0, y: 2.0 })
+    eng = engine.spawn_entity(eng, vec2.Vec2 { x: 3.0, y: 4.0 })
+    test.equal_int(engine.entity_count(eng), 2)
+end
+
+@test
+timer_ticks()
+    var t: timer.Timer = timer.create(1.0, false)
+    t = timer.tick(t, 0.5)
+    test.assert(t.active, "still active")
+    t = timer.tick(t, 0.6)
+    test.assert(not t.active, "finished")
+end

@@ -1,0 +1,119 @@
+module game.save
+
+import ori.list = lists
+import ori.fs = fs
+import ori.json = json
+
+-- In-memory checkpoints + JSON text files via stdlib.
+
+public struct Checkpoint
+    label: string
+    payload: string
+end
+
+public struct SaveStore
+    checkpoints: list[Checkpoint]
+end
+
+public create_store() -> SaveStore
+    var cps: list[Checkpoint] = []
+    return SaveStore { checkpoints: cps }
+end
+
+public checkpoint(store: SaveStore, label: string, payload: string) -> SaveStore
+    var out: SaveStore = store
+    lists.push(out.checkpoints, Checkpoint { label: label, payload: payload })
+    return out
+end
+
+public count(store: SaveStore) -> int
+    return lists.len(store.checkpoints)
+end
+
+public last_payload(store: SaveStore) -> string
+    const n: int = lists.len(store.checkpoints)
+    if n == 0
+        return ""
+    end
+    return store.checkpoints[n - 1].payload
+end
+
+-- File helpers (trilha O): raw JSON text on disk.
+
+public save_json(path: string, text: string) -> bool
+    match fs.write_text(path, text)
+        case ok(_):
+            return true
+        case err(_):
+            return false
+    end
+    return false
+end
+
+public load_json(path: string) -> string
+    match fs.read_text(path)
+        case ok(text):
+            return text
+        case err(_):
+            return ""
+    end
+    return ""
+end
+
+public load_json_or(path: string, fallback: string) -> string
+    const text: string = load_json(path)
+    if text == ""
+        return fallback
+    end
+    return text
+end
+
+public is_valid_json(text: string) -> bool
+    match json.parse(text)
+        case ok(_):
+            return true
+        case err(_):
+            return false
+    end
+    return false
+end
+
+public save_checkpoint_file(path: string, label: string, payload: string) -> bool
+    -- Minimal JSON object as text (no Value builder required).
+    const body: string = "{\"label\":\"" + label + "\",\"payload\":\"" + payload + "\"}"
+    return save_json(path, body)
+end
+
+-- Named slots under a directory: <dir>/<slot>.json
+
+public slot_path(dir: string, slot: string) -> string
+    return dir + "/" + slot + ".json"
+end
+
+public has_slot(dir: string, slot: string) -> bool
+    const path: string = slot_path(dir, slot)
+    const text: string = load_json(path)
+    return text != ""
+end
+
+public save_slot(dir: string, slot: string, payload: string) -> bool
+    return save_json(slot_path(dir, slot), payload)
+end
+
+public load_slot(dir: string, slot: string) -> string
+    return load_json(slot_path(dir, slot))
+end
+
+public load_slot_or(dir: string, slot: string, fallback: string) -> string
+    return load_json_or(slot_path(dir, slot), fallback)
+end
+
+public delete_slot(dir: string, slot: string) -> bool
+    match fs.remove_file(slot_path(dir, slot))
+        case ok(_):
+            return true
+        case err(_):
+            return false
+    end
+    return false
+end

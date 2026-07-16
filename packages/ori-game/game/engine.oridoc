@@ -1,0 +1,185 @@
+# engine — Motor do Jogo
+
+Módulo principal com Entity, Timer, Systems e Game Loop.
+
+## Timer
+
+### Timer Struct
+
+```ori
+struct Timer
+    duration: float
+    elapsed: float = 0.0
+    active: bool = true
+    repeat: bool = false
+    on_complete: func() -> void
+end
+```
+
+### create_timer
+
+Cria um novo timer.
+
+```ori
+func create_timer(duration: float, repeat: bool, on_complete: func() -> void) -> Timer
+```
+
+### tick_timer
+
+Atualiza o timer com delta time.
+
+```ori
+func tick_timer(t: Timer, dt: float) -> void
+```
+
+### reset_timer
+
+Reseta o timer para zero.
+
+```ori
+func reset_timer(t: Timer) -> void
+```
+
+**Exemplo:**
+```ori
+var cooldown = timer.create_timer(1.0, false, do() =>
+    io.print("Cooldown pronto!")
+end)
+
+-- No update:
+timer.tick_timer(cooldown, dt)
+```
+
+## Entity
+
+### Entity Struct
+
+```ori
+struct Entity
+    id: int
+    pos: Vec2
+    vel: Vec2 = Vec2(x: 0.0, y: 0.0)
+    alive: bool = true
+    has_gravity: bool = false
+    has_collision: bool = false
+
+    update_fn: func(Entity, float) -> void = nil
+    draw_fn: func(Entity) -> void = nil
+    on_hit_fn: func(Entity, Entity) -> void = nil
+    on_destroy_fn: func(Entity) -> void = nil
+end
+```
+
+### destroy
+
+Marca uma entidade para destruição.
+
+```ori
+func destroy(e: Entity) -> void
+```
+
+## System
+
+### System Struct
+
+```ori
+struct System
+    name: string
+    run: func(list<Entity>, float) -> void
+    enabled: bool = true
+end
+```
+
+## Engine
+
+### Engine Struct
+
+```ori
+struct Engine
+    available_systems: map<string, func(list<Entity>, float) -> void>
+    active_systems: list<string>
+    entities: list<Entity>
+    next_id: int = 0
+end
+```
+
+### create_engine
+
+Cria uma nova instância do engine.
+
+```ori
+func create_engine() -> Engine
+```
+
+### register_system
+
+Registra um system no engine.
+
+```ori
+func register_system(eng: Engine, name: string, func_ref: func(list<Entity>, float) -> void) -> void
+```
+
+### enable_system
+
+Ativa um system.
+
+```ori
+func enable_system(eng: Engine, name: string) -> void
+```
+
+### disable_system
+
+Desativa um system.
+
+```ori
+func disable_system(eng: Engine, name: string) -> void
+```
+
+### spawn_entity
+
+Cria e adiciona uma entidade ao engine.
+
+```ori
+func spawn_entity(eng: Engine, pos: Vec2, update_fn: func(Entity, float) -> void, draw_fn: func(Entity) -> void) -> Entity
+```
+
+### tick
+
+Executa todos os systems ativos.
+
+```ori
+func tick(eng: Engine, dt: float) -> void
+```
+
+### draw_all
+
+Desenha todas as entidades vivas.
+
+```ori
+func draw_all(eng: Engine) -> void
+```
+
+### cleanup_dead
+
+Remove entidades marcadas como mortas.
+
+```ori
+func cleanup_dead(eng: Engine) -> void
+```
+
+**Exemplo:**
+```ori
+var eng = engine.create_engine()
+engine.enable_system(eng, "gravity")
+engine.enable_system(eng, "movement")
+
+var player = engine.spawn_entity(eng, Vec2(x: 100.0, y: 100.0),
+    update_fn = do(e: Entity, dt: float) => ... end,
+    draw_fn = do(e: Entity) => ... end
+)
+
+-- Game loop:
+engine.tick(eng, dt)
+engine.draw_all(eng)
+engine.cleanup_dead(eng)
+```

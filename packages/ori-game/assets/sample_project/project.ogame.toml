@@ -1,0 +1,6 @@
+# Ori Game Studio project manifest (scaffold)
+format_version = 1
+name = "sample_project"
+active_scene = "scenes/engine_test.scene.json"
+entities_dir = "entities"
+notes_dir = "notes"

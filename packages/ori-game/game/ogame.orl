@@ -1,0 +1,300 @@
+module game.ogame
+
+-- Public facade for Studio content format (stable import path).
+-- Implementation split by domain: entity / scene / spawn (+ json_fields).
+-- Spec: docs/planning/STUDIO-PRODUCT-DECISIONS.md
+
+import game.ogame_entity = entity
+import game.ogame_scene = scene
+import game.ogame_spawn = spawn
+import game.ogame_level = level
+import game.ogame_alarms = alarms
+import game.engine = engine
+
+public alias EntityVar = entity.EntityVar
+public alias EntityDef = entity.EntityDef
+public alias EntityResult = entity.EntityResult
+public alias VarOverride = scene.VarOverride
+public alias SceneInstance = scene.SceneInstance
+public alias SceneFile = scene.SceneFile
+public alias SceneResult = scene.SceneResult
+public alias EntityCatalog = spawn.EntityCatalog
+public alias SpawnedInstance = spawn.SpawnedInstance
+public alias CatalogResult = spawn.CatalogResult
+public alias SpawnListResult = spawn.SpawnListResult
+
+public parse_entity(text: string) -> entity.EntityResult
+    return entity.parse_entity(text)
+end
+
+public load_entity(path: string) -> entity.EntityResult
+    return entity.load_entity(path)
+end
+
+public script_path(entity_dir: string, def: entity.EntityDef) -> string
+    return entity.script_path(entity_dir, def)
+end
+
+public has_tag(def: entity.EntityDef, tag: string) -> bool
+    return entity.has_tag(def, tag)
+end
+
+public has_event(def: entity.EntityDef, event_name: string) -> bool
+    return entity.has_event(def, event_name)
+end
+
+public var_count(def: entity.EntityDef) -> int
+    return entity.var_count(def)
+end
+
+public parse_scene(text: string) -> scene.SceneResult
+    return scene.parse_scene(text)
+end
+
+public load_scene(path: string) -> scene.SceneResult
+    return scene.load_scene(path)
+end
+
+public make_scene(name: string, instances: list[scene.SceneInstance]) -> scene.SceneFile
+    return scene.make_scene(name, instances)
+end
+
+public make_instance(
+    id: string,
+    entity: string,
+    x: float,
+    y: float,
+    z: float
+) -> scene.SceneInstance
+    return scene.make_instance(id, entity, x, y, z)
+end
+
+public set_float_override(
+    inst: scene.SceneInstance,
+    name: string,
+    value: float
+) -> scene.SceneInstance
+    return scene.set_float_override(inst, name, value)
+end
+
+public set_string_override(
+    inst: scene.SceneInstance,
+    name: string,
+    value: string
+) -> scene.SceneInstance
+    return scene.set_string_override(inst, name, value)
+end
+
+public set_override(
+    inst: scene.SceneInstance,
+    ov: scene.VarOverride
+) -> scene.SceneInstance
+    return scene.set_override(inst, ov)
+end
+
+public make_float_override(name: string, value: float) -> scene.VarOverride
+    return scene.make_float_override(name, value)
+end
+
+public make_string_override(name: string, value: string) -> scene.VarOverride
+    return scene.make_string_override(name, value)
+end
+
+public make_bool_override(name: string, value: bool) -> scene.VarOverride
+    return scene.make_bool_override(name, value)
+end
+
+public make_int_override(name: string, value: int) -> scene.VarOverride
+    return scene.make_int_override(name, value)
+end
+
+public serialize_scene(sc: scene.SceneFile) -> string
+    return scene.serialize_scene(sc)
+end
+
+public serialize_scene_with_level(
+    sc: scene.SceneFile,
+    lvl: level.LevelGeometry
+) -> string
+    return scene.serialize_scene_with_level(sc, lvl)
+end
+
+public write_scene(path: string, sc: scene.SceneFile) -> result[bool, string]
+    return scene.write_scene(path, sc)
+end
+
+public write_scene_with_level(
+    path: string,
+    sc: scene.SceneFile,
+    lvl: level.LevelGeometry
+) -> result[bool, string]
+    return scene.write_scene_with_level(path, sc, lvl)
+end
+
+public instance_count(sc: scene.SceneFile) -> int
+    return scene.instance_count(sc)
+end
+
+public instances_of_entity(
+    sc: scene.SceneFile,
+    entity_id: string
+) -> list[scene.SceneInstance]
+    return scene.instances_of_entity(sc, entity_id)
+end
+
+public first_of_entity(
+    sc: scene.SceneFile,
+    entity_id: string
+) -> optional[scene.SceneInstance]
+    return scene.first_of_entity(sc, entity_id)
+end
+
+public override_float(
+    inst: scene.SceneInstance,
+    name: string,
+    fallback: float
+) -> float
+    return scene.override_float(inst, name, fallback)
+end
+
+public override_int(
+    inst: scene.SceneInstance,
+    name: string,
+    fallback: int
+) -> int
+    return scene.override_int(inst, name, fallback)
+end
+
+public override_string(
+    inst: scene.SceneInstance,
+    name: string,
+    fallback: string
+) -> string
+    return scene.override_string(inst, name, fallback)
+end
+
+public empty_catalog() -> spawn.EntityCatalog
+    return spawn.empty_catalog()
+end
+
+public catalog_count(cat: spawn.EntityCatalog) -> int
+    return spawn.catalog_count(cat)
+end
+
+public catalog_add(
+    cat: spawn.EntityCatalog,
+    def: entity.EntityDef
+) -> spawn.EntityCatalog
+    return spawn.catalog_add(cat, def)
+end
+
+public catalog_find(
+    cat: spawn.EntityCatalog,
+    entity_id: string
+) -> optional[entity.EntityDef]
+    return spawn.catalog_find(cat, entity_id)
+end
+
+public load_catalog(paths: list[string]) -> spawn.CatalogResult
+    return spawn.load_catalog(paths)
+end
+
+public sample_entity_paths() -> list[string]
+    return spawn.sample_entity_paths()
+end
+
+public load_sample_catalog() -> spawn.CatalogResult
+    return spawn.load_sample_catalog()
+end
+
+public sample_scene_path() -> string
+    return spawn.sample_scene_path()
+end
+
+public resolve_instance(
+    cat: spawn.EntityCatalog,
+    inst: scene.SceneInstance
+) -> result[spawn.SpawnedInstance, string]
+    return spawn.resolve_instance(cat, inst)
+end
+
+public spawn_scene(
+    cat: spawn.EntityCatalog,
+    sc: scene.SceneFile
+) -> spawn.SpawnListResult
+    return spawn.spawn_scene(cat, sc)
+end
+
+public spawned_count(spawned: list[spawn.SpawnedInstance]) -> int
+    return spawn.spawned_count(spawned)
+end
+
+public find_spawned(
+    spawned: list[spawn.SpawnedInstance],
+    instance_id: string
+) -> optional[spawn.SpawnedInstance]
+    return spawn.find_spawned(spawned, instance_id)
+end
+
+public float_var_value(
+    spawned: spawn.SpawnedInstance,
+    name: string,
+    fallback: float
+) -> float
+    return spawn.float_var_value(spawned, name, fallback)
+end
+
+public spawn_into_engine(
+    eng: engine.Engine,
+    spawned: list[spawn.SpawnedInstance]
+) -> engine.Engine
+    return spawn.spawn_into_engine(eng, spawned)
+end
+
+public load_and_spawn_sample() -> result[engine.Engine, string]
+    return spawn.load_and_spawn_sample()
+end
+
+-- Level (V3D3)
+public alias LevelGeometry = level.LevelGeometry
+public parse_level_json(text: string) -> level.LevelGeometry
+    return level.parse_level_text(text)
+end
+public load_level(path: string) -> level.LevelGeometry
+    return level.load_level(path)
+end
+public level_brush_count(lvl: level.LevelGeometry) -> int
+    return level.brush_count(lvl)
+end
+public solid_brush_count(lvl: level.LevelGeometry) -> int
+    return level.solid_count(lvl)
+end
+public level_solids_count(lvl: level.LevelGeometry) -> int
+    return level.solids_count(lvl)
+end
+public collect_level_solids(lvl: level.LevelGeometry) -> list[level.SolidPiece]
+    return level.collect_solids(lvl)
+end
+public alias SolidPiece = level.SolidPiece
+public alias TerrainGrid = level.TerrainGrid
+public alias BrushBox = level.BrushBox
+
+-- Alarms (N2)
+public alias AlarmBank = alarms.AlarmBank
+public empty_alarm_bank() -> alarms.AlarmBank
+    return alarms.empty_bank()
+end
+public set_entity_alarm(bank: alarms.AlarmBank, slot: int, ms: int) -> alarms.AlarmBank
+    return alarms.set_alarm(bank, slot, ms)
+end
+public get_entity_alarm(bank: alarms.AlarmBank, slot: int) -> int
+    return alarms.get_alarm(bank, slot)
+end
+public tick_alarms(bank: alarms.AlarmBank, dt_ms: int) -> alarms.AlarmBank
+    return alarms.tick_bank(bank, dt_ms)
+end
+public alarm_fire_count(bank: alarms.AlarmBank, dt_ms: int) -> int
+    return alarms.fire_count_after_tick(bank, dt_ms)
+end
+
+

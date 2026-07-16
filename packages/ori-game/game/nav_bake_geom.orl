@@ -1,0 +1,51 @@
+module game.nav_bake_geom
+
+-- Geometria pura solid → top face milli (sem native/recast).
+
+import ori.math = math
+import game.ogame_level = level
+
+public struct CornerM
+    x: int
+    y: int
+    z: int
+end
+
+public struct TopFaceM
+    c0: CornerM
+    c1: CornerM
+    c2: CornerM
+    c3: CornerM
+    ok: bool
+end
+
+public to_milli(v: float) -> int
+    return math.round(v * 1000.0)
+end
+
+-- Top face AABB: y + sy/2, quad em XZ.
+public solid_top_face_m(s: level.SolidPiece) -> TopFaceM
+    var out: TopFaceM = TopFaceM {
+        c0: CornerM { x: 0, y: 0, z: 0 },
+        c1: CornerM { x: 0, y: 0, z: 0 },
+        c2: CornerM { x: 0, y: 0, z: 0 },
+        c3: CornerM { x: 0, y: 0, z: 0 },
+        ok: false
+    }
+    if s.collider == false
+        return out
+    end
+    if s.sx < 0.5 or s.sz < 0.5
+        return out
+    end
+    const hx: float = s.sx * 0.5
+    const hz: float = s.sz * 0.5
+    const ty: float = s.y + s.sy * 0.5
+    const y_m: int = to_milli(ty)
+    out.c0 = CornerM { x: to_milli(s.x - hx), y: y_m, z: to_milli(s.z - hz) }
+    out.c1 = CornerM { x: to_milli(s.x + hx), y: y_m, z: to_milli(s.z - hz) }
+    out.c2 = CornerM { x: to_milli(s.x + hx), y: y_m, z: to_milli(s.z + hz) }
+    out.c3 = CornerM { x: to_milli(s.x - hx), y: y_m, z: to_milli(s.z + hz) }
+    out.ok = true
+    return out
+end

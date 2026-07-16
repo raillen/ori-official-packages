@@ -1,0 +1,7 @@
+*.o
+*.so
+*.a
+/target/
+/lib/**/*.a
+/lib/**/*.so
+!/lib/**/README.txt

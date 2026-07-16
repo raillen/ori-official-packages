@@ -1,0 +1,43 @@
+{
+  "format_version": 1,
+  "id": "welcome",
+  "title": "Welcome",
+  "links": ["entity:player", "scene:scenes/room1.scene.json"],
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": { "level": 1 },
+        "content": [{ "type": "text", "text": "Sample project notes" }]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Use this panel for design notes. Links: "
+          },
+          {
+            "type": "text",
+            "marks": [{ "type": "bold" }],
+            "text": "entity:player"
+          },
+          {
+            "type": "text",
+            "text": ", "
+          },
+          {
+            "type": "text",
+            "marks": [{ "type": "bold" }],
+            "text": "scene:scenes/room1.scene.json"
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      }
+    ]
+  }
+}

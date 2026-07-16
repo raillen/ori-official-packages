@@ -1,0 +1,36 @@
+module game.state_machine
+
+import ori.list = lists
+
+-- Named states only (no function-pointer fields). Game code switches on current.
+
+public struct StateMachine
+    states: list[string]
+    current: string
+end
+
+public create(initial: string) -> StateMachine
+    var states: list[string] = []
+    lists.push(states, initial)
+    return StateMachine { states: states, current: initial }
+end
+
+public add_state(sm: StateMachine, name: string) -> StateMachine
+    var out: StateMachine = sm
+    lists.push(out.states, name)
+    return out
+end
+
+public set_state(sm: StateMachine, name: string) -> StateMachine
+    var out: StateMachine = sm
+    out.current = name
+    return out
+end
+
+public current(sm: StateMachine) -> string
+    return sm.current
+end
+
+public is_state(sm: StateMachine, name: string) -> bool
+    return sm.current == name
+end

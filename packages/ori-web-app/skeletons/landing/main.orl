@@ -1,0 +1,84 @@
+module app.main
+
+-- Marketing landing (SSR templates). Optional --ui=svelte overlays a SPA later.
+
+import web = web
+import templates = tpl
+import ori.io = io
+import ori.map = maps
+import ori.string = str
+import ori.os = os
+import ori.convert = conv
+
+var VIEWS: tpl.Engine = tpl.open("views")
+var LEADS: int = 0
+
+listen_host() -> string
+    return os.env_or("ORI_HOST", "127.0.0.1")
+end
+
+listen_port() -> int
+    return conv.parse_int_or(os.env_or("PORT", "3000"), 3000)
+end
+
+page(req: web.Request) -> tpl.Data
+    var d: tpl.Data = tpl.empty_data()
+    tpl.set_value(d, "title", "{{AppName}}")
+    tpl.set_value(d, "csrf_token", web.csrf_token(req))
+    tpl.set_value(d, "leads", string(LEADS))
+    tpl.set_value(d, "flash_notice", "")
+    match web.take_flash(req, "notice")
+    case some(msg):
+        tpl.set_value(d, "flash_notice", msg)
+    case none:
+    end
+    return d
+end
+
+home(req: web.Request) -> web.ActionResult
+    match tpl.render(VIEWS, "home", page(req))
+    case ok(html):
+        return ok(web.html(200, html))
+    case err(e):
+        return ok(web.text(500, tpl.error_message(e)))
+    end
+    return ok(web.not_found())
+end
+
+contact(req: web.Request) -> web.ActionResult
+    const form: map[string, string] = web.form_body(req)
+    var email: string = ""
+    if some(e) = maps.try_get(form, "email")
+        email = str.trim(e)
+    end
+    if str.len(email) == 0
+        web.flash(req, "notice", "Email is required.")
+        return ok(web.redirect(303, "/#contact"))
+    end
+    LEADS = LEADS + 1
+    web.flash(req, "notice", "Thanks — we got your message.")
+    return ok(web.redirect(303, "/#contact"))
+end
+
+health(_req: web.Request) -> web.ActionResult
+    return ok(web.text(200, "ok"))
+end
+
+main()
+    web.use_memory_sessions()
+    var a: web.App = web.app()
+    a = web.set_rate_limit(a, 180)
+    a = web.set_csp(a, "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' https://unpkg.com; frame-ancestors 'self'")
+    web.static(a, "/assets", "public")
+    web.get(a, "/healthz", health)
+    web.get(a, "/", home)
+    web.post(a, "/contact", contact)
+    const host: string = listen_host()
+    const port: int = listen_port()
+    io.println(str.concat("{{APP_NAME}} landing on http://", str.concat(host, str.concat(":", string(port)))))
+    match web.serve(host, port, a)
+    case ok(_):
+    case err(msg):
+        io.println(msg)
+    end
+end

@@ -1,0 +1,134 @@
+module rres.pack
+
+import ori.mem = mem
+import ori.fs = fs
+
+-- ORPK resource packs. Resource ids use raysan5 rres CRC32 of the entry name.
+
+extern c
+    public ori_rres_create_empty() -> int
+    public ori_rres_close(pack: int) -> void
+    public ori_rres_add_file(pack: int, name_ptr: int, path_ptr: int) -> int
+    public ori_rres_put_file(pack: int, name_ptr: int, path_ptr: int) -> int
+    public ori_rres_remove(pack: int, name_ptr: int) -> int
+    public ori_rres_save(pack: int, path_ptr: int) -> int
+    public ori_rres_open(path_ptr: int) -> int
+    public ori_rres_validate_path(path_ptr: int) -> int
+    public ori_rres_is_valid(pack: int) -> int
+    public ori_rres_count(pack: int) -> int
+    public ori_rres_has(pack: int, name_ptr: int) -> int
+    public ori_rres_size_by_name(pack: int, name_ptr: int) -> int
+    public ori_rres_export(pack: int, name_ptr: int, out_path_ptr: int) -> int
+    public ori_rres_read_bytes_to_path(pack: int, name_ptr: int, out_path_ptr: int) -> int
+    public ori_rres_name_at_to_path(pack: int, index: int, path_ptr: int) -> int
+    public ori_rres_list_names_to_path(pack: int, path_ptr: int) -> int
+    public ori_rres_errmsg_to_path(path_ptr: int) -> int
+end
+
+public struct Pack
+    id: int
+end
+
+public create() -> Pack
+    return Pack { id: ori_rres_create_empty() }
+end
+
+public close(p: Pack) -> void
+    ori_rres_close(p.id)
+end
+
+public add_file(p: Pack, name: string, file_path: string) -> int
+    return ori_rres_add_file(p.id, mem.string_as_ptr(name), mem.string_as_ptr(file_path))
+end
+
+public put_file(p: Pack, name: string, file_path: string) -> int
+    return ori_rres_put_file(p.id, mem.string_as_ptr(name), mem.string_as_ptr(file_path))
+end
+
+public remove(p: Pack, name: string) -> int
+    return ori_rres_remove(p.id, mem.string_as_ptr(name))
+end
+
+public save(p: Pack, pack_path: string) -> int
+    return ori_rres_save(p.id, mem.string_as_ptr(pack_path))
+end
+
+-- Opens after structural validate (magic, version, entry bounds).
+public open(pack_path: string) -> Pack
+    return Pack { id: ori_rres_open(mem.string_as_ptr(pack_path)) }
+end
+
+-- Validate file without loading: 0 = valid ORPK.
+public validate(pack_path: string) -> int
+    return ori_rres_validate_path(mem.string_as_ptr(pack_path))
+end
+
+public validate_ok(pack_path: string) -> bool
+    return validate(pack_path) == 0
+end
+
+public is_open(p: Pack) -> bool
+    return p.id >= 0
+end
+
+public is_valid(p: Pack) -> bool
+    return ori_rres_is_valid(p.id) != 0
+end
+
+public count(p: Pack) -> int
+    return ori_rres_count(p.id)
+end
+
+public has(p: Pack, name: string) -> bool
+    return ori_rres_has(p.id, mem.string_as_ptr(name)) != 0
+end
+
+public size_of(p: Pack, name: string) -> int
+    return ori_rres_size_by_name(p.id, mem.string_as_ptr(name))
+end
+
+public export(p: Pack, name: string, out_path: string) -> int
+    return ori_rres_export(p.id, mem.string_as_ptr(name), mem.string_as_ptr(out_path))
+end
+
+public export_ok(p: Pack, name: string, out_path: string) -> bool
+    return export(p, name, out_path) == 0
+end
+
+-- Explicit binary extract (same as export).
+public read_bytes_to_path(p: Pack, name: string, out_path: string) -> int
+    return ori_rres_read_bytes_to_path(p.id, mem.string_as_ptr(name), mem.string_as_ptr(out_path))
+end
+
+public name_at(p: Pack, index: int) -> string
+    const path: string = "/tmp/ori_rres_name_at.tmp"
+    if ori_rres_name_at_to_path(p.id, index, mem.string_as_ptr(path)) != 0
+        return ""
+    end
+    return fs.read_text_or(path, "")
+end
+
+-- All entry names, one per line.
+public list_names(p: Pack) -> string
+    const path: string = "/tmp/ori_rres_list_names.tmp"
+    if ori_rres_list_names_to_path(p.id, mem.string_as_ptr(path)) != 0
+        return ""
+    end
+    return fs.read_text_or(path, "")
+end
+
+public read_text(p: Pack, name: string) -> string
+    const path: string = "/tmp/ori_rres_read_text.tmp"
+    if not export_ok(p, name, path)
+        return ""
+    end
+    return fs.read_text_or(path, "")
+end
+
+public last_error() -> string
+    const path: string = "/tmp/ori_rres_errmsg.tmp"
+    if ori_rres_errmsg_to_path(mem.string_as_ptr(path)) != 0
+        return ""
+    end
+    return fs.read_text_or(path, "")
+end

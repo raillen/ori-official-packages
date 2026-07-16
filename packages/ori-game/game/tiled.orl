@@ -1,0 +1,411 @@
+module game.tiled
+
+-- Tiled Map Editor JSON loader (TMJ / "JSON" export).
+-- Supports orthogonal maps, tile layers (array data), object groups.
+-- Does not support infinite maps, base64 chunk data, or embedded tileset images yet.
+
+import ori.json = json
+import ori.map = maps
+import ori.list = lists
+import ori.math = math
+import ori.fs = fs
+import game.tilemap = tilemap
+import game.shape = shape
+
+public struct TiledObject
+    id: int
+    name: string
+    type_name: string
+    x: float
+    y: float
+    width: float
+    height: float
+    visible: bool
+end
+
+public struct TiledLayer
+    name: string
+    layer_type: string
+    width: int
+    height: int
+    visible: bool
+    opacity: float
+    data: list[int]
+    objects: list[TiledObject]
+end
+
+public struct TiledMap
+    width: int
+    height: int
+    tile_width: int
+    tile_height: int
+    orientation: string
+    layers: list[TiledLayer]
+end
+
+public alias LoadResult = result[TiledMap, string]
+
+-- ── JSON helpers ──────────────────────────────────────────
+
+-- NOTE: ori.map.get panics/UB on missing keys for Value maps — always try_get.
+
+json_number(fields: map[string, json.Value], key: string, fallback: float) -> float
+    if some(v) = maps.try_get(fields, key)
+        match v
+            case Number(value):
+                return value
+            case else:
+                return fallback
+        end
+    end
+    return fallback
+end
+
+json_int(fields: map[string, json.Value], key: string, fallback: int) -> int
+    return math.round(json_number(fields, key, float(fallback)))
+end
+
+json_string(fields: map[string, json.Value], key: string, fallback: string) -> string
+    if some(v) = maps.try_get(fields, key)
+        match v
+            case String(value):
+                return value
+            case else:
+                return fallback
+        end
+    end
+    return fallback
+end
+
+json_bool(fields: map[string, json.Value], key: string, fallback: bool) -> bool
+    if some(v) = maps.try_get(fields, key)
+        match v
+            case Bool(value):
+                return value
+            case else:
+                return fallback
+        end
+    end
+    return fallback
+end
+
+parse_gid_list(items: list[json.Value]) -> list[int]
+    var out: list[int] = []
+    const n: int = lists.len(items)
+    var i: int = 0
+    while i < n
+        match items[i]
+            case Number(value):
+                lists.push(out, math.round(value))
+            case else:
+                lists.push(out, 0)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+parse_object(val: json.Value) -> TiledObject
+    match val
+        case Object(fields):
+            return TiledObject {
+                id: json_int(fields, "id", 0),
+                name: json_string(fields, "name", ""),
+                type_name: json_string(fields, "type", ""),
+                x: json_number(fields, "x", 0.0),
+                y: json_number(fields, "y", 0.0),
+                width: json_number(fields, "width", 0.0),
+                height: json_number(fields, "height", 0.0),
+                visible: json_bool(fields, "visible", true)
+            }
+        case else:
+            return TiledObject {
+                id: 0,
+                name: "",
+                type_name: "",
+                x: 0.0,
+                y: 0.0,
+                width: 0.0,
+                height: 0.0,
+                visible: false
+            }
+    end
+end
+
+parse_object_items(items: list[json.Value]) -> list[TiledObject]
+    var out: list[TiledObject] = []
+    const n: int = lists.len(items)
+    var i: int = 0
+    while i < n
+        lists.push(out, parse_object(items[i]))
+        i = i + 1
+    end
+    return out
+end
+
+parse_layer(val: json.Value) -> TiledLayer
+    var empty_data: list[int] = []
+    var empty_objs: list[TiledObject] = []
+    match val
+        case Object(fields):
+            const layer_type: string = json_string(fields, "type", "tilelayer")
+            var data: list[int] = empty_data
+            if some(data_v) = maps.try_get(fields, "data")
+                match data_v
+                    case Array(items):
+                        data = parse_gid_list(items)
+                    case else:
+                end
+            end
+            var objects: list[TiledObject] = empty_objs
+            if some(objs_v) = maps.try_get(fields, "objects")
+                match objs_v
+                    case Array(items):
+                        objects = parse_object_items(items)
+                    case else:
+                end
+            end
+            return TiledLayer {
+                name: json_string(fields, "name", ""),
+                layer_type: layer_type,
+                width: json_int(fields, "width", 0),
+                height: json_int(fields, "height", 0),
+                visible: json_bool(fields, "visible", true),
+                opacity: json_number(fields, "opacity", 1.0),
+                data: data,
+                objects: objects
+            }
+        case else:
+            return TiledLayer {
+                name: "",
+                layer_type: "unknown",
+                width: 0,
+                height: 0,
+                visible: false,
+                opacity: 1.0,
+                data: empty_data,
+                objects: empty_objs
+            }
+    end
+end
+
+parse_layer_items(items: list[json.Value]) -> list[TiledLayer]
+    var out: list[TiledLayer] = []
+    const n: int = lists.len(items)
+    var i: int = 0
+    while i < n
+        lists.push(out, parse_layer(items[i]))
+        i = i + 1
+    end
+    return out
+end
+
+-- ── Public API ────────────────────────────────────────────
+
+public parse_map(text: string) -> LoadResult
+    match json.parse(text)
+        case ok(val):
+            match val
+                case Object(fields):
+                    const orientation: string = json_string(fields, "orientation", "orthogonal")
+                    if orientation != "orthogonal" and orientation != ""
+                        return err("only orthogonal maps are supported")
+                    end
+                    var layers: list[TiledLayer] = []
+                    if some(layers_v) = maps.try_get(fields, "layers")
+                        match layers_v
+                            case Array(items):
+                                layers = parse_layer_items(items)
+                            case else:
+                        end
+                    end
+                    const tm: TiledMap = TiledMap {
+                        width: json_int(fields, "width", 0),
+                        height: json_int(fields, "height", 0),
+                        tile_width: json_int(fields, "tilewidth", 16),
+                        tile_height: json_int(fields, "tileheight", 16),
+                        orientation: orientation,
+                        layers: layers
+                    }
+                    if tm.width <= 0 or tm.height <= 0
+                        return err("invalid map size")
+                    end
+                    return ok(tm)
+                case else:
+                    return err("root must be a JSON object")
+            end
+        case err(msg):
+            return err(msg)
+    end
+    return err("parse failed")
+end
+
+public load_map(path: string) -> LoadResult
+    match fs.read_text(path)
+        case ok(text):
+            return parse_map(text)
+        case err(_):
+            return err("failed to read map file")
+    end
+    return err("failed to read map file")
+end
+
+public layer_count(m: TiledMap) -> int
+    return lists.len(m.layers)
+end
+
+public layer_by_name(m: TiledMap, name: string) -> optional[TiledLayer]
+    const n: int = lists.len(m.layers)
+    var i: int = 0
+    while i < n
+        const layer: TiledLayer = m.layers[i]
+        if layer.name == name
+            return some(layer)
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public first_tile_layer(m: TiledMap) -> optional[TiledLayer]
+    const n: int = lists.len(m.layers)
+    var i: int = 0
+    while i < n
+        const layer: TiledLayer = m.layers[i]
+        if layer.layer_type == "tilelayer"
+            return some(layer)
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public first_object_group(m: TiledMap) -> optional[TiledLayer]
+    const n: int = lists.len(m.layers)
+    var i: int = 0
+    while i < n
+        const layer: TiledLayer = m.layers[i]
+        if layer.layer_type == "objectgroup"
+            return some(layer)
+        end
+        i = i + 1
+    end
+    return none
+end
+
+-- Convert a tile layer into game.tilemap.Tilemap (GID as stored by Tiled; 0 = empty).
+public layer_to_tilemap(m: TiledMap, layer: TiledLayer) -> tilemap.Tilemap
+    const tw: float = float(m.tile_width)
+    var tm: tilemap.Tilemap = tilemap.create(layer.width, layer.height, tw)
+    const total: int = layer.width * layer.height
+    const n: int = lists.len(layer.data)
+    var i: int = 0
+    while i < total and i < n
+        const gid: int = layer.data[i]
+        const x: int = i % layer.width
+        const y: int = i / layer.width
+        tm = tilemap.set_tile(tm, x, y, gid)
+        i = i + 1
+    end
+    return tm
+end
+
+public first_layer_to_tilemap(m: TiledMap) -> optional[tilemap.Tilemap]
+    match first_tile_layer(m)
+        case some(layer):
+            return some(layer_to_tilemap(m, layer))
+        case none:
+            return none
+    end
+    return none
+end
+
+-- Pixel rect for a Tiled object (already in pixel coords in Tiled JSON).
+public object_rect(obj: TiledObject) -> shape.Rectangle
+    return shape.rect(obj.x, obj.y, obj.width, obj.height)
+end
+
+public objects_of_type(layer: TiledLayer, type_name: string) -> list[TiledObject]
+    var out: list[TiledObject] = []
+    const n: int = lists.len(layer.objects)
+    var i: int = 0
+    while i < n
+        const o: TiledObject = layer.objects[i]
+        if o.type_name == type_name
+            lists.push(out, o)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- Solid if GID != 0 (simple convention; customize in game code).
+public is_solid_gid(gid: int) -> bool
+    return gid != 0
+end
+
+public struct SolidTile
+    x: float
+    y: float
+    z: float
+    sx: float
+    sy: float
+    sz: float
+    gid: int
+end
+
+-- Map solid GIDs of a tile layer to world boxes (Y-up: layer y → -z floor).
+-- origin_x/z = world origin of map corner (0,0); cell height = sy (default half tile).
+public solid_tiles(
+    m: TiledMap,
+    layer: TiledLayer,
+    origin_x: float,
+    origin_z: float,
+    floor_y: float,
+    wall_height: float
+) -> list[SolidTile]
+    var out: list[SolidTile] = []
+    const tw: float = float(m.tile_width)
+    const th: float = float(m.tile_height)
+    const total: int = layer.width * layer.height
+    const n: int = lists.len(layer.data)
+    var i: int = 0
+    while i < total and i < n
+        const gid: int = layer.data[i]
+        if is_solid_gid(gid)
+            const tx: int = i % layer.width
+            const ty: int = i / layer.width
+            const wx: float = origin_x + float(tx) * tw + tw * 0.5
+            const wz: float = origin_z + float(ty) * th + th * 0.5
+            lists.push(out, SolidTile {
+                x: wx,
+                y: floor_y + wall_height * 0.5,
+                z: wz,
+                sx: tw,
+                sy: wall_height,
+                sz: th,
+                gid: gid
+            })
+        end
+        i = i + 1
+    end
+    return out
+end
+
+public first_layer_solid_tiles(
+    m: TiledMap,
+    origin_x: float,
+    origin_z: float,
+    floor_y: float,
+    wall_height: float
+) -> list[SolidTile]
+    match first_tile_layer(m)
+        case some(layer):
+            return solid_tiles(m, layer, origin_x, origin_z, floor_y, wall_height)
+        case none:
+            var empty: list[SolidTile] = []
+            return empty
+    end
+    var empty2: list[SolidTile] = []
+    return empty2
+end

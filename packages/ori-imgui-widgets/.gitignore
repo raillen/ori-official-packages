@@ -1,0 +1,5 @@
+/lib/**/PURE_ORI.txt
+*.o
+*.so
+*.a
+/target/

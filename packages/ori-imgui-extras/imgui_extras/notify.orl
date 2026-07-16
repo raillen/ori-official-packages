@@ -1,0 +1,137 @@
+module imgui_extras.notify
+
+-- Toast notification queue (headless-safe).
+-- Product UI draws visible messages; tick expires by remaining_milli.
+
+import ori.list = lists
+
+public const KIND_INFO: int = 0
+public const KIND_WARN: int = 1
+public const KIND_ERROR: int = 2
+
+public struct Toast
+    id: int
+    message: string
+    kind: int
+    remaining_milli: int
+end
+
+public struct ToastQueue
+    items: list[Toast]
+    next_id: int
+    default_ttl_milli: int
+    max_visible: int
+end
+
+public create(default_ttl_milli: int, max_visible: int) -> ToastQueue
+    var ttl: int = default_ttl_milli
+    if ttl < 1
+        ttl = 1
+    end
+    var cap: int = max_visible
+    if cap < 1
+        cap = 1
+    end
+    return ToastQueue {
+        items: [],
+        next_id: 1,
+        default_ttl_milli: ttl,
+        max_visible: cap
+    }
+end
+
+push_kind(q: ToastQueue, message: string, kind: int, ttl_milli: int) -> ToastQueue
+    var out: ToastQueue = q
+    var ttl: int = ttl_milli
+    if ttl < 1
+        ttl = out.default_ttl_milli
+    end
+    const toast: Toast = Toast {
+        id: out.next_id,
+        message: message,
+        kind: kind,
+        remaining_milli: ttl
+    }
+    out.next_id = out.next_id + 1
+    lists.push(out.items, toast)
+    while lists.len(out.items) > out.max_visible
+        lists.remove(out.items, 0)
+    end
+    return out
+end
+
+public push_info(q: ToastQueue, message: string) -> ToastQueue
+    return push_kind(q, message, KIND_INFO, q.default_ttl_milli)
+end
+
+public push_warn(q: ToastQueue, message: string) -> ToastQueue
+    return push_kind(q, message, KIND_WARN, q.default_ttl_milli)
+end
+
+public push_error(q: ToastQueue, message: string) -> ToastQueue
+    return push_kind(q, message, KIND_ERROR, q.default_ttl_milli)
+end
+
+public push_with_ttl(q: ToastQueue, message: string, kind: int, ttl_milli: int) -> ToastQueue
+    return push_kind(q, message, kind, ttl_milli)
+end
+
+-- Advance timers; drop expired toasts.
+public tick(q: ToastQueue, delta_milli: int) -> ToastQueue
+    var out: ToastQueue = q
+    var d: int = delta_milli
+    if d < 0
+        d = 0
+    end
+    var kept: list[Toast] = []
+    const n: int = lists.len(out.items)
+    var i: int = 0
+    while i < n
+        var t: Toast = out.items[i]
+        t.remaining_milli = t.remaining_milli - d
+        if t.remaining_milli > 0
+            lists.push(kept, t)
+        end
+        i = i + 1
+    end
+    out.items = kept
+    return out
+end
+
+public clear(q: ToastQueue) -> ToastQueue
+    var out: ToastQueue = q
+    out.items = []
+    return out
+end
+
+public count(q: ToastQueue) -> int
+    return lists.len(q.items)
+end
+
+public message_at(q: ToastQueue, index: int) -> string
+    if index < 0 or index >= lists.len(q.items)
+        return ""
+    end
+    return q.items[index].message
+end
+
+public kind_at(q: ToastQueue, index: int) -> int
+    if index < 0 or index >= lists.len(q.items)
+        return KIND_INFO
+    end
+    return q.items[index].kind
+end
+
+public remaining_at(q: ToastQueue, index: int) -> int
+    if index < 0 or index >= lists.len(q.items)
+        return 0
+    end
+    return q.items[index].remaining_milli
+end
+
+public id_at(q: ToastQueue, index: int) -> int
+    if index < 0 or index >= lists.len(q.items)
+        return 0
+    end
+    return q.items[index].id
+end

@@ -1,0 +1,161 @@
+# audio — Gerenciador de Áudio
+
+Módulo para gerenciamento de áudio (música e efeitos sonoros).
+
+## AudioManager
+
+Gerenciador de áudio.
+
+```ori
+struct AudioManager
+    master_volume: float = 1.0
+    music_volume: float = 0.7
+    sfx_volume: float = 1.0
+    current_music: Music = nil
+    fading: bool = false
+    fade_duration: float = 0.0
+    fade_timer: float = 0.0
+    fade_target: float = 0.0
+end
+```
+
+## Funções
+
+### create_audio_manager
+
+Cria um novo gerenciador de áudio.
+
+```ori
+func create_audio_manager() -> AudioManager
+```
+
+### init_audio
+
+Inicializa o dispositivo de áudio.
+
+```ori
+func init_audio() -> void
+```
+
+### close_audio
+
+Fecha o dispositivo de áudio.
+
+```ori
+func close_audio() -> void
+```
+
+### play_sfx
+
+Toca um efeito sonoro.
+
+```ori
+func play_sfx(mgr: AudioManager, sound: Sound) -> void
+```
+
+### play_music
+
+Toca uma música.
+
+```ori
+func play_music(mgr: AudioManager, music: Music) -> void
+```
+
+### stop_music
+
+Para a música.
+
+```ori
+func stop_music(mgr: AudioManager) -> void
+```
+
+### pause_music
+
+Pausa a música.
+
+```ori
+func pause_music(mgr: AudioManager) -> void
+```
+
+### resume_music
+
+Retoma a música.
+
+```ori
+func resume_music(mgr: AudioManager) -> void
+```
+
+### set_master_volume
+
+Define o volume master.
+
+```ori
+func set_master_volume(mgr: AudioManager, volume: float) -> void
+```
+
+### set_music_volume
+
+Define o volume da música.
+
+```ori
+func set_music_volume(mgr: AudioManager, volume: float) -> void
+```
+
+### set_sfx_volume
+
+Define o volume dos efeitos sonoros.
+
+```ori
+func set_sfx_volume(mgr: AudioManager, volume: float) -> void
+```
+
+### fade_music
+
+Faz fade na música.
+
+```ori
+func fade_music(mgr: AudioManager, target_volume: float, duration: float) -> void
+```
+
+### update_audio
+
+Atualiza o áudio (deve ser chamado no update).
+
+```ori
+func update_audio(mgr: AudioManager, dt: float) -> void
+```
+
+### is_music_playing
+
+Verifica se a música está tocando.
+
+```ori
+func is_music_playing(mgr: AudioManager) -> bool
+```
+
+**Exemplo — Gerenciamento de áudio:**
+```ori
+var mgr = audio.create_audio_manager()
+audio.init_audio()
+
+-- Tocar música
+var music = rl.load_music_stream("music.ogg")
+audio.play_music(mgr, music)
+
+-- Tocar efeito sonoro
+var sfx = rl.load_sound("explosion.wav")
+audio.play_sfx(mgr, sfx)
+
+-- Controle de volume
+audio.set_master_volume(mgr, 0.8)
+audio.set_music_volume(mgr, 0.5)
+
+-- Fade
+audio.fade_music(mgr, 0.0, 2.0)
+
+-- No update:
+audio.update_audio(mgr, dt)
+
+-- Cleanup:
+audio.close_audio()
+```

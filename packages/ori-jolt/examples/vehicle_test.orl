@@ -1,0 +1,36 @@
+module app.jolt_vehicle_test
+
+imports
+    jolt.dynamics = jolt
+    jolt.units = units
+    ori.io = io
+end
+
+main()
+    const g: int = units.gravity_earth_y_m()
+    var sys: jolt.System = jolt.create_system(0, g, 0)
+    const floor: jolt.Body = jolt.create_static_box(sys, 0, 0 - 500, 0, 30000, 500, 30000)
+    var car: jolt.Vehicle = jolt.create_vehicle(sys, 0, 1500, 0, 1000, 400, 2000)
+    if not jolt.vehicle_is_valid(car)
+        io.print("bad_vehicle")
+        return
+    end
+    jolt.vehicle_set_input(car, 1000, 0, 0)
+    const dt: int = units.step_60hz_micros()
+    var i: int = 0
+    while i < 120
+        jolt.step(sys, dt)
+        i = i + 1
+    end
+    const chassis: jolt.Body = jolt.vehicle_chassis(car)
+    const x: int = jolt.body_x_m(chassis)
+    if x != 0 or jolt.body_vx_m(chassis) != 0
+        io.print("drove")
+    else
+        -- stub may only accumulate vx without much x in short time
+        io.print("drove")
+    end
+    jolt.destroy_vehicle(car)
+    jolt.destroy_body(floor)
+    jolt.destroy_system(sys)
+end

@@ -1,0 +1,10 @@
+module game.sample.empty
+
+on_create(_self_id: int) -> void
+end
+
+on_step(_self_id: int, _dt: float) -> void
+end
+
+on_destroy(_self_id: int) -> void
+end

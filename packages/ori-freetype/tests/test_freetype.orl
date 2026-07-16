@@ -1,0 +1,91 @@
+module test.freetype
+
+imports
+    freetype.face = ft
+    freetype.text = text
+    freetype.atlas = atlas
+    ori.test = test
+    ori.os = os
+    ori.list = lists
+end
+
+font_path() -> string
+    return os.env_or("ORI_FT_SMOKE_FONT", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+end
+
+@test
+init_and_face()
+    test.assert(ft.init(), "ft.init")
+    const face: ft.FaceId = ft.new_face(font_path())
+    test.assert(ft.is_valid_face(face), "new_face")
+    test.assert(ft.set_pixel_sizes(face, 0, 32), "set_pixel_sizes")
+    test.assert(ft.num_glyphs(face) > 0, "num_glyphs")
+    test.assert(ft.units_per_em(face) > 0, "units_per_em")
+    ft.done_face(face)
+    ft.done()
+end
+
+@test
+render_latin_a()
+    test.assert(ft.init(), "init")
+    const face: ft.FaceId = ft.new_face(font_path())
+    test.assert(ft.is_valid_face(face), "face")
+    test.assert(ft.set_pixel_sizes(face, 0, 48), "size")
+    test.assert(ft.render_char(face, 65), "render A")
+    test.assert(ft.bitmap_width() > 0, "width")
+    test.assert(ft.bitmap_height() > 0, "height")
+    test.assert(ft.bitmap_ink_sum() > 0, "ink")
+    test.assert(ft.advance_m() > 0, "advance")
+    ft.done_face(face)
+    ft.done()
+end
+
+@test
+face_metrics_and_glyph_index()
+    test.assert(ft.init(), "init")
+    const face: ft.FaceId = ft.new_face(font_path())
+    test.assert(ft.set_pixel_sizes(face, 0, 32), "size")
+    test.assert(ft.height_m(face) > 0, "height_m")
+    test.assert(ft.ascender_m(face) > 0, "ascender")
+    const gi: int = ft.char_index(face, 66)
+    test.assert(gi > 0, "char_index B")
+    test.assert(ft.render_glyph_index(face, gi), "render glyph")
+    test.assert(ft.bitmap_ink_sum() > 0, "ink B")
+    const fm: text.FaceMetrics = text.face_metrics(face)
+    test.assert(fm.height_m > 0, "FaceMetrics")
+    ft.done_face(face)
+    ft.done()
+end
+
+@test
+measure_codepoints_hi()
+    test.assert(ft.init(), "init")
+    const face: ft.FaceId = ft.new_face(font_path())
+    test.assert(ft.set_pixel_sizes(face, 0, 24), "size")
+    const cps: list[int] = [72, 105]
+    const adv: int = text.measure_codepoints_advance_m(face, cps)
+    test.assert(adv > 0, "advance Hi")
+    const gms: list[text.GlyphMetrics] = text.measure_codepoints(face, cps)
+    test.equal_int(lists.len(gms), 2)
+    test.assert(gms[0].glyph_index > 0, "H glyph")
+    ft.done_face(face)
+    ft.done()
+end
+
+@test
+atlas_ascii_pack()
+    test.assert(ft.init(), "init")
+    const face: ft.FaceId = ft.new_face(font_path())
+    test.assert(ft.set_pixel_sizes(face, 0, 32), "size")
+    const n: int = atlas.build_ascii(face, 1)
+    test.assert(n > 20, "ascii glyph count")
+    test.assert(atlas.width() > 0, "atlas w")
+    test.assert(atlas.height() > 0, "atlas h")
+    test.assert(atlas.ink_sum() > 0, "atlas ink")
+    test.assert(atlas.find(65) >= 0, "find A")
+    const g: atlas.GlyphUv = atlas.glyph_for(65)
+    test.assert(g.w > 0, "A width")
+    test.assert(atlas.write_pgm("/tmp/ori_ft_atlas.pgm"), "pgm")
+    ft.done_face(face)
+    ft.done()
+end

@@ -1,0 +1,71 @@
+module app.audio_deepen_demo
+
+-- P2-B: master volume / pitch / pan UI without sample files (API exercise).
+-- Space bumps master volume; 1/2 pitch; 3/4 pan.
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.audio = audio
+    ori.math.vec2 = vec2
+end
+
+var master: float = 0.8
+var pitch: float = 1.0
+var pan: float = 0.5
+var status: string = "audio deepen — no WAV required"
+
+on_update(dt: float) -> void
+    if input.key_pressed(input.KEY_SPACE)
+        master = master + 0.1
+        if master > 1.0
+            master = 0.0
+        end
+        audio.set_master_volume(master)
+        status = "master volume set"
+    end
+    if input.key_pressed(49)
+        pitch = pitch + 0.1
+        if pitch > 2.0
+            pitch = 0.5
+        end
+        status = "pitch (apply to loaded sound id)"
+    end
+    if input.key_pressed(50)
+        pitch = pitch - 0.1
+        if pitch < 0.5
+            pitch = 2.0
+        end
+        status = "pitch down"
+    end
+    if input.key_pressed(51)
+        pan = pan - 0.1
+        if pan < 0.0
+            pan = 1.0
+        end
+        status = "pan left/right cycle"
+    end
+    if input.key_pressed(52)
+        pan = pan + 0.1
+        if pan > 1.0
+            pan = 0.0
+        end
+        status = "pan cycle"
+    end
+end
+
+on_draw() -> void
+    draw.draw_text("Audio deepen (P2-B)", vec2.Vec2 { x: 10.0, y: 10.0 }, 22, color.WHITE)
+    draw.draw_text(status, vec2.Vec2 { x: 10.0, y: 40.0 }, 16, color.LIGHTGRAY)
+    draw.draw_text("Space master · 1/2 pitch · 3/4 pan", vec2.Vec2 { x: 10.0, y: 70.0 }, 14, color.GRAY)
+    draw.draw_text("API: set_master_volume, set_sound_pitch/pan, pause/resume", vec2.Vec2 { x: 10.0, y: 100.0 }, 14, color.DARKGRAY)
+end
+
+main()
+    audio.init()
+    audio.set_master_volume(master)
+    app.run_window("Audio Deepen", 480, 200, on_update, on_draw)
+    audio.close()
+end

@@ -1,0 +1,174 @@
+module imtextedit.buffer
+
+-- Multiline text editor buffer (headless product surface).
+-- Choice: pure Ori buffer + language stub, not C++ ColorTextEdit (pthom).
+-- G1: set/get text, cursor, lines, language id; highlight via imtextedit.lang.
+
+import ori.list = lists
+import ori.string = str
+
+public struct Editor
+    text: string
+    language: int
+    cursor: int
+    read_only: bool
+end
+
+-- Language ids (mirror imtextedit.lang; kept here for single-import buffer use).
+public const LANG_NONE: int = 0
+public const LANG_PLAIN: int = 1
+public const LANG_ORI: int = 2
+public const LANG_C: int = 3
+
+public create() -> Editor
+    return Editor {
+        text: "",
+        language: LANG_PLAIN,
+        cursor: 0,
+        read_only: false
+    }
+end
+
+public create_with_text(text: string) -> Editor
+    return Editor {
+        text: text,
+        language: LANG_PLAIN,
+        cursor: str.len(text),
+        read_only: false
+    }
+end
+
+public set_text(e: Editor, text: string) -> Editor
+    var out: Editor = e
+    if out.read_only
+        return out
+    end
+    out.text = text
+    const n: int = str.len(text)
+    if out.cursor > n
+        out.cursor = n
+    end
+    return out
+end
+
+public text_of(e: Editor) -> string
+    return e.text
+end
+
+public text_nbytes(e: Editor) -> int
+    return str.len(e.text)
+end
+
+public is_empty(e: Editor) -> bool
+    return str.len(e.text) == 0
+end
+
+public clear(e: Editor) -> Editor
+    var out: Editor = e
+    if out.read_only
+        return out
+    end
+    out.text = ""
+    out.cursor = 0
+    return out
+end
+
+public set_language(e: Editor, language: int) -> Editor
+    var out: Editor = e
+    var lang: int = language
+    if lang < LANG_NONE
+        lang = LANG_NONE
+    end
+    if lang > LANG_C
+        lang = LANG_PLAIN
+    end
+    out.language = lang
+    return out
+end
+
+public language_of(e: Editor) -> int
+    return e.language
+end
+
+public set_read_only(e: Editor, read_only: bool) -> Editor
+    var out: Editor = e
+    out.read_only = read_only
+    return out
+end
+
+public is_read_only(e: Editor) -> bool
+    return e.read_only
+end
+
+clamp_cursor(cursor: int, nbytes: int) -> int
+    if cursor < 0
+        return 0
+    end
+    if cursor > nbytes
+        return nbytes
+    end
+    return cursor
+end
+
+public set_cursor(e: Editor, cursor: int) -> Editor
+    var out: Editor = e
+    out.cursor = clamp_cursor(cursor, str.len(out.text))
+    return out
+end
+
+public cursor_of(e: Editor) -> int
+    return e.cursor
+end
+
+public append(e: Editor, chunk: string) -> Editor
+    var out: Editor = e
+    if out.read_only
+        return out
+    end
+    out.text = str.concat(out.text, chunk)
+    out.cursor = str.len(out.text)
+    return out
+end
+
+public insert_at_cursor(e: Editor, chunk: string) -> Editor
+    var out: Editor = e
+    if out.read_only
+        return out
+    end
+    const n: int = str.len(out.text)
+    const c: int = clamp_cursor(out.cursor, n)
+    const left: string = str.slice(out.text, 0, c)
+    const right: string = str.slice(out.text, c, n)
+    out.text = str.concat(str.concat(left, chunk), right)
+    out.cursor = c + str.len(chunk)
+    return out
+end
+
+-- Split on "\n" only (headless line model; no GUI).
+public line_count(e: Editor) -> int
+    if str.len(e.text) == 0
+        return 1
+    end
+    return str.count(e.text, "\n") + 1
+end
+
+public line_at(e: Editor, index: int) -> string
+    const lines: list[string] = str.split(e.text, "\n")
+    const n: int = lists.len(lines)
+    if index < 0
+        return ""
+    end
+    if index >= n
+        return ""
+    end
+    return lines[index]
+end
+
+public lines_of(e: Editor) -> list[string]
+    if str.len(e.text) == 0
+        var empty: list[string] = []
+        lists.push(empty, "")
+        return empty
+    end
+    return str.split(e.text, "\n")
+end

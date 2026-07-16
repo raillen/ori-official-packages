@@ -1,0 +1,149 @@
+module markdown.draw
+
+-- Product draw for markdown.parse using imgui.ui (path-dep ori-imgui).
+-- Call only inside an active ImGui frame. Headless CI uses parse + ime_stub only.
+
+import markdown.parse = md
+import imgui.ui = ui
+import ori.format = fmt
+import ori.string = str
+
+int_text(n: int) -> string
+    return fmt.number(float(n), 0)
+end
+
+heading_prefix(level: int) -> string
+    if level <= 1
+        return "# "
+    end
+    if level == 2
+        return "## "
+    end
+    if level == 3
+        return "### "
+    end
+    if level == 4
+        return "#### "
+    end
+    if level == 5
+        return "##### "
+    end
+    return "###### "
+end
+
+heading_color_r(level: int) -> int
+    if level <= 1
+        return 220
+    end
+    if level == 2
+        return 200
+    end
+    return 180
+end
+
+heading_color_g(level: int) -> int
+    if level <= 1
+        return 220
+    end
+    if level == 2
+        return 210
+    end
+    return 200
+end
+
+heading_color_b(level: int) -> int
+    return 255
+end
+
+draw_heading(b: md.Block) -> void
+    const label: string = str.concat(heading_prefix(b.level), b.text)
+    ui.text_colored(
+        heading_color_r(b.level),
+        heading_color_g(b.level),
+        heading_color_b(b.level),
+        255,
+        label
+    )
+end
+
+draw_code_fence(b: md.Block) -> void
+    var fence_label: string = "```"
+    if str.len(b.lang) > 0
+        fence_label = str.concat(fence_label, b.lang)
+    end
+    ui.text_colored(140, 200, 140, 255, fence_label)
+    if str.len(b.text) == 0
+        ui.text_disabled("(empty code fence)")
+    else
+        ui.text_colored(160, 220, 160, 255, b.text)
+    end
+    ui.text_colored(140, 200, 140, 255, "```")
+end
+
+draw_block(b: md.Block) -> void
+    if b.kind == md.KIND_HEADING
+        draw_heading(b)
+        return
+    end
+    if b.kind == md.KIND_CODE_FENCE
+        draw_code_fence(b)
+        return
+    end
+    if b.kind == md.KIND_PARAGRAPH
+        ui.text(b.text)
+        return
+    end
+end
+
+-- Draw markdown document window; returns updated document. No-op when not open.
+public draw(doc: md.Document) -> md.Document
+    if not md.is_open(doc)
+        return doc
+    end
+    var out: md.Document = doc
+    ui.set_next_window_size(640, 480)
+    if not ui.begin_window(md.title_of(out))
+        return out
+    end
+
+    ui.text(str.concat("blocks: ", int_text(md.block_count(out))))
+    ui.text(str.concat(
+        "headings: ",
+        int_text(md.count_kind(out, md.KIND_HEADING))
+    ))
+    ui.separator()
+
+    if ui.begin_child("markdown_body", 0, 360, true)
+        const n: int = md.block_count(out)
+        var i: int = 0
+        while i < n
+            draw_block(md.block_at(out, i))
+            if i + 1 < n
+                ui.spacing()
+            end
+            i = i + 1
+        end
+        if n == 0
+            ui.text_disabled("(empty document)")
+        end
+        ui.end_child()
+    end
+
+    ui.separator()
+    if ui.button("Close")
+        out = md.close(out)
+    end
+
+    ui.end_window()
+    return out
+end
+
+-- Draw parsed blocks inline (no window chrome). Useful inside host panels.
+public draw_inline(doc: md.Document) -> void
+    const n: int = md.block_count(doc)
+    var i: int = 0
+    while i < n
+        draw_block(md.block_at(doc, i))
+        i = i + 1
+    end
+end

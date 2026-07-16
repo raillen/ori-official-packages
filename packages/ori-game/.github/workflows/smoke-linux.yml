@@ -1,0 +1,145 @@
+# P4 — Linux CI: sample Play + unit tests + studio_shell (when cluster siblings exist).
+#
+# Layout expected for full gate (shell):
+#   <workspace>/ori-game          ← this repo
+#   <workspace>/ori-raylib        ← path-dep (bootstrap stub if missing)
+#   <workspace>/ori-imgui         ← shell (optional job)
+#   … other ECO path-deps as siblings
+#
+# Jobs:
+#   core   — always (sample + unit tests; bootstraps minimal raylib sibling)
+#   shell  — if ori-imgui present as sibling (monorepo / multi-checkout)
+name: smoke-linux
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  ORI_USE_SYSTEM_LINKER: "1"
+  ORI_USE_AOT: "1"
+  ORI_VERSION: "0.3.5"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  core:
+    name: sample + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ori-game
+        uses: actions/checkout@v4
+        with:
+          path: ori-game
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential curl ca-certificates pkg-config
+
+      - name: Install Ori ${{ env.ORI_VERSION }}
+        run: |
+          set -euo pipefail
+          VER="${ORI_VERSION}"
+          ASSET="ori-v${VER}-x86_64-unknown-linux-gnu.tar.gz"
+          URL="https://github.com/raillen/ori-lang/releases/download/v${VER}/${ASSET}"
+          mkdir -p "$HOME/ori-dist"
+          curl -fsSL "$URL" -o "/tmp/${ASSET}"
+          tar -xzf "/tmp/${ASSET}" -C "$HOME/ori-dist"
+          # tarball may unpack to a single directory
+          BIN="$(find "$HOME/ori-dist" -type f -name ori | head -1)"
+          test -n "$BIN"
+          chmod +x "$BIN"
+          echo "$(dirname "$BIN")" >> "$GITHUB_PATH"
+          "$BIN" --version
+
+      - name: Bootstrap path-dep siblings (stubs)
+        working-directory: ori-game
+        run: |
+          set -euo pipefail
+          bash tools/ci/bootstrap_path_deps.sh
+
+      - name: Stage raylib native (stub OK)
+        working-directory: ori-game
+        run: |
+          set -euo pipefail
+          ./tools/setup_raylib_linux.sh --stub
+          ls -la lib/x86_64-unknown-linux-gnu/ || true
+
+      - name: CI smoke (sample + tests, no shell)
+        working-directory: ori-game
+        env:
+          ORI_CI_SHELL: "0"
+          ORI_CI_EXPORT: "1"
+          ORI_CI_QUICK: "0"
+        run: |
+          set -euo pipefail
+          chmod +x tools/smoke_ci_linux.sh tools/smoke_sample_play.sh tools/export_game_package.sh
+          ./tools/smoke_ci_linux.sh
+
+  shell:
+    name: studio_shell
+    runs-on: ubuntu-latest
+    needs: core
+    # Full shell needs monorepo ECO. Enable when siblings are checked out via dispatch
+    # or when this workflow is extended with multi-repo checkouts.
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.ORI_CI_SHELL == '1' }}
+    steps:
+      - name: Checkout ori-game
+        uses: actions/checkout@v4
+        with:
+          path: ori-game
+
+      - name: Checkout ori-imgui
+        uses: actions/checkout@v4
+        with:
+          repository: raillen/ori-imgui
+          path: ori-imgui
+
+      - name: Install build tools + X11 headers
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential curl ca-certificates \
+            libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev \
+            libgl1-mesa-dev pkg-config
+
+      - name: Install Ori ${{ env.ORI_VERSION }}
+        run: |
+          set -euo pipefail
+          VER="${ORI_VERSION}"
+          ASSET="ori-v${VER}-x86_64-unknown-linux-gnu.tar.gz"
+          URL="https://github.com/raillen/ori-lang/releases/download/v${VER}/${ASSET}"
+          mkdir -p "$HOME/ori-dist"
+          curl -fsSL "$URL" -o "/tmp/${ASSET}"
+          tar -xzf "/tmp/${ASSET}" -C "$HOME/ori-dist"
+          BIN="$(find "$HOME/ori-dist" -type f -name ori | head -1)"
+          chmod +x "$BIN"
+          echo "$(dirname "$BIN")" >> "$GITHUB_PATH"
+          "$BIN" --version
+
+      - name: Bootstrap path-deps
+        working-directory: ori-game
+        run: bash tools/ci/bootstrap_path_deps.sh
+
+      - name: Stage raylib
+        working-directory: ori-game
+        run: ./tools/setup_raylib_linux.sh --stub
+
+      - name: Studio shell smoke
+        working-directory: ori-game
+        env:
+          ORI_CI_SHELL: "1"
+          ORI_CI_EXPORT: "0"
+          ORI_CI_QUICK: "1"
+          # no display on GHA runners → smoke accepts compile-only
+        run: |
+          set -euo pipefail
+          chmod +x tools/smoke_ci_linux.sh
+          # Prefer direct shell smoke if present
+          if [[ -f ../ori-imgui/demos/studio_shell/tools/smoke.sh ]]; then
+            chmod +x ../ori-imgui/demos/studio_shell/tools/smoke.sh
+            bash ../ori-imgui/demos/studio_shell/tools/smoke.sh
+          else
+            ./tools/smoke_ci_linux.sh
+          fi

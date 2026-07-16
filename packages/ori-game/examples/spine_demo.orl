@@ -1,0 +1,93 @@
+module app.spine_demo
+
+-- Animated Spine bones (hero_spine.json): Space toggles idle/walk.
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.spine = spine
+    ori.math.vec2 = vec2
+    ori.list = lists
+end
+
+var player: spine.SpinePlayer = spine.create_player(
+    spine.SpineSkeleton {
+        spine_version: "",
+        bones: [],
+        animations: []
+    },
+    0
+)
+var ready: bool = false
+var status: string = "loading..."
+var use_walk: bool = false
+const origin_x: float = 320.0
+const origin_y: float = 300.0
+const scale: float = 2.0
+
+on_update(dt: float) -> void
+    if not ready
+        return
+    end
+    var p: spine.SpinePlayer = player
+    if input.key_pressed(input.KEY_SPACE)
+        use_walk = not use_walk
+        if use_walk
+            p.anim_index = spine.find_animation(p.skeleton, "walk")
+            status = "walk (Space toggles)"
+        else
+            p.anim_index = spine.find_animation(p.skeleton, "idle")
+            status = "idle (Space toggles)"
+        end
+        p.time_ms = 0
+        p.playing = true
+    end
+    player = spine.update_player(p, dt)
+end
+
+on_draw() -> void
+    draw.draw_text(status, vec2.Vec2 { x: 10.0, y: 10.0 }, 16, color.WHITE)
+    if not ready
+        return
+    end
+    var p: spine.SpinePlayer = player
+    const bones: list[spine.SpineWorldBone] = spine.world_bones(p)
+    const n: int = lists.len(bones)
+    const nb: int = spine.bone_count(p.skeleton)
+    var i: int = 0
+    while i < n
+        var b: spine.SpineWorldBone = bones[i]
+        const sx: float = origin_x + b.x * scale
+        const sy: float = origin_y - b.y * scale
+        draw.draw_circle(vec2.Vec2 { x: sx, y: sy }, 5.0, color.ORANGE)
+        var sk: spine.SpineSkeleton = p.skeleton
+        if i < nb
+            var def: spine.SpineBone = sk.bones[i]
+            if def.parent_index >= 0 and def.parent_index < n
+                var parent: spine.SpineWorldBone = bones[def.parent_index]
+                const px: float = origin_x + parent.x * scale
+                const py: float = origin_y - parent.y * scale
+                draw.draw_line(vec2.Vec2 { x: px, y: py }, vec2.Vec2 { x: sx, y: sy }, color.YELLOW)
+            end
+        end
+        i = i + 1
+    end
+    draw.draw_text("spine_demo — timelines (milli-int pose)", vec2.Vec2 { x: 10.0, y: 36.0 }, 14, color.LIGHTGRAY)
+end
+
+main()
+    var names: list[string] = []
+    lists.push(names, "idle")
+    lists.push(names, "walk")
+    match spine.load_skeleton("assets/sprites/hero_spine.json", names)
+        case ok(sk):
+            player = spine.create_player(sk, 0)
+            ready = true
+            status = "idle (Space toggles)"
+        case err(msg):
+            status = msg
+    end
+    app.run_window("Spine Demo", 640, 400, on_update, on_draw)
+end

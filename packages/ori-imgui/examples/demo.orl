@@ -1,0 +1,107 @@
+module app.imgui_demo
+
+imports
+    imgui.ui = ui
+    ori.io = io
+end
+
+var clicks: int = 0
+var muted: bool = false
+var volume: int = 50
+var gain_milli: int = 750
+var progress: int = 0
+var theme: int = 0
+var quit: bool = false
+var selected_row: int = 0
+
+main()
+    if not ui.init(900, 560, "Ori Dear ImGui Tier0")
+        io.print("init_failed")
+        return
+    end
+    ui.input_text_select(0)
+    ui.input_text_set("player")
+    ui.input_text_slot_set(1, "notes go here")
+    while not ui.should_close() and not quit
+        ui.begin_frame()
+        ui.dock_space_over_viewport()
+        if ui.begin_main_menu_bar()
+            if ui.begin_menu("File")
+                if ui.menu_item("Quit")
+                    quit = true
+                end
+                ui.end_menu()
+            end
+            ui.end_main_menu_bar()
+        end
+        ui.set_next_window_size(420, 360)
+        ui.set_next_window_pos(20, 40)
+        if ui.begin_window("Hello from Ori")
+            ui.text("Tier 0: docking + tables + selectable")
+            ui.text_colored(100, 200, 255, 255, "colored line")
+            ui.separator()
+            if ui.button("Click me")
+                clicks = clicks + 1
+            end
+            ui.same_line()
+            if ui.small_button("Reset")
+                clicks = 0
+            end
+            ui.bullet_text("clicks update each press")
+            muted = ui.checkbox("Muted", muted)
+            volume = ui.slider_int("Volume", volume, 0, 100)
+            gain_milli = ui.slider_float_milli("Gain", gain_milli, 0, 2000)
+            progress = ui.drag_int("Progress milli", progress, 0, 1000)
+            ui.progress_bar(progress, "load")
+            theme = ui.combo("Theme", theme, 3, "Dark", "Light", "Classic", "", "", "", "", "")
+            const _name: bool = ui.input_text_slot("Name", 0)
+            const _notes: bool = ui.input_text_multiline("Notes", 1, 60)
+            if ui.begin_child("log", 0, 60, true)
+                ui.text("child region: scrollable log area")
+                ui.end_child()
+            end
+            ui.separator()
+            ui.text("Use File/Quit or close window")
+            ui.end_window()
+        end
+
+        ui.set_next_window_size(360, 280)
+        if ui.begin_window("Entities table")
+            ui.text("ImGui tables (Tier 0)")
+            if ui.begin_table("ents", 3, ui.TABLE_BORDERS + ui.TABLE_ROW_BG)
+                ui.table_setup_column("Id")
+                ui.table_setup_column("Name")
+                ui.table_setup_column("HP")
+                ui.table_headers_row()
+                var row: int = 0
+                while row < 4
+                    ui.table_next_row()
+                    const _c0: bool = ui.table_next_column()
+                    if ui.selectable("row", selected_row == row)
+                        selected_row = row
+                    end
+                    const _c1: bool = ui.table_next_column()
+                    if row == 0
+                        ui.text("player")
+                    end
+                    if row == 1
+                        ui.text("slime")
+                    end
+                    if row == 2
+                        ui.text("chest")
+                    end
+                    if row == 3
+                        ui.text("npc")
+                    end
+                    const _c2: bool = ui.table_next_column()
+                    ui.text("100")
+                    row = row + 1
+                end
+                ui.end_table()
+            end
+            ui.end_window()
+        end
+        ui.end_frame()
+    end
+    ui.shutdown()
+end

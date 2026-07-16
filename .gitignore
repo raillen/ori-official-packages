@@ -1,0 +1,22 @@
+# Build / cache
+**/target/
+**/node_modules/
+**/CMakeFiles/
+**/cmake-build-*/
+**/build/
+**/*.o
+**/*.obj
+**/*.tmp
+**/*.db
+**/.sessions/
+**/var/
+
+# IDE / OS
+.DS_Store
+*.swp
+*~
+imgui.ini
+
+# Never re-introduce huge upstream trees in this monorepo
+**/vendor/
+**/demos/

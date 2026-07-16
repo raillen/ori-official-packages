@@ -1,0 +1,79 @@
+module app.channels_demo
+
+-- Reliable ch0 + unreliable ch1 loopback; verify event_channel on receive.
+
+imports
+    enet.host = enet
+    ori.io = io
+end
+
+const port: int = 27779
+
+main()
+    if not enet.initialize_ok()
+        io.print("init_fail")
+        return
+    end
+    var server: enet.Host = enet.create_server(port, 4, 2)
+    var client: enet.Host = enet.create_client(1, 2)
+    if not enet.is_valid(server) or not enet.is_valid(client)
+        io.print("host_fail")
+        enet.deinitialize()
+        return
+    end
+    var remote: enet.Peer = enet.connect(client, "127.0.0.1", port, 2)
+    if not enet.peer_is_valid(remote)
+        io.print("connect_fail")
+        enet.destroy(client)
+        enet.destroy(server)
+        enet.deinitialize()
+        return
+    end
+
+    var server_peer: enet.Peer = enet.Peer { id: 0 - 1 }
+    var got_rel: bool = false
+    var got_unrel: bool = false
+    var client_ok: bool = false
+    var i: int = 0
+    while i < 500
+        const se: int = enet.service(server, 5)
+        if se == enet.EVENT_CONNECT
+            server_peer = enet.event_peer()
+        end
+        if se == enet.EVENT_RECEIVE
+            const ch: int = enet.event_channel()
+            const msg: string = enet.packet_text()
+            enet.destroy_packet()
+            if ch == enet.CHANNEL_RELIABLE and msg == "rel"
+                got_rel = true
+            end
+            if ch == enet.CHANNEL_UNRELIABLE and msg == "unrel"
+                got_unrel = true
+            end
+        end
+
+        const ce: int = enet.service(client, 5)
+        if ce == enet.EVENT_CONNECT
+            client_ok = true
+            enet.send_reliable(remote, "rel")
+            enet.send_unreliable(remote, "unrel")
+            enet.flush(client)
+        end
+
+        if client_ok and got_rel and got_unrel
+            break
+        end
+        i = i + 1
+    end
+
+    enet.disconnect_now(remote)
+    enet.destroy(client)
+    enet.destroy(server)
+    enet.deinitialize()
+
+    if client_ok and got_rel and got_unrel
+        io.print("ok")
+        return
+    end
+    io.print("fail")
+end

@@ -1,0 +1,46 @@
+module game.asset_loader
+
+import game.assets = assets
+import ori.mem = mem
+import raylib = rl
+
+public load_texture(cache: assets.AssetCache, path: string) -> assets.AssetCache
+    return load_texture_as(cache, path, path)
+end
+
+-- Load from `file_path` but cache under logical `key` (e.g. pack entry name).
+public load_texture_as(cache: assets.AssetCache, key: string, file_path: string) -> assets.AssetCache
+    if assets.has_texture(cache, key)
+        return cache
+    end
+    const id: int = rl.ori_rl_LoadTexture(mem.string_as_ptr(file_path))
+    return assets.remember_texture(cache, key, id)
+end
+
+public load_sound(cache: assets.AssetCache, path: string) -> assets.AssetCache
+    return load_sound_as(cache, path, path)
+end
+
+public load_sound_as(cache: assets.AssetCache, key: string, file_path: string) -> assets.AssetCache
+    if assets.has_sound(cache, key)
+        return cache
+    end
+    const id: int = rl.ori_rl_LoadSound(mem.string_as_ptr(file_path))
+    return assets.remember_sound(cache, key, id)
+end
+
+public unload_all(cache: assets.AssetCache) -> assets.AssetCache
+    const tn: int = assets.texture_count(cache)
+    var i: int = 0
+    while i < tn
+        rl.ori_rl_UnloadTexture(assets.texture_id_at(cache, i))
+        i = i + 1
+    end
+    const sn: int = assets.sound_count(cache)
+    var j: int = 0
+    while j < sn
+        rl.ori_rl_UnloadSound(assets.sound_id_at(cache, j))
+        j = j + 1
+    end
+    return assets.clear(cache)
+end

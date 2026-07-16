@@ -1,0 +1,98 @@
+module app.imgui_tier1
+
+-- Tier 1: file browser, inspector, plot, simple nodes.
+
+imports
+    imgui.ui = ui
+    imgui.file_browser = browser
+    imgui.inspector = insp
+    imgui.plot = plot
+    imgui.nodes = nodes
+    ori.io = io
+end
+
+var quit: bool = false
+var fb: browser.Browser = browser.create(".", "orl")
+var hp: insp.IntField = insp.int_field("HP", 100, 0, 200)
+var speed: insp.MilliField = insp.milli_field("Speed", 1500, 0, 5000)
+var flying: insp.BoolField = insp.bool_field("Flying", false)
+var graph: nodes.Graph = nodes.create()
+var t: int = 0
+var opened_path: string = ""
+
+main()
+    graph = nodes.add_node(graph, 1, "Start", 40, 40)
+    graph = nodes.add_node(graph, 2, "Process", 220, 80)
+    graph = nodes.add_node(graph, 3, "End", 400, 40)
+    graph = nodes.add_link(graph, 1, 2)
+    graph = nodes.add_link(graph, 2, 3)
+
+    if not ui.init(1000, 640, "Ori ImGui Tier 1")
+        io.print("init_failed")
+        return
+    end
+
+    while not ui.should_close() and not quit
+        ui.begin_frame()
+        ui.dock_space_over_viewport()
+
+        if ui.begin_main_menu_bar()
+            if ui.begin_menu("File")
+                if ui.menu_item("Open…")
+                    fb = browser.open(fb)
+                end
+                if ui.menu_item("Quit")
+                    quit = true
+                end
+                ui.end_menu()
+            end
+            ui.end_main_menu_bar()
+        end
+
+        if browser.is_open(fb)
+            fb = browser.draw(fb, "Open file")
+            var fb_now: browser.Browser = fb
+            if fb_now.confirmed
+                opened_path = browser.selected_path(fb_now)
+                fb = browser.take_confirmed(fb_now)
+            end
+        end
+
+        if insp.begin_panel("Inspector")
+            if insp.section("Entity")
+                hp = insp.draw_int(hp)
+                speed = insp.draw_milli(speed)
+                flying = insp.draw_bool(flying)
+            end
+            if opened_path != ""
+                insp.label_value("File", opened_path)
+            end
+            insp.end_panel()
+        end
+
+        if ui.begin_window("Plot")
+            t = t + 1
+            if t > 628
+                t = 0
+            end
+            -- push a simple wave using milli samples (approx sin via table-free triangle)
+            var sample: int = t * 10
+            if sample > 3140
+                sample = 6280 - sample
+            end
+            plot.push(sample)
+            plot.lines("signal", 0, 3200)
+            ui.end_window()
+        end
+
+        if ui.begin_window("Node graph")
+            ui.text("Drag nodes (simple canvas, not imnodes)")
+            graph = nodes.draw(graph, 560, 280)
+            ui.text("selected id updates on click")
+            ui.end_window()
+        end
+
+        ui.end_frame()
+    end
+    ui.shutdown()
+end

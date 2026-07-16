@@ -1,0 +1,194 @@
+module app.game
+
+import ori.mem
+import ori.list = lists
+import ori.random = rng
+import ori.math = math
+
+extern c
+    InitWindow(width: int, height: int, title: int) -> void
+    CloseWindow() -> void
+    WindowShouldClose() -> bool
+    SetTargetFPS(fps: int) -> void
+    GetFrameTime() -> float
+    BeginDrawing() -> void
+    EndDrawing() -> void
+    ClearBackground(r: int, g: int, b: int, a: int) -> void
+    DrawRectangleRec(x: float, y: float, w: float, h: float, r: int, g: int, b: int, a: int) -> void
+    DrawCircleV(x: float, y: float, radius: float, r: int, g: int, b: int, a: int) -> void
+    DrawText(text: int, x: int, y: int, size: int, r: int, g: int, b: int, a: int) -> void
+    IsKeyDown(key: int) -> bool
+end
+
+struct Player
+    x: float
+    y: float
+    speed: float
+    size: float
+end
+
+struct Enemy
+    x: float
+    y: float
+    speed: float
+    size: float
+    alive: bool
+end
+
+struct Bullet
+    x: float
+    y: float
+    speed: float
+    alive: bool
+end
+
+main()
+    var player: Player = Player(x: 400.0, y: 500.0, speed: 300.0, size: 16.0)
+    var enemies: list[Enemy] = []
+    var bullets: list[Bullet] = []
+    var score: int = 0
+    var shoot_cooldown: float = 0.0
+    var spawn_timer: float = 0.0
+
+    var title_ptr: int = mem.string_as_ptr("Ori Space Shooter")
+    InitWindow(800, 600, title_ptr)
+    SetTargetFPS(60)
+
+    while not WindowShouldClose()
+        var dt: float = GetFrameTime()
+
+        -- Player movement
+        if IsKeyDown(65)
+            player.x = player.x - player.speed * dt
+        end
+        if IsKeyDown(68)
+            player.x = player.x + player.speed * dt
+        end
+        if IsKeyDown(87)
+            player.y = player.y - player.speed * dt
+        end
+        if IsKeyDown(83)
+            player.y = player.y + player.speed * dt
+        end
+
+        -- Clamp player
+        if player.x < 16.0
+            player.x = 16.0
+        end
+        if player.x > 784.0
+            player.x = 784.0
+        end
+        if player.y < 16.0
+            player.y = 16.0
+        end
+        if player.y > 584.0
+            player.y = 584.0
+        end
+
+        -- Shooting
+        shoot_cooldown = shoot_cooldown - dt
+        if IsKeyDown(32) and shoot_cooldown <= 0.0
+            lists.push(bullets, Bullet(x: player.x, y: player.y - 16.0, speed: 500.0, alive: true))
+            shoot_cooldown = 0.15
+        end
+
+        -- Update bullets and check collisions
+        var new_bullets: list[Bullet] = []
+        var new_enemies: list[Enemy] = []
+        var i: int = 0
+        var j: int = 0
+
+        -- First update enemies
+        i = 0
+        while i < lists.len(enemies)
+            var e: Enemy = enemies[i]
+            var new_y: float = e.y + e.speed * dt
+            if new_y < 620.0
+                lists.push(new_enemies, Enemy(x: e.x, y: new_y, speed: e.speed, size: e.size, alive: true))
+            end
+            i = i + 1
+        end
+        enemies = new_enemies
+
+        -- Spawn enemies
+        spawn_timer = spawn_timer + dt
+        if spawn_timer >= 1.0
+            spawn_timer = 0.0
+            lists.push(enemies, Enemy(
+                x: rng.float(50.0, 750.0),
+                y: -20.0,
+                speed: rng.float(80.0, 150.0),
+                size: 14.0,
+                alive: true
+            ))
+        end
+
+        -- Update bullets and check collision with enemies
+        i = 0
+        while i < lists.len(bullets)
+            var b: Bullet = bullets[i]
+            var new_b_y: float = b.y - b.speed * dt
+            var b_alive: bool = new_b_y > -10.0
+
+            if b_alive
+                j = 0
+                while j < lists.len(enemies)
+                    var e: Enemy = enemies[j]
+                    if e.alive
+                        var dx: float = b.x - e.x
+                        var dy: float = new_b_y - e.y
+                        var dist: float = math.sqrt(dx * dx + dy * dy)
+                        if dist < e.size + 4.0
+                            b_alive = false
+                            enemies[j] = Enemy(x: e.x, y: e.y, speed: e.speed, size: e.size, alive: false)
+                            score = score + 100
+                        end
+                    end
+                    j = j + 1
+                end
+            end
+
+            if b_alive
+                lists.push(new_bullets, Bullet(x: b.x, y: new_b_y, speed: b.speed, alive: true))
+            end
+            i = i + 1
+        end
+        bullets = new_bullets
+
+        -- Draw
+        BeginDrawing()
+        ClearBackground(10, 10, 30, 255)
+
+        -- Draw player
+        DrawCircleV(player.x, player.y, player.size, 0, 255, 100, 255)
+
+        -- Draw bullets
+        i = 0
+        while i < lists.len(bullets)
+            var b: Bullet = bullets[i]
+            DrawRectangleRec(b.x - 2.0, b.y, 4.0, 12.0, 255, 255, 0, 255)
+            i = i + 1
+        end
+
+        -- Draw enemies
+        i = 0
+        while i < lists.len(enemies)
+            var e: Enemy = enemies[i]
+            if e.alive
+                DrawCircleV(e.x, e.y, e.size, 255, 50, 50, 255)
+            end
+            i = i + 1
+        end
+
+        -- Draw HUD
+        var score_ptr: int = mem.string_as_ptr("Score: " + string(score))
+        DrawText(score_ptr, 10, 10, 20, 255, 255, 255, 255)
+
+        var help_ptr: int = mem.string_as_ptr("WASD: Move | Space: Shoot")
+        DrawText(help_ptr, 10, 570, 16, 150, 150, 150, 255)
+
+        EndDrawing()
+    end
+
+    CloseWindow()
+end

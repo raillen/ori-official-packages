@@ -1,0 +1,8 @@
+[package]
+name = "imnodes"
+version = "0.2.0"
+entry = "imnodes/editor.orl"
+ori_version = "0.3.0"
+description = "imnodes node editor for Ori"
+license = "MIT"
+native_libs = ["ori_imnodes_shim"]

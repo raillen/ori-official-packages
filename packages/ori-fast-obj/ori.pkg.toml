@@ -1,0 +1,8 @@
+[package]
+name = "fast_obj"
+version = "0.2.0"
+entry = "fast_obj/mesh.orl"
+ori_version = "0.3.0"
+description = "fast_obj Wavefront OBJ loader for Ori"
+license = "MIT"
+native_libs = ["ori_fast_obj_shim"]

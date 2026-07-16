@@ -1,0 +1,120 @@
+module miniz.deflate
+
+import ori.mem = mem
+
+extern c
+    public ori_mz_compress(src_ptr: int, src_nbytes: int, level: int) -> int
+    public ori_mz_compress_cstr(text_ptr: int, level: int) -> int
+    public ori_mz_uncompress(src_ptr: int, src_nbytes: int, max_out: int) -> int
+    public ori_mz_out_len() -> int
+    public ori_mz_out_ptr() -> int
+    public ori_mz_src_len() -> int
+    public ori_mz_out_byte(i: int) -> int
+    public ori_mz_out_sum() -> int
+    public ori_mz_uncompress_last_as_cstr() -> int
+    public ori_mz_cstr_ptr() -> int
+    public ori_mz_crc32(ptr: int, nbytes: int) -> int
+    public ori_mz_crc32_cstr(text_ptr: int) -> int
+    public ori_mz_zip_create_one(name_ptr: int, data_ptr: int, data_nbytes: int, level: int) -> int
+    public ori_mz_zip_create_one_cstr(name_ptr: int, text_ptr: int, level: int) -> int
+    public ori_mz_zip_extract_one(zip_ptr: int, zip_nbytes: int, name_ptr: int) -> int
+    public ori_mz_zip_extract_last(name_ptr: int) -> int
+end
+
+-- Compress raw buffer at src_ptr. Returns compressed length (<0 fail).
+public compress(src_ptr: int, src_nbytes: int, level: int) -> int
+    return ori_mz_compress(src_ptr, src_nbytes, level)
+end
+
+-- Compress UTF-8 text; returns compressed byte length (<0 fail).
+public compress_text(text: string, level: int) -> int
+    return ori_mz_compress_cstr(mem.string_as_ptr(text), level)
+end
+
+-- Decompress buffer at src_ptr. max_out 0 = internal capacity. Returns plain length.
+public decompress(src_ptr: int, src_nbytes: int, max_out: int) -> int
+    return ori_mz_uncompress(src_ptr, src_nbytes, max_out)
+end
+
+public out_len() -> int
+    return ori_mz_out_len()
+end
+
+public out_ptr() -> int
+    return ori_mz_out_ptr()
+end
+
+public out_byte(i: int) -> int
+    return ori_mz_out_byte(i)
+end
+
+public out_sum() -> int
+    return ori_mz_out_sum()
+end
+
+public last_src_len() -> int
+    return ori_mz_src_len()
+end
+
+-- Decompress last compress buffer into internal C string (smoke).
+public uncompress_last_text() -> bool
+    const n: int = ori_mz_out_len()
+    const p: int = ori_mz_out_ptr()
+    if n <= 0
+        return false
+    end
+    const raw: int = ori_mz_uncompress(p, n, 0)
+    if raw < 0
+        return false
+    end
+    return ori_mz_uncompress_last_as_cstr() == 0
+end
+
+-- Round-trip compress then uncompress; returns plain byte length.
+public roundtrip_len(text: string) -> int
+    const clen: int = compress_text(text, 6)
+    if clen <= 0
+        return -1
+    end
+    const p: int = out_ptr()
+    const ulen: int = ori_mz_uncompress(p, clen, 0)
+    return ulen
+end
+
+public crc32_text(text: string) -> int
+    return ori_mz_crc32_cstr(mem.string_as_ptr(text))
+end
+
+public crc32(ptr: int, nbytes: int) -> int
+    return ori_mz_crc32(ptr, nbytes)
+end
+
+-- Create an in-memory ZIP with a single named entry from UTF-8 text.
+-- Returns archive byte length in g_out (<0 fail).
+public zip_create_entry(name: string, text: string, level: int) -> int
+    return ori_mz_zip_create_one_cstr(
+        mem.string_as_ptr(name),
+        mem.string_as_ptr(text),
+        level
+    )
+end
+
+-- Extract named entry from last zip_create_entry archive into g_out.
+-- Returns uncompressed length (<0 fail).
+public zip_extract_last(name: string) -> int
+    return ori_mz_zip_extract_last(mem.string_as_ptr(name))
+end
+
+-- Extract named entry from ZIP buffer at zip_ptr.
+public zip_extract(zip_ptr: int, zip_nbytes: int, name: string) -> int
+    return ori_mz_zip_extract_one(zip_ptr, zip_nbytes, mem.string_as_ptr(name))
+end
+
+-- Create ZIP + extract same entry; returns plain length (must equal text length).
+public zip_roundtrip_len(name: string, text: string) -> int
+    const zlen: int = zip_create_entry(name, text, 6)
+    if zlen <= 0
+        return -1
+    end
+    return zip_extract_last(name)
+end

@@ -1,0 +1,82 @@
+module test.imguidialog
+
+imports
+    imguidialog.dialog = dlg
+    ori.test = test
+end
+
+@test
+open_confirm_path_result()
+    var d: dlg.Dialog = dlg.create_open("Open", "/tmp", "txt")
+    d = dlg.open_ui(d)
+    test.assert(dlg.is_open(d), "open")
+    test.assert(not dlg.is_confirmed(d), "not conf")
+    d = dlg.confirm_path_for_test(d, "/tmp/hello.txt")
+    test.assert(dlg.is_confirmed(d), "conf")
+    test.assert(not dlg.is_open(d), "closed")
+    test.assert(not dlg.is_cancelled(d), "not cancel")
+    test.equal_text(dlg.result_path_of(d), "/tmp/hello.txt")
+    test.equal_text(dlg.filename_of(d), "hello.txt")
+end
+
+@test
+filter_extension_and_multi()
+    test.assert(dlg.matches_filter("a.orl", "orl"), "orl")
+    test.assert(dlg.matches_filter("a.orl", ".orl"), "dot orl")
+    test.assert(not dlg.matches_filter("a.txt", "orl"), "reject txt")
+    test.assert(dlg.matches_filter("b.txt", "orl;txt"), "multi semi")
+    test.assert(dlg.matches_filter("c.orl", "txt,orl"), "multi comma")
+    test.assert(dlg.matches_filter("any.bin", ""), "empty all")
+    test.assert(not dlg.matches_filter("", "orl"), "empty name")
+
+    var d: dlg.Dialog = dlg.create_open("O", "/tmp", "orl")
+    d = dlg.open_ui(d)
+    d = dlg.set_filename(d, "x.txt")
+    d = dlg.confirm(d)
+    test.assert(not dlg.is_confirmed(d), "filter blocks confirm")
+    test.assert(dlg.is_open(d), "stays open")
+
+    d = dlg.set_filename(d, "x.orl")
+    d = dlg.confirm(d)
+    test.assert(dlg.is_confirmed(d), "filter allows")
+    test.equal_text(dlg.result_path_of(d), "/tmp/x.orl")
+end
+
+@test
+cancel_clears_path()
+    var d: dlg.Dialog = dlg.create_open("Open", "/home", "")
+    d = dlg.open_ui(d)
+    d = dlg.confirm_path_for_test(d, "/home/will_cancel.txt")
+    test.assert(dlg.is_confirmed(d), "primed")
+    -- reopen then cancel
+    d = dlg.open_ui(d)
+    d = dlg.cancel_for_test(d)
+    test.assert(dlg.is_cancelled(d), "cancelled")
+    test.assert(not dlg.is_confirmed(d), "not conf")
+    test.assert(not dlg.is_open(d), "closed")
+    test.equal_text(dlg.result_path_of(d), "")
+end
+
+@test
+save_default_name_and_confirm()
+    var d: dlg.Dialog = dlg.create_save("Save As", "/var/tmp", "scene.orl", "orl")
+    test.equal_int(dlg.mode_of(d), dlg.MODE_SAVE)
+    d = dlg.open_ui(d)
+    test.equal_text(dlg.filename_of(d), "scene.orl")
+    d = dlg.confirm(d)
+    test.assert(dlg.is_confirmed(d), "save conf")
+    test.equal_text(dlg.result_path_of(d), "/var/tmp/scene.orl")
+    d = dlg.take_result(d)
+    test.assert(not dlg.is_confirmed(d), "taken")
+    test.equal_text(dlg.result_path_of(d), "")
+end
+
+@test
+empty_test_path_is_cancel()
+    var d: dlg.Dialog = dlg.create_open("O", "/tmp", "")
+    d = dlg.open_ui(d)
+    d = dlg.confirm_path_for_test(d, "")
+    test.assert(dlg.is_cancelled(d), "empty cancel")
+    test.assert(not dlg.is_confirmed(d), "not conf")
+    test.equal_text(dlg.result_path_of(d), "")
+end

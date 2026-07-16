@@ -1,0 +1,9 @@
+# Vendored upstream clones (fetched by tools/, not committed)
+vendor/
+# Built static libs per-triple (staged by build scripts)
+lib/x86_64-*/
+lib/aarch64-*/
+# ImGui runtime layout state
+imgui.ini
+*.o
+*.a

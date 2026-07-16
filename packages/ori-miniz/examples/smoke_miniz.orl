@@ -1,0 +1,34 @@
+module app.smoke_miniz
+
+imports
+    miniz.deflate = mz
+    ori.io = io
+end
+
+main()
+    const clen: int = mz.compress_text("hello-ori-miniz", 6)
+    if clen <= 0
+        io.println("compress_fail")
+        return
+    end
+    const ulen: int = mz.roundtrip_len("hello-ori-miniz")
+    if ulen != 15
+        io.println("roundtrip_fail")
+        return
+    end
+    if mz.crc32_text("abc") == 0
+        io.println("crc_fail")
+        return
+    end
+    const zlen: int = mz.zip_create_entry("e.txt", "zip-one", 6)
+    if zlen <= 0
+        io.println("zip_create_fail")
+        return
+    end
+    const zplain: int = mz.zip_extract_last("e.txt")
+    if zplain != 7
+        io.println("zip_extract_fail")
+        return
+    end
+    io.println("ok")
+end

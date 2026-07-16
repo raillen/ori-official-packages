@@ -1,0 +1,11 @@
+[package]
+name = "imgui_extras"
+version = "0.1.0"
+entry = "imgui_extras/notify.orl"
+ori_version = "0.3.0"
+description = "ImGui UX extras for Ori: toast notify, search filter, hotkey capture, command palette, metrics (pure Ori)"
+license = "MIT"
+# Pure Ori state machines — no native shim. Product draw path-deps sibling ori-imgui.
+
+[dependencies]
+imgui = { path = "../ori-imgui", version = "0.5.1" }

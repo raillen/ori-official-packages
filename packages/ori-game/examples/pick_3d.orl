@@ -1,0 +1,64 @@
+module app.pick_3d
+
+-- R3 demo: mouse ray hits a sphere; highlight on hit (stub always hits).
+
+imports
+    game.app = app
+    game.draw = draw
+    game.draw3d = draw3d
+    game.camera3d = cam3
+    game.ray3d = ray3
+    game.color = color
+    game.input = input
+    ori.math.vec2 = vec2
+    ori.math.vec3 = vec3
+end
+
+var cam: cam3.Camera3D = cam3.create_perspective(
+    vec3.Vec3 { x: 5.0, y: 4.0, z: 5.0 },
+    vec3.Vec3 { x: 0.0, y: 0.5, z: 0.0 },
+    45.0
+)
+
+var hit_active: bool = false
+var hit_point: vec3.Vec3 = vec3.Vec3 { x: 0.0, y: 0.5, z: 0.0 }
+
+on_update(_dt: float) -> void
+    const mouse: vec2.Vec2 = input.mouse_pos()
+    const ray: ray3.Ray3 = ray3.mouse_ray(mouse, cam)
+    const sphere_c: vec3.Vec3 = vec3.Vec3 { x: 0.0, y: 0.5, z: 0.0 }
+    if ray3.hit_sphere(ray, sphere_c, 0.6)
+        hit_active = true
+        const h: ray3.Hit3 = ray3.last_hit()
+        hit_point = h.point
+    else
+        hit_active = false
+    end
+end
+
+on_draw() -> void
+    cam3.begin_mode(cam)
+    draw3d.draw_grid(10, 1.0)
+    if hit_active
+        draw3d.draw_sphere(vec3.Vec3 { x: 0.0, y: 0.5, z: 0.0 }, 0.6, color.YELLOW)
+        draw3d.draw_sphere(hit_point, 0.08, color.RED)
+    else
+        draw3d.draw_sphere(vec3.Vec3 { x: 0.0, y: 0.5, z: 0.0 }, 0.6, color.BLUE)
+    end
+    ray3.draw_bounding_box(
+        vec3.Vec3 { x: -0.6, y: -0.1, z: -0.6 },
+        vec3.Vec3 { x: 0.6, y: 1.1, z: 0.6 },
+        color.WHITE
+    )
+    cam3.end_mode()
+    draw.draw_text(
+        "pick_3d — mouse ray vs sphere",
+        vec2.Vec2 { x: 10.0, y: 10.0 },
+        18,
+        color.WHITE
+    )
+end
+
+main()
+    app.run_window("Pick 3D", 800, 450, on_update, on_draw)
+end

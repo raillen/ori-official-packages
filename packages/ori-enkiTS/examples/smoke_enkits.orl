@@ -1,0 +1,70 @@
+module app.smoke_enkits
+
+imports
+    enkits.tasks = enki
+    ori.io = io
+end
+
+main()
+    -- ≥2 total threads (workers + main) for multi-core smoke.
+    if not enki.init(4)
+        io.println("init_fail")
+        return
+    end
+    if enki.num_threads() < 2
+        io.println("threads_fail")
+        enki.shutdown()
+        return
+    end
+
+    const n: int = 2000
+    const p: int = enki.parallel_for_sum(n, 32)
+    const s: int = enki.serial_sum(n)
+    if p != s
+        io.println("parallel_for_fail")
+        enki.shutdown()
+        return
+    end
+
+    -- Explicit add task + wait path.
+    if not enki.add_range_sum(n, 16)
+        io.println("add_fail")
+        enki.shutdown()
+        return
+    end
+    enki.wait_scheduled_range()
+    if enki.last_sum() != s
+        io.println("add_wait_fail")
+        enki.shutdown()
+        return
+    end
+    if not enki.is_range_complete()
+        io.println("complete_fail")
+        enki.shutdown()
+        return
+    end
+
+    -- N independent tasks.
+    const nt: int = 128
+    const ts: int = enki.run_n_tasks(nt)
+    if ts != enki.serial_sum(nt)
+        io.println("n_tasks_fail")
+        enki.shutdown()
+        return
+    end
+    if enki.tasks_completed() != nt
+        io.println("completed_fail")
+        enki.shutdown()
+        return
+    end
+
+    enki.wait_all()
+    enki.shutdown()
+    if enki.is_initialized()
+        io.println("shutdown_fail")
+        return
+    end
+    -- Clean double-shutdown.
+    enki.shutdown()
+    io.println("ok")
+end

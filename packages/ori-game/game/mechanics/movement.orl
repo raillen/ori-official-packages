@@ -1,0 +1,11 @@
+module game.mechanics.movement
+
+import ori.math.vec2 = vec2
+
+public apply_axis(vel: vec2.Vec2, axis_x: float, speed: float) -> vec2.Vec2
+    return vec2.Vec2 { x: axis_x * speed, y: vel.y }
+end
+
+public integrate(pos: vec2.Vec2, vel: vec2.Vec2, dt: float) -> vec2.Vec2
+    return vec2.Vec2 { x: pos.x + vel.x * dt, y: pos.y + vel.y * dt }
+end

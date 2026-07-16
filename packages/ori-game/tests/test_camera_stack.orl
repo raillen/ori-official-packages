@@ -1,0 +1,86 @@
+module test.camera_stack
+
+imports
+    game.camera_stack = cstack
+    ori.math.vec3 = vec3
+    ori.test = test
+end
+
+@test
+default_stack_has_presets()
+    const s: cstack.CamStack = cstack.default_play_stack()
+    test.assert(cstack.count(s) >= 3, "at least chase/high/side")
+    test.equal_int(cstack.active_index(s), 0)
+    test.assert(cstack.active_id(s) == "chase", "default chase")
+end
+
+@test
+next_prev_cycles()
+    var s: cstack.CamStack = cstack.default_play_stack()
+    const n: int = cstack.count(s)
+    s = cstack.next_cam(s)
+    test.equal_int(cstack.active_index(s), 1)
+    s = cstack.prev_cam(s)
+    test.equal_int(cstack.active_index(s), 0)
+    s = cstack.prev_cam(s)
+    test.equal_int(cstack.active_index(s), n - 1)
+    s = cstack.next_cam(s)
+    test.equal_int(cstack.active_index(s), 0)
+end
+
+@test
+set_active_by_name()
+    var s: cstack.CamStack = cstack.default_play_stack()
+    s = cstack.set_active_by_name(s, "Side")
+    test.assert(cstack.active_id(s) == "side", "side by name")
+    s = cstack.set_active_by_id(s, "high")
+    test.assert(cstack.active_name(s) == "High", "high by id")
+end
+
+@test
+resolve_follow_pose()
+    const s: cstack.CamStack = cstack.default_play_stack()
+    const target: vec3.Vec3 = vec3.Vec3 { x: 10.0, y: 0.0, z: 5.0 }
+    const pose: cstack.CamPose = cstack.resolve_pose(s, target)
+    -- chase offset 40,35,64 on target 10,0,5
+    test.assert(pose.position.x > 40.0, "follow x")
+    test.assert(pose.position.y > 30.0, "follow y")
+    test.assert(pose.position.z > 60.0, "follow z")
+    test.assert(pose.target.y == 8.0, "look height")
+end
+
+@test
+resolve_fixed_pose()
+    var s: cstack.CamStack = cstack.default_play_stack()
+    s = cstack.set_active_by_id(s, "overview")
+    const pose: cstack.CamPose = cstack.resolve_pose(
+        s,
+        vec3.Vec3 { x: 99.0, y: 0.0, z: 99.0 }
+    )
+    test.assert(pose.position.y > 100.0, "fixed overview height")
+    test.assert(pose.target.z == 24.0, "fixed look z")
+end
+
+@test
+nudge_follow_offset()
+    var s: cstack.CamStack = cstack.default_play_stack()
+    s = cstack.nudge_active_offset(s, 10.0, 0.0, 0.0)
+    const off: vec3.Vec3 = cstack.offset_of_active(s)
+    test.assert(off.x >= 49.0, "nudged chase x")
+end
+
+@test
+hud_line_nonempty()
+    const s: cstack.CamStack = cstack.default_play_stack()
+    const line: string = cstack.hud_line(s)
+    test.assert(line != "", "hud")
+    test.assert(cstack.kind_label(cstack.KIND_FOLLOW) == "follow", "label")
+end
+
+@test
+push_custom_slot()
+    var s: cstack.CamStack = cstack.empty_stack()
+    s = cstack.push(s, cstack.make_follow("a", "A", 1.0, 2.0, 3.0, 4.0, 45.0))
+    test.equal_int(cstack.count(s), 1)
+    test.assert(cstack.active_name(s) == "A", "only slot")
+end

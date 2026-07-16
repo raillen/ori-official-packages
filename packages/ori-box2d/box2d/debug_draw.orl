@@ -1,0 +1,139 @@
+module box2d.debug_draw
+
+-- 2D physics debug draw via `game.draw` (raylib). Path-dep `ori_game`.
+-- Bodies store no shape size; pass half-extents / radius in meters at draw time.
+
+import box2d.dynamics = b2
+import box2d.units = units
+import game.draw = draw
+import game.color = color
+import game.shape = shape
+import ori.math.vec2 = vec2
+import ori.math = math
+
+public struct View2D
+    origin_x: float
+    origin_y: float
+    pixels_per_meter: float
+end
+
+public view(origin_x: float, origin_y: float, pixels_per_meter: float) -> View2D
+    return View2D {
+        origin_x: origin_x,
+        origin_y: origin_y,
+        pixels_per_meter: pixels_per_meter
+    }
+end
+
+public to_screen(v: View2D, x_m: int, y_m: int) -> vec2.Vec2
+    return vec2.Vec2 {
+        x: v.origin_x + units.milli_to_meters(x_m) * v.pixels_per_meter,
+        y: v.origin_y + units.milli_to_meters(y_m) * v.pixels_per_meter
+    }
+end
+
+public draw_box(
+    v: View2D,
+    body: b2.Body,
+    half_w_m: float,
+    half_h_m: float,
+    fill: color.Color
+) -> void
+    const pos: vec2.Vec2 = to_screen(v, b2.body_x_m(body), b2.body_y_m(body))
+    const w: float = half_w_m * 2.0 * v.pixels_per_meter
+    const h: float = half_h_m * 2.0 * v.pixels_per_meter
+    draw.draw_rect(shape.rect(pos.x - w * 0.5, pos.y - h * 0.5, w, h), fill)
+end
+
+public draw_box_wires(
+    v: View2D,
+    body: b2.Body,
+    half_w_m: float,
+    half_h_m: float,
+    outline: color.Color
+) -> void
+    const pos: vec2.Vec2 = to_screen(v, b2.body_x_m(body), b2.body_y_m(body))
+    const angle: float = math.deg_to_rad(units.mdeg_to_degrees(b2.body_angle_mdeg(body)))
+    const cos_a: float = math.cos(angle)
+    const sin_a: float = math.sin(angle)
+    const hw: float = half_w_m * v.pixels_per_meter
+    const hh: float = half_h_m * v.pixels_per_meter
+    corner_line(pos, cos_a, sin_a, 0.0 - hw, 0.0 - hh, hw, 0.0 - hh, outline)
+    corner_line(pos, cos_a, sin_a, hw, 0.0 - hh, hw, hh, outline)
+    corner_line(pos, cos_a, sin_a, hw, hh, 0.0 - hw, hh, outline)
+    corner_line(pos, cos_a, sin_a, 0.0 - hw, hh, 0.0 - hw, 0.0 - hh, outline)
+end
+
+corner_line(
+    center: vec2.Vec2,
+    cos_a: float,
+    sin_a: float,
+    lx0: float,
+    ly0: float,
+    lx1: float,
+    ly1: float,
+    c: color.Color
+) -> void
+    const a: vec2.Vec2 = vec2.Vec2 {
+        x: center.x + lx0 * cos_a - ly0 * sin_a,
+        y: center.y + lx0 * sin_a + ly0 * cos_a
+    }
+    const b: vec2.Vec2 = vec2.Vec2 {
+        x: center.x + lx1 * cos_a - ly1 * sin_a,
+        y: center.y + lx1 * sin_a + ly1 * cos_a
+    }
+    draw.draw_line(a, b, c)
+end
+
+public draw_circle_body(
+    v: View2D,
+    body: b2.Body,
+    radius_m: float,
+    fill: color.Color
+) -> void
+    const pos: vec2.Vec2 = to_screen(v, b2.body_x_m(body), b2.body_y_m(body))
+    draw.draw_circle(pos, radius_m * v.pixels_per_meter, fill)
+end
+
+public draw_circle_wires(
+    v: View2D,
+    body: b2.Body,
+    radius_m: float,
+    outline: color.Color
+) -> void
+    const pos: vec2.Vec2 = to_screen(v, b2.body_x_m(body), b2.body_y_m(body))
+    draw.draw_circle_lines(pos, radius_m * v.pixels_per_meter, outline)
+end
+
+public draw_joint_line(v: View2D, a: b2.Body, b: b2.Body, c: color.Color) -> void
+    const pa: vec2.Vec2 = to_screen(v, b2.body_x_m(a), b2.body_y_m(a))
+    const pb: vec2.Vec2 = to_screen(v, b2.body_x_m(b), b2.body_y_m(b))
+    draw.draw_line(pa, pb, c)
+end
+
+public draw_ray_segment(
+    v: View2D,
+    ox_m: int,
+    oy_m: int,
+    tx_m: int,
+    ty_m: int,
+    c: color.Color
+) -> void
+    const a: vec2.Vec2 = to_screen(v, ox_m, oy_m)
+    const b: vec2.Vec2 = to_screen(v, ox_m + tx_m, oy_m + ty_m)
+    draw.draw_line(a, b, c)
+end
+
+-- After `b2.step`, draw a short marker at each contact body-A position.
+public draw_contacts(v: View2D, marker_px: float, c: color.Color) -> void
+    const n: int = b2.contact_count()
+    var i: int = 0
+    while i < n
+        const body: b2.Body = b2.contact_body_a(i)
+        if b2.body_is_valid(body)
+            const p: vec2.Vec2 = to_screen(v, b2.body_x_m(body), b2.body_y_m(body))
+            draw.draw_circle(p, marker_px, c)
+        end
+        i = i + 1
+    end
+end

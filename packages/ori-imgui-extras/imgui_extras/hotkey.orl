@@ -1,0 +1,110 @@
+module imgui_extras.hotkey
+
+-- Hotkey chord capture (headless-safe).
+-- Feed key + modifiers while capturing; chord string is product-facing (e.g. "Ctrl+Shift+S").
+
+import ori.string = str
+
+public struct HotkeyCapture
+    capturing: bool
+    chord: string
+    last_key: string
+end
+
+public create() -> HotkeyCapture
+    return HotkeyCapture {
+        capturing: false,
+        chord: "",
+        last_key: ""
+    }
+end
+
+public begin_capture(h: HotkeyCapture) -> HotkeyCapture
+    var out: HotkeyCapture = h
+    out.capturing = true
+    out.chord = ""
+    out.last_key = ""
+    return out
+end
+
+public cancel_capture(h: HotkeyCapture) -> HotkeyCapture
+    var out: HotkeyCapture = h
+    out.capturing = false
+    out.last_key = ""
+    return out
+end
+
+public clear(h: HotkeyCapture) -> HotkeyCapture
+    var out: HotkeyCapture = h
+    out.capturing = false
+    out.chord = ""
+    out.last_key = ""
+    return out
+end
+
+public is_capturing(h: HotkeyCapture) -> bool
+    return h.capturing
+end
+
+public chord_of(h: HotkeyCapture) -> string
+    return h.chord
+end
+
+public last_key_of(h: HotkeyCapture) -> string
+    return h.last_key
+end
+
+-- Format chord string: optional Ctrl/Shift/Alt + key (empty key → "").
+public format_chord(key: string, ctrl: bool, shift: bool, alt: bool) -> string
+    const k: string = str.trim(key)
+    if k == ""
+        return ""
+    end
+    var parts: string = ""
+    if ctrl
+        parts = "Ctrl"
+    end
+    if shift
+        if parts == ""
+            parts = "Shift"
+        else
+            parts = str.concat(parts, "+Shift")
+        end
+    end
+    if alt
+        if parts == ""
+            parts = "Alt"
+        else
+            parts = str.concat(parts, "+Alt")
+        end
+    end
+    if parts == ""
+        return k
+    end
+    return str.concat(str.concat(parts, "+"), k)
+end
+
+-- While capturing, accept a key event and store the formatted chord (ends capture).
+-- When not capturing, ignores the event (state unchanged).
+public feed_key(h: HotkeyCapture, key: string, ctrl: bool, shift: bool, alt: bool) -> HotkeyCapture
+    var out: HotkeyCapture = h
+    if not out.capturing
+        return out
+    end
+    const k: string = str.trim(key)
+    if k == ""
+        return out
+    end
+    out.last_key = k
+    out.chord = format_chord(k, ctrl, shift, alt)
+    out.capturing = false
+    return out
+end
+
+-- Match a live key event against a stored chord string.
+public matches_chord(chord: string, key: string, ctrl: bool, shift: bool, alt: bool) -> bool
+    if chord == ""
+        return false
+    end
+    return format_chord(key, ctrl, shift, alt) == chord
+end

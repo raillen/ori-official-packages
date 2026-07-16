@@ -1,0 +1,80 @@
+module harfbuzz.layout
+
+-- Shape + FreeType glyph metrics into placed runs (atlas/draw consumers).
+
+import freetype.face = ft
+import harfbuzz.shape = hb
+import ori.list = lists
+
+public struct PlacedGlyph
+    glyph_id: int
+    cluster: int
+    x_m: int
+    y_m: int
+    x_advance_m: int
+    y_advance_m: int
+    width: int
+    height: int
+    bearing_x: int
+    bearing_y: int
+end
+
+public struct LayoutRun
+    glyphs: list[PlacedGlyph]
+    width_m: int
+    height_m: int
+end
+
+public empty_run() -> LayoutRun
+    return LayoutRun { glyphs: [], width_m: 0, height_m: 0 }
+end
+
+-- Shape UTF-8 then sample FreeType metrics per glyph id.
+public layout(face: ft.FaceId, text: string, direction: int) -> LayoutRun
+    const shaped: list[hb.ShapedGlyph] = hb.shape_dir(face, text, direction)
+    var out: list[PlacedGlyph] = []
+    var x: int = 0
+    var y: int = 0
+    var max_h: int = 0
+    var i: int = 0
+    while i < lists.len(shaped)
+        const sg: hb.ShapedGlyph = shaped[i]
+        var w: int = 0
+        var h: int = 0
+        var bx: int = 0
+        var by: int = 0
+        if ft.render_glyph_index(face, sg.glyph_id)
+            w = ft.bitmap_width()
+            h = ft.bitmap_height()
+            bx = ft.bearing_x()
+            by = ft.bearing_y()
+        end
+        if h > max_h
+            max_h = h
+        end
+        lists.push(out, PlacedGlyph {
+            glyph_id: sg.glyph_id,
+            cluster: sg.cluster,
+            x_m: x + sg.x_offset_m,
+            y_m: y + sg.y_offset_m,
+            x_advance_m: sg.x_advance_m,
+            y_advance_m: sg.y_advance_m,
+            width: w,
+            height: h,
+            bearing_x: bx,
+            bearing_y: by
+        })
+        x = x + sg.x_advance_m
+        y = y + sg.y_advance_m
+        i = i + 1
+    end
+    return LayoutRun {
+        glyphs: out,
+        width_m: x,
+        height_m: max_h * 1000
+    }
+end
+
+public glyph_count(run: LayoutRun) -> int
+    return lists.len(run.glyphs)
+end

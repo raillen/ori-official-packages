@@ -1,0 +1,32 @@
+module app.smoke_noise
+
+imports
+    noise.fnl = fnl
+    ori.io = io
+end
+
+main()
+    fnl.init()
+    fnl.set_seed(42)
+    fnl.set_frequency_m(50)
+    fnl.use_open_simplex()
+    fnl.use_fractal_none()
+    const v2: int = fnl.get2_m(1000, 2000)
+    if v2 < -2000 or v2 > 2000
+        io.println("range_fail_2d")
+        return
+    end
+
+    fnl.use_perlin()
+    fnl.use_fractal_fbm()
+    fnl.set_octaves(4)
+    fnl.set_lacunarity_m(2000)
+    fnl.set_gain_m(500)
+    const v3: int = fnl.get3_m(100, 200, 300)
+    if v3 < -2000 or v3 > 2000
+        io.println("range_fail_3d")
+        return
+    end
+
+    io.println("ok")
+end

@@ -1,0 +1,51 @@
+module game.shader
+
+-- Custom shaders (raylib LoadShader / uniforms). Paths are filesystem strings.
+
+import raylib = rl
+import ori.mem = mem
+import ori.math.vec3 = vec3
+
+public alias ShaderId = int
+public alias LocationId = int
+
+public load(vs_path: string, fs_path: string) -> ShaderId
+    return rl.ori_rl_LoadShader(mem.string_as_ptr(vs_path), mem.string_as_ptr(fs_path))
+end
+
+-- Default vertex stage (pass empty vs path as null via 0 pointer trick: use load_fs_only)
+public load_fragment(fs_path: string) -> ShaderId
+    return rl.ori_rl_LoadShader(0, mem.string_as_ptr(fs_path))
+end
+
+public unload(shader: ShaderId) -> void
+    rl.ori_rl_UnloadShader(shader)
+end
+
+public begin_mode(shader: ShaderId) -> void
+    rl.ori_rl_BeginShaderMode(shader)
+end
+
+public end_mode() -> void
+    rl.ori_rl_EndShaderMode()
+end
+
+public location(shader: ShaderId, name: string) -> LocationId
+    return rl.ori_rl_GetShaderLocation(shader, mem.string_as_ptr(name))
+end
+
+public set_float(shader: ShaderId, loc: LocationId, value: float) -> void
+    rl.ori_rl_SetShaderValueFloat(shader, loc, value)
+end
+
+public set_vec3(shader: ShaderId, loc: LocationId, v: vec3.Vec3) -> void
+    rl.ori_rl_SetShaderValueVec3(shader, loc, v.x, v.y, v.z)
+end
+
+public set_vec4(shader: ShaderId, loc: LocationId, x: float, y: float, z: float, w: float) -> void
+    rl.ori_rl_SetShaderValueVec4(shader, loc, x, y, z, w)
+end
+
+public set_int(shader: ShaderId, loc: LocationId, value: int) -> void
+    rl.ori_rl_SetShaderValueInt(shader, loc, value)
+end

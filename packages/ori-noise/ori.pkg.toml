@@ -1,0 +1,8 @@
+[package]
+name = "noise"
+version = "0.2.0"
+entry = "noise/fnl.orl"
+ori_version = "0.3.0"
+description = "FastNoiseLite procedural noise for Ori"
+license = "MIT"
+native_libs = ["ori_noise_shim"]

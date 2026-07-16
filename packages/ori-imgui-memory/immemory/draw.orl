@@ -1,0 +1,112 @@
+module immemory.draw
+
+-- Product draw for immemory.buffer using imgui.ui (path-dep ori-imgui).
+-- Call only inside an active ImGui frame. Headless CI uses buffer + hex only.
+
+import immemory.buffer = buf
+import immemory.hex = hex
+import imgui.ui = ui
+import ori.format = fmt
+import ori.string = str
+
+int_text(n: int) -> string
+    return fmt.number(float(n), 0)
+end
+
+-- Draw memory editor window; returns updated editor. No-op when not open.
+public draw(e: buf.Editor) -> buf.Editor
+    if not buf.is_open(e)
+        return e
+    end
+    var out: buf.Editor = e
+    ui.set_next_window_size(640, 420)
+    if not ui.begin_window(buf.title_of(out))
+        return out
+    end
+
+    ui.text(str.concat("nbytes: ", int_text(buf.nbytes(out))))
+    ui.text(str.concat("base: 0x", hex.address_hex(buf.base_addr_of(out), 8)))
+    ui.text(str.concat("cols: ", int_text(buf.cols_of(out))))
+    ui.text(str.concat("cursor: ", int_text(buf.cursor_of(out))))
+    if buf.is_read_only(out)
+        ui.text("mode: read-only")
+    else
+        ui.text("mode: editable")
+    end
+
+    ui.separator()
+    if ui.button("Cols 8")
+        out = buf.set_cols(out, 8)
+    end
+    ui.same_line()
+    if ui.button("Cols 16")
+        out = buf.set_cols(out, 16)
+    end
+    ui.same_line()
+    if ui.button("Zero all")
+        if not buf.is_read_only(out)
+            out = buf.clear_to_zero(out)
+        end
+    end
+
+    ui.separator()
+    if ui.begin_child("immemory_dump", 0, 280, true)
+        const rows: int = hex.row_count(out)
+        var r: int = 0
+        while r < rows
+            const line: string = hex.format_row_line(out, r)
+            const start: int = hex.row_offset(out, r)
+            const cur: int = buf.cursor_of(out)
+            const count: int = hex.row_nbytes(out, r)
+            var selected: bool = false
+            if cur >= start
+                if cur < start + count
+                    selected = true
+                end
+            end
+            if selected
+                ui.text_colored(180, 220, 255, 255, line)
+            else
+                ui.text(line)
+            end
+            r = r + 1
+        end
+        if rows == 0
+            ui.text("(empty buffer)")
+        end
+        ui.end_child()
+    end
+
+    ui.separator()
+    const c: int = buf.cursor_of(out)
+    ui.text(str.concat(
+        str.concat("cell[", int_text(c)),
+        str.concat("]=0x", hex.byte_hex(buf.read_cell(out, c)))
+    ))
+    if not buf.is_read_only(out)
+        if ui.button("+1 cell")
+            const v: int = buf.read_cell(out, c)
+            out = buf.write_cell(out, c, v + 1)
+        end
+        ui.same_line()
+        if ui.button("-1 cell")
+            const v2: int = buf.read_cell(out, c)
+            out = buf.write_cell(out, c, v2 - 1)
+        end
+        ui.same_line()
+        if ui.button("Next")
+            out = buf.set_cursor(out, c + 1)
+        end
+        ui.same_line()
+        if ui.button("Prev")
+            out = buf.set_cursor(out, c - 1)
+        end
+    end
+
+    if ui.button("Close")
+        out = buf.close(out)
+    end
+
+    ui.end_window()
+    return out
+end

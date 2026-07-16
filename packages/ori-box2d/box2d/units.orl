@@ -1,0 +1,53 @@
+module box2d.units
+
+import ori.math = math
+
+-- Pure Ori unit helpers (meters / seconds / degrees ↔ milli-int boundary used by FFI).
+
+public meters_to_milli(m: float) -> int
+    return math.floor(m * 1000.0 + 0.5)
+end
+
+public milli_to_meters(m: int) -> float
+    return float(m) / 1000.0
+end
+
+public seconds_to_micros(s: float) -> int
+    return math.floor(s * 1000000.0 + 0.5)
+end
+
+public gravity_earth_y_m() -> int
+    -- -9.81 m/s²
+    return 0 - 9810
+end
+
+public step_60hz_micros() -> int
+    return 16667
+end
+
+-- Angle: millidegrees = degrees × 1000.
+public degrees_to_mdeg(deg: float) -> int
+    return math.floor(deg * 1000.0 + 0.5)
+end
+
+public mdeg_to_degrees(mdeg: int) -> float
+    return float(mdeg) / 1000.0
+end
+
+-- Angular velocity: milli-deg/s = deg/s × 1000.
+public deg_per_s_to_mdeg(dps: float) -> int
+    return math.floor(dps * 1000.0 + 0.5)
+end
+
+public mdeg_to_deg_per_s(mdeg: int) -> float
+    return float(mdeg) / 1000.0
+end
+
+-- Material coefficients ×1000 (0.5 → 500).
+public material_to_milli(c: float) -> int
+    return math.floor(c * 1000.0 + 0.5)
+end
+
+public milli_to_material(m: int) -> float
+    return float(m) / 1000.0
+end

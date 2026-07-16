@@ -1,0 +1,282 @@
+module test.world
+
+-- B1: game.world EntityId + components + spawn from scene JSON.
+
+imports
+    game.world = world
+    game.ogame = ogame
+    ori.test = test
+end
+
+@test
+empty_world_counts()
+    const w: world.World = world.empty_world()
+    test.equal_int(world.entity_count(w), 0)
+    test.equal_int(world.live_count(w), 0)
+end
+
+spawn_sphere_at(w: world.World, name: string, z: float, radius: float) -> world.World
+    var out: world.World = w
+    var t: world.Transform = world.empty_transform()
+    t.z = z
+    const meta: world.EntityMeta = world.EntityMeta {
+        instance_id: name,
+        entity_type: "empty",
+        primary_tag: "empty"
+    }
+    const id: world.EntityId = out.next_id
+    out = world.spawn_entity(out, meta, t)
+    out = world.set_collider(out, id, world.ColliderComp {
+        kind: "sphere",
+        radius: radius,
+        layer: 0
+    })
+    return out
+end
+
+@test
+raycast_picks_nearest_hit()
+    -- Regression: t = b - sqrt(disc); the old b - disc picked the wrong
+    -- sphere when radii differed. True nearest here is "near" (t=3.5 vs 4.0).
+    var w: world.World = world.empty_world()
+    w = spawn_sphere_at(w, "far", 6.0, 2.0)
+    w = spawn_sphere_at(w, "near", 4.0, 0.5)
+    match world.raycast_spheres(w, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 100.0)
+        case some(id):
+            match world.find_by_id(w, id)
+                case some(e):
+                    test.assert(e.meta.instance_id == "near", "nearest sphere wins")
+                case none:
+                    test.assert(false, "hit id resolves")
+            end
+        case none:
+            test.assert(false, "ray hits")
+    end
+end
+
+@test
+cleanup_dead_compacts()
+    var w: world.World = world.empty_world()
+    w = spawn_sphere_at(w, "a", 0.0, 1.0)
+    w = spawn_sphere_at(w, "b", 5.0, 1.0)
+    const a_id: world.EntityId = world.get_entity(w, 0).id
+    w = world.despawn(w, a_id)
+    test.equal_int(world.entity_count(w), 2)
+    test.equal_int(world.live_count(w), 1)
+    w = world.cleanup_dead(w)
+    test.equal_int(world.entity_count(w), 1)
+    test.equal_int(world.live_count(w), 1)
+    test.assert(world.get_entity(w, 0).meta.instance_id == "b", "b kept")
+end
+
+@test
+spawn_manual_entity()
+    var w: world.World = world.empty_world()
+    var t: world.Transform = world.empty_transform()
+    t.x = 10.0
+    t.y = 2.0
+    t.z = 30.0
+    const meta: world.EntityMeta = world.EntityMeta {
+        instance_id: "manual_1",
+        entity_type: "empty",
+        primary_tag: "empty"
+    }
+    w = world.spawn_entity(w, meta, t)
+    test.equal_int(world.entity_count(w), 1)
+    test.equal_int(world.live_count(w), 1)
+    const e: world.Entity = world.get_entity(w, 0)
+    test.equal_int(e.id, 1)
+    test.assert(e.alive, "alive")
+    test.assert(e.transform.x == 10.0, "x")
+    test.assert(e.transform.z == 30.0, "z")
+    test.assert(e.has_mesh == false, "no mesh")
+    match world.find_by_instance(w, "manual_1")
+        case some(found):
+            test.equal_int(found.id, 1)
+        case none:
+            test.assert(false, "find_by_instance")
+    end
+end
+
+@test
+spawn_with_components()
+    var w: world.World = world.empty_world()
+    var t: world.Transform = world.empty_transform()
+    t.x = 1.0
+    const meta: world.EntityMeta = world.EntityMeta {
+        instance_id: "c1",
+        entity_type: "player",
+        primary_tag: "player"
+    }
+    w = world.spawn_entity(w, meta, t)
+    const id: world.EntityId = world.get_entity(w, 0).id
+    w = world.set_mesh(w, id, world.MeshComp {
+        path: "assets/models/cowboy.glb",
+        scale: 48.0
+    })
+    w = world.set_collider(w, id, world.ColliderComp {
+        kind: "sphere",
+        radius: 8.0,
+        layer: 1
+    })
+    w = world.set_script(w, id, world.ScriptComp {
+        entity_type: "player",
+        script_rel: "player.orl"
+    })
+    w = world.set_velocity(w, id, world.Velocity {
+        vx: 1.0,
+        vy: 0.0,
+        vz: -2.0
+    })
+    match world.find_by_id(w, id)
+        case some(e):
+            test.assert(e.has_mesh, "has mesh")
+            test.assert(e.mesh.path == "assets/models/cowboy.glb", "mesh path")
+            test.assert(e.mesh.scale == 48.0, "mesh scale")
+            test.assert(e.has_collider, "has collider")
+            test.assert(e.collider.radius == 8.0, "radius")
+            test.equal_int(e.collider.layer, 1)
+            test.assert(e.has_script, "has script")
+            test.assert(e.script.script_rel == "player.orl", "script")
+            test.assert(e.has_velocity, "has vel")
+            test.assert(e.velocity.vz == -2.0, "vz")
+        case none:
+            test.assert(false, "missing entity")
+    end
+end
+
+@test
+despawn_marks_dead()
+    var w: world.World = world.empty_world()
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "d1",
+            entity_type: "empty",
+            primary_tag: "empty"
+        },
+        world.empty_transform()
+    )
+    const id: world.EntityId = world.get_entity(w, 0).id
+    w = world.despawn(w, id)
+    test.equal_int(world.entity_count(w), 1)
+    test.equal_int(world.live_count(w), 0)
+    match world.find_by_id(w, id)
+        case some(_):
+            test.assert(false, "despawned should not find")
+        case none:
+            test.assert(true, "none after despawn")
+    end
+end
+
+@test
+load_sample_world_room1()
+    match world.load_sample_world()
+        case ok(w):
+            test.equal_int(world.live_count(w), 3)
+            match world.find_by_instance(w, "inst_player_01")
+                case some(p):
+                    test.assert(p.meta.entity_type == "player", "player type")
+                    test.assert(p.meta.primary_tag == "player", "player tag")
+                    test.assert(p.transform.x == 0.0, "player x")
+                    test.assert(p.transform.z == 8.0, "player z")
+                    test.assert(p.has_script, "player script")
+                    test.assert(p.script.script_rel == "player.orl", "script rel")
+                    -- room1 author values (2026-07-15)
+                    test.assert(
+                        world.float_var_of(p, "move_speed", 0.0) == 48.0,
+                        "move_speed merge"
+                    )
+                    test.assert(p.has_mesh, "player mesh from def")
+                    test.assert(
+                        p.mesh.path == "assets/models/brazilian-cowboy.glb",
+                        "mesh path default"
+                    )
+                    test.assert(p.has_collider, "player collider")
+                    test.assert(p.collider.radius == 8.0, "collider radius default")
+                case none:
+                    test.assert(false, "inst_player_01 missing")
+            end
+            match world.find_first_of_type(w, "enemy")
+                case some(en):
+                    test.assert(en.meta.primary_tag == "enemy", "enemy tag")
+                    test.assert(en.has_mesh == false, "enemy no mesh")
+                case none:
+                    test.assert(false, "enemy missing")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+load_engine_test_world_player()
+    match world.load_engine_test_world()
+        case ok(w):
+            -- player + goal marker (and any extra solids)
+            test.assert(world.live_count(w) >= 1, "at least player")
+            match world.find_by_instance(w, "inst_player_cowboy")
+                case some(p):
+                    test.assert(p.transform.x == 0.0, "x")
+                    test.assert(p.transform.y == 1.0, "y")
+                    test.assert(p.transform.z == 8.0, "z")
+                    test.assert(p.has_mesh, "mesh")
+                    test.assert(
+                        p.mesh.path == "assets/models/brazilian-cowboy.glb",
+                        "mesh override"
+                    )
+                    test.assert(p.mesh.scale == 48.0, "mesh_scale")
+                    test.assert(p.has_collider, "collider")
+                    test.assert(p.collider.radius == 8.0, "radius")
+                    test.equal_int(p.collider.layer, 1)
+                    test.assert(
+                        world.float_var_of(p, "move_speed", 0.0) == 48.0,
+                        "move_speed"
+                    )
+                case none:
+                    test.assert(false, "inst_player_cowboy missing")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+spawn_scene_unknown_fails()
+    match ogame.load_sample_catalog()
+        case ok(cat):
+            const bad: string = "{\"name\":\"x\",\"instances\":[{\"id\":\"i\",\"entity\":\"nope\",\"x\":0.0,\"y\":0.0,\"z\":0.0,\"var_overrides\":{}}]}"
+            match ogame.parse_scene(bad)
+                case ok(sc):
+                    match world.spawn_scene(world.empty_world(), cat, sc)
+                        case ok(_):
+                            test.assert(false, "should fail")
+                        case err(msg):
+                            test.assert(true, msg)
+                    end
+                case err(msg):
+                    test.assert(false, msg)
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+spawn_scene_path_api()
+    match ogame.load_sample_catalog()
+        case ok(cat):
+            match world.spawn_scene_path(
+                world.empty_world(),
+                cat,
+                ogame.sample_scene_path()
+            )
+                case ok(w):
+                    test.equal_int(world.live_count(w), 3)
+                case err(msg):
+                    test.assert(false, msg)
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end

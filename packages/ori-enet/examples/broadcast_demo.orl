@@ -1,0 +1,94 @@
+module app.broadcast_demo
+
+-- Server broadcasts to two clients in-process (two client hosts).
+
+imports
+    enet.host = enet
+    ori.io = io
+end
+
+const port: int = 27780
+
+main()
+    if not enet.initialize_ok()
+        io.print("init_fail")
+        return
+    end
+    var server: enet.Host = enet.create_server(port, 8, 1)
+    var c1: enet.Host = enet.create_client(1, 1)
+    var c2: enet.Host = enet.create_client(1, 1)
+    if not enet.is_valid(server) or not enet.is_valid(c1) or not enet.is_valid(c2)
+        io.print("host_fail")
+        enet.deinitialize()
+        return
+    end
+
+    var p1: enet.Peer = enet.connect(c1, "127.0.0.1", port, 1)
+    var p2: enet.Peer = enet.connect(c2, "127.0.0.1", port, 1)
+    if not enet.peer_is_valid(p1) or not enet.peer_is_valid(p2)
+        io.print("connect_fail")
+        enet.deinitialize()
+        return
+    end
+
+    var n_server_connect: int = 0
+    var c1_ok: bool = false
+    var c2_ok: bool = false
+    var c1_msg: bool = false
+    var c2_msg: bool = false
+    var broadcast_sent: bool = false
+    var i: int = 0
+    while i < 600
+        const se: int = enet.service(server, 5)
+        if se == enet.EVENT_CONNECT
+            n_server_connect = n_server_connect + 1
+        end
+        if n_server_connect >= 2 and not broadcast_sent
+            enet.broadcast_reliable(server, "hello_all")
+            enet.flush(server)
+            broadcast_sent = true
+        end
+
+        const e1: int = enet.service(c1, 5)
+        if e1 == enet.EVENT_CONNECT
+            c1_ok = true
+        end
+        if e1 == enet.EVENT_RECEIVE
+            const msg: string = enet.packet_text()
+            enet.destroy_packet()
+            if msg == "hello_all"
+                c1_msg = true
+            end
+        end
+
+        const e2: int = enet.service(c2, 5)
+        if e2 == enet.EVENT_CONNECT
+            c2_ok = true
+        end
+        if e2 == enet.EVENT_RECEIVE
+            const msg: string = enet.packet_text()
+            enet.destroy_packet()
+            if msg == "hello_all"
+                c2_msg = true
+            end
+        end
+
+        if c1_ok and c2_ok and c1_msg and c2_msg
+            break
+        end
+        i = i + 1
+    end
+
+    enet.disconnect_now(p1)
+    enet.disconnect_now(p2)
+    enet.destroy(c1)
+    enet.destroy(c2)
+    enet.destroy(server)
+    enet.deinitialize()
+
+    if c1_msg and c2_msg and n_server_connect >= 2
+        io.print("ok")
+        return
+    end
+    io.print("fail")
+end

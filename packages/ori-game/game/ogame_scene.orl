@@ -1,0 +1,590 @@
+module game.ogame_scene
+
+-- Scene file: instances of Entity types (Studio content format).
+
+import ori.json = json
+import ori.map = maps
+import ori.list = lists
+import ori.math = math
+import ori.fs = fs
+import ori.format = fmt
+import ori.string = str
+import game.json_fields = jf
+import game.ogame_level = level
+
+public struct VarOverride
+    name: string
+    type_name: string
+    float_value: float
+    int_value: int
+    bool_value: bool
+    string_value: string
+end
+
+public struct SceneInstance
+    id: string
+    entity: string
+    -- Chão: x/z · Altura: y (Y-up). Legado só x,y: y→z chão, y altura=0.
+    x: float
+    y: float
+    z: float
+    var_overrides: list[VarOverride]
+end
+
+public struct SceneFile
+    name: string
+    instances: list[SceneInstance]
+end
+
+public alias SceneResult = result[SceneFile, string]
+
+parse_override_value(name: string, val: json.Value) -> VarOverride
+    var o: VarOverride = VarOverride {
+        name: name,
+        type_name: "float",
+        float_value: 0.0,
+        int_value: 0,
+        bool_value: false,
+        string_value: ""
+    }
+    match val
+        case Number(value):
+            o.type_name = "float"
+            o.float_value = value
+            o.int_value = math.round(value)
+        case Bool(value):
+            o.type_name = "bool"
+            o.bool_value = value
+        case String(value):
+            o.type_name = "string"
+            o.string_value = value
+        case else:
+            o.type_name = "float"
+    end
+    return o
+end
+
+parse_var_overrides(fields: map[string, json.Value]) -> list[VarOverride]
+    var out: list[VarOverride] = []
+    if some(ov) = maps.try_get(fields, "var_overrides")
+        match jf.as_object(ov)
+            case some(omap):
+                const keys: list[string] = maps.keys(omap)
+                const nk: int = lists.len(keys)
+                var i: int = 0
+                while i < nk
+                    const k: string = keys[i]
+                    if some(v) = maps.try_get(omap, k)
+                        lists.push(out, parse_override_value(k, v))
+                    end
+                    i = i + 1
+                end
+            case none:
+        end
+    end
+    return out
+end
+
+parse_instance(val: json.Value) -> SceneInstance
+    var empty_ov: list[VarOverride] = []
+    match jf.as_object(val)
+        case some(fields):
+            const x: float = jf.number_field(fields, "x", 0.0)
+            const y_raw: float = jf.number_field(fields, "y", 0.0)
+            var y: float = y_raw
+            var z: float = 0.0
+            if some(_) = maps.try_get(fields, "z")
+                z = jf.number_field(fields, "z", 0.0)
+            else
+                -- legado 2D: (x, y_chão) → (x, 0, y_chão)
+                y = 0.0
+                z = y_raw
+            end
+            return SceneInstance {
+                id: jf.string_field(fields, "id", ""),
+                entity: jf.string_field(fields, "entity", ""),
+                x: x,
+                y: y,
+                z: z,
+                var_overrides: parse_var_overrides(fields)
+            }
+        case none:
+            return SceneInstance {
+                id: "",
+                entity: "",
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+                var_overrides: empty_ov
+            }
+    end
+    return SceneInstance {
+        id: "",
+        entity: "",
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        var_overrides: empty_ov
+    }
+end
+
+parse_instances(val: json.Value) -> list[SceneInstance]
+    var out: list[SceneInstance] = []
+    match val
+        case Array(items):
+            const n: int = lists.len(items)
+            var i: int = 0
+            while i < n
+                lists.push(out, parse_instance(items[i]))
+                i = i + 1
+            end
+        case else:
+    end
+    return out
+end
+
+public parse_scene(text: string) -> SceneResult
+    match json.parse(text)
+        case ok(root):
+            match jf.as_object(root)
+                case some(fields):
+                    var instances: list[SceneInstance] = []
+                    if some(arr) = maps.try_get(fields, "instances")
+                        instances = parse_instances(arr)
+                    end
+                    return ok(SceneFile {
+                        name: jf.string_field(fields, "name", ""),
+                        instances: instances
+                    })
+                case none:
+                    return err("scene.json: root must be object")
+            end
+        case err(msg):
+            return err(msg)
+    end
+    return err("scene.json: parse failed")
+end
+
+public load_scene(path: string) -> SceneResult
+    match fs.read_text(path)
+        case ok(text):
+            return parse_scene(text)
+        case err(_):
+            return err("failed to read scene file")
+    end
+    return err("failed to read scene file")
+end
+
+public instance_count(scene: SceneFile) -> int
+    return lists.len(scene.instances)
+end
+
+public instances_of_entity(
+    scene: SceneFile,
+    entity_id: string
+) -> list[SceneInstance]
+    var out: list[SceneInstance] = []
+    const n: int = lists.len(scene.instances)
+    var i: int = 0
+    while i < n
+        const inst: SceneInstance = scene.instances[i]
+        if inst.entity == entity_id
+            lists.push(out, inst)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- First instance of entity type (Studio Play / main bootstrap).
+public first_of_entity(
+    scene: SceneFile,
+    entity_id: string
+) -> optional[SceneInstance]
+    const n: int = lists.len(scene.instances)
+    var i: int = 0
+    while i < n
+        const inst: SceneInstance = scene.instances[i]
+        if inst.entity == entity_id
+            return some(inst)
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public override_float(
+    inst: SceneInstance,
+    name: string,
+    fallback: float
+) -> float
+    const n: int = lists.len(inst.var_overrides)
+    var i: int = 0
+    while i < n
+        const o: VarOverride = inst.var_overrides[i]
+        if o.name == name
+            if o.type_name == "float" or o.type_name == "int"
+                return o.float_value
+            end
+            return fallback
+        end
+        i = i + 1
+    end
+    return fallback
+end
+
+public override_int(
+    inst: SceneInstance,
+    name: string,
+    fallback: int
+) -> int
+    return math.round(override_float(inst, name, float(fallback)))
+end
+
+public override_string(
+    inst: SceneInstance,
+    name: string,
+    fallback: string
+) -> string
+    const n: int = lists.len(inst.var_overrides)
+    var i: int = 0
+    while i < n
+        const o: VarOverride = inst.var_overrides[i]
+        if o.name == name
+            if o.type_name == "string"
+                return o.string_value
+            end
+            return fallback
+        end
+        i = i + 1
+    end
+    return fallback
+end
+
+-- Scene writer: instances always; level (brushes/subtracts/terrain) optional (author loop).
+
+escape_json_string(s: string) -> string
+    -- Minimal: escape quotes for JSON string values.
+    var out: string = ""
+    const n: int = str.len(s)
+    var i: int = 0
+    while i < n
+        const ch: string = str.slice(s, i, i + 1)
+        if ch == "\""
+            out = out + "\\\""
+        else
+            out = out + ch
+        end
+        i = i + 1
+    end
+    return out
+end
+
+serialize_var_overrides(ovs: list[VarOverride]) -> string
+    var out: string = "{"
+    const n: int = lists.len(ovs)
+    var i: int = 0
+    while i < n
+        if i > 0
+            out = out + ","
+        end
+        const o: VarOverride = ovs[i]
+        out = out + "\"" + escape_json_string(o.name) + "\":"
+        if o.type_name == "string"
+            out = out + "\"" + escape_json_string(o.string_value) + "\""
+        elif o.type_name == "bool"
+            if o.bool_value
+                out = out + "true"
+            else
+                out = out + "false"
+            end
+        else
+            out = out + fmt.number_with(o.float_value, 3)
+        end
+        i = i + 1
+    end
+    out = out + "}"
+    return out
+end
+
+serialize_instance(inst: SceneInstance) -> string
+    var out: string = "{"
+    out = out + "\"id\":\"" + escape_json_string(inst.id) + "\","
+    out = out + "\"entity\":\"" + escape_json_string(inst.entity) + "\","
+    out = out + "\"x\":" + fmt.number_with(inst.x, 3) + ","
+    out = out + "\"y\":" + fmt.number_with(inst.y, 3) + ","
+    out = out + "\"z\":" + fmt.number_with(inst.z, 3) + ","
+    out = out + "\"var_overrides\":" + serialize_var_overrides(inst.var_overrides)
+    out = out + "}"
+    return out
+end
+
+public make_scene(name: string, instances: list[SceneInstance]) -> SceneFile
+    return SceneFile { name: name, instances: instances }
+end
+
+public empty_overrides() -> list[VarOverride]
+    var empty: list[VarOverride] = []
+    return empty
+end
+
+public make_instance(
+    id: string,
+    entity: string,
+    x: float,
+    y: float,
+    z: float
+) -> SceneInstance
+    return SceneInstance {
+        id: id,
+        entity: entity,
+        x: x,
+        y: y,
+        z: z,
+        var_overrides: empty_overrides()
+    }
+end
+
+public make_float_override(name: string, value: float) -> VarOverride
+    return VarOverride {
+        name: name,
+        type_name: "float",
+        float_value: value,
+        int_value: math.round(value),
+        bool_value: false,
+        string_value: ""
+    }
+end
+
+public make_string_override(name: string, value: string) -> VarOverride
+    return VarOverride {
+        name: name,
+        type_name: "string",
+        float_value: 0.0,
+        int_value: 0,
+        bool_value: false,
+        string_value: value
+    }
+end
+
+public make_bool_override(name: string, value: bool) -> VarOverride
+    return VarOverride {
+        name: name,
+        type_name: "bool",
+        float_value: 0.0,
+        int_value: 0,
+        bool_value: value,
+        string_value: ""
+    }
+end
+
+public make_int_override(name: string, value: int) -> VarOverride
+    return VarOverride {
+        name: name,
+        type_name: "int",
+        float_value: float(value),
+        int_value: value,
+        bool_value: false,
+        string_value: ""
+    }
+end
+
+-- Upsert override by name (author loop / inspector).
+public set_override(inst: SceneInstance, ov: VarOverride) -> SceneInstance
+    var out: SceneInstance = inst
+    const n: int = lists.len(out.var_overrides)
+    var i: int = 0
+    while i < n
+        if out.var_overrides[i].name == ov.name
+            lists.set(out.var_overrides, i, ov)
+            return out
+        end
+        i = i + 1
+    end
+    lists.push(out.var_overrides, ov)
+    return out
+end
+
+public set_float_override(
+    inst: SceneInstance,
+    name: string,
+    value: float
+) -> SceneInstance
+    return set_override(inst, make_float_override(name, value))
+end
+
+public set_string_override(
+    inst: SceneInstance,
+    name: string,
+    value: string
+) -> SceneInstance
+    return set_override(inst, make_string_override(name, value))
+end
+
+
+serialize_bool(v: bool) -> string
+    if v
+        return "true"
+    end
+    return "false"
+end
+
+serialize_brush(b: level.BrushBox) -> string
+    var out: string = "{"
+    out = out + "\"id\":\"" + escape_json_string(b.id) + "\","
+    out = out + "\"kind\":\"" + escape_json_string(b.kind) + "\","
+    out = out + "\"x\":" + fmt.number_with(b.x, 3) + ","
+    out = out + "\"y\":" + fmt.number_with(b.y, 3) + ","
+    out = out + "\"z\":" + fmt.number_with(b.z, 3) + ","
+    out = out + "\"sx\":" + fmt.number_with(b.sx, 3) + ","
+    out = out + "\"sy\":" + fmt.number_with(b.sy, 3) + ","
+    out = out + "\"sz\":" + fmt.number_with(b.sz, 3) + ","
+    out = out + "\"rx\":" + fmt.number_with(b.rx, 3) + ","
+    out = out + "\"ry\":" + fmt.number_with(b.ry, 3) + ","
+    out = out + "\"rz\":" + fmt.number_with(b.rz, 3) + ","
+    out = out + "\"r\":" + fmt.number_int(b.r) + ","
+    out = out + "\"g\":" + fmt.number_int(b.g) + ","
+    out = out + "\"b\":" + fmt.number_int(b.b) + ","
+    out = out + "\"a\":" + fmt.number_int(b.a) + ","
+    out = out + "\"metallic\":" + fmt.number_with(b.metallic, 3) + ","
+    out = out + "\"roughness\":" + fmt.number_with(b.roughness, 3) + ","
+    out = out + "\"mesh_path\":\"" + escape_json_string(b.mesh_path) + "\","
+    out = out + "\"albedo_path\":\"" + escape_json_string(b.albedo_path) + "\","
+    out = out + "\"collider\":" + serialize_bool(b.collider) + ","
+    out = out + "\"layer\":" + fmt.number_int(b.layer)
+    out = out + "}"
+    return out
+end
+
+serialize_subtract(s: level.SubtractBox) -> string
+    var out: string = "{"
+    out = out + "\"id\":\"" + escape_json_string(s.id) + "\","
+    out = out + "\"x\":" + fmt.number_with(s.x, 3) + ","
+    out = out + "\"y\":" + fmt.number_with(s.y, 3) + ","
+    out = out + "\"z\":" + fmt.number_with(s.z, 3) + ","
+    out = out + "\"sx\":" + fmt.number_with(s.sx, 3) + ","
+    out = out + "\"sy\":" + fmt.number_with(s.sy, 3) + ","
+    out = out + "\"sz\":" + fmt.number_with(s.sz, 3) + ","
+    out = out + "\"rx\":" + fmt.number_with(s.rx, 3) + ","
+    out = out + "\"ry\":" + fmt.number_with(s.ry, 3) + ","
+    out = out + "\"rz\":" + fmt.number_with(s.rz, 3)
+    out = out + "}"
+    return out
+end
+
+serialize_terrain(t: level.TerrainGrid) -> string
+    if t.width <= 0 or t.depth <= 0
+        return "null"
+    end
+    var out: string = "{"
+    out = out + "\"cellSize\":" + fmt.number_with(t.cell_size, 3) + ","
+    out = out + "\"width\":" + fmt.number_int(t.width) + ","
+    out = out + "\"depth\":" + fmt.number_int(t.depth) + ","
+    out = out + "\"r\":" + fmt.number_int(t.r) + ","
+    out = out + "\"g\":" + fmt.number_int(t.g) + ","
+    out = out + "\"b\":" + fmt.number_int(t.b) + ","
+    out = out + "\"heights\":["
+    const n: int = lists.len(t.heights)
+    var i: int = 0
+    while i < n
+        if i > 0
+            out = out + ","
+        end
+        out = out + fmt.number_int(t.heights[i])
+        i = i + 1
+    end
+    out = out + "]}"
+    return out
+end
+
+serialize_level_fields(lvl: level.LevelGeometry) -> string
+    var out: string = "\"brushes\":["
+    const nb: int = lists.len(lvl.brushes)
+    var i: int = 0
+    while i < nb
+        if i > 0
+            out = out + ","
+        end
+        out = out + serialize_brush(lvl.brushes[i])
+        i = i + 1
+    end
+    out = out + "],\"subtracts\":["
+    const ns: int = lists.len(lvl.subtracts)
+    var j: int = 0
+    while j < ns
+        if j > 0
+            out = out + ","
+        end
+        out = out + serialize_subtract(lvl.subtracts[j])
+        j = j + 1
+    end
+    out = out + "],\"terrain\":" + serialize_terrain(lvl.terrain)
+    out = out + ",\"chunk_size\":" + fmt.number_with(lvl.chunk_size, 3)
+    out = out + ",\"chunks_enabled\":" + serialize_bool(lvl.chunks_enabled)
+    return out
+end
+
+serialize_instances_array(instances: list[SceneInstance]) -> string
+    var out: string = "["
+    const n: int = lists.len(instances)
+    var i: int = 0
+    while i < n
+        if i > 0
+            out = out + ","
+        end
+        out = out + serialize_instance(instances[i])
+        i = i + 1
+    end
+    out = out + "]"
+    return out
+end
+
+public serialize_scene(sc: SceneFile) -> string
+    var out: string = "{"
+    out = out + "\"format_version\":1,"
+    out = out + "\"name\":\"" + escape_json_string(sc.name) + "\","
+    out = out + "\"instances\":" + serialize_instances_array(sc.instances) + ","
+    out = out + "\"brushes\":[],\"subtracts\":[],\"terrain\":null"
+    out = out + "}"
+    return out
+end
+
+-- Full author loop: instances + level geometry (extrude/snap persist).
+public serialize_scene_with_level(
+    sc: SceneFile,
+    lvl: level.LevelGeometry
+) -> string
+    var out: string = "{"
+    out = out + "\"format_version\":1,"
+    out = out + "\"name\":\"" + escape_json_string(sc.name) + "\","
+    out = out + "\"instances\":" + serialize_instances_array(sc.instances) + ","
+    out = out + serialize_level_fields(lvl)
+    out = out + "}"
+    return out
+end
+
+public write_scene(path: string, sc: SceneFile) -> result[bool, string]
+    const text: string = serialize_scene(sc)
+    match fs.write_text(path, text)
+        case ok(_):
+            return ok(true)
+        case err(_):
+            return err("failed to write scene file")
+    end
+    return err("failed to write scene file")
+end
+
+public write_scene_with_level(
+    path: string,
+    sc: SceneFile,
+    lvl: level.LevelGeometry
+) -> result[bool, string]
+    const text: string = serialize_scene_with_level(sc, lvl)
+    match fs.write_text(path, text)
+        case ok(_):
+            return ok(true)
+        case err(_):
+            return err("failed to write scene with level")
+    end
+    return err("failed to write scene with level")
+end

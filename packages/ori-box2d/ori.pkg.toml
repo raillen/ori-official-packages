@@ -1,0 +1,12 @@
+[package]
+name = "box2d"
+version = "0.3.0"
+entry = "box2d/dynamics.orl"
+ori_version = "0.3.0"
+description = "Box2D 3.x physics bindings for Ori"
+license = "MIT"
+native_libs = ["ori_box2d_shim", "box2d"]
+
+# Optional: `box2d.debug_draw` uses `game.draw` (link raylib only in visual demos).
+[dependencies]
+ori_game = { path = "../ori-game", version = "0.3.0" }

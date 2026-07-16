@@ -1,0 +1,75 @@
+module app.smoke_imtextedit
+
+imports
+    imtextedit.buffer = buf
+    imtextedit.lang = lang
+    ori.io = io
+    ori.list = lists
+end
+
+-- Headless smoke: set/get text, language stub highlight, lines — no GUI.
+main()
+    var e: buf.Editor = buf.create()
+    if not buf.is_empty(e)
+        io.println("empty_fail")
+        return
+    end
+
+    e = buf.set_text(e, "module hello\n  public main()\n    return\n  end\nend")
+    if buf.text_of(e) == ""
+        io.println("set_text_fail")
+        return
+    end
+    if buf.line_count(e) != 5
+        io.println("line_count_fail")
+        return
+    end
+    if buf.line_at(e, 0) != "module hello"
+        io.println("line0_fail")
+        return
+    end
+
+    e = buf.set_language(e, buf.LANG_ORI)
+    if lang.language_name(buf.language_of(e)) != "ori"
+        io.println("lang_name_fail")
+        return
+    end
+
+    const spans: list[lang.TokenSpan] = lang.highlight_spans(e)
+    if lists.len(spans) < 3
+        io.println("spans_few")
+        return
+    end
+    if lang.count_kind(spans, lang.KIND_KEYWORD) < 2
+        io.println("keyword_fail")
+        return
+    end
+
+    e = buf.insert_at_cursor(e, "\n// note")
+    const spans2: list[lang.TokenSpan] = lang.highlight_spans(e)
+    if lang.count_kind(spans2, lang.KIND_COMMENT) < 1
+        io.println("comment_fail")
+        return
+    end
+
+    e = buf.set_read_only(e, true)
+    e = buf.set_text(e, "blocked")
+    if buf.text_of(e) == "blocked"
+        io.println("readonly_fail")
+        return
+    end
+
+    var plain: buf.Editor = buf.create_with_text("abc")
+    plain = buf.set_language(plain, buf.LANG_PLAIN)
+    const plain_spans: list[lang.TokenSpan] = lang.highlight_spans(plain)
+    if lists.len(plain_spans) != 1
+        io.println("plain_span_fail")
+        return
+    end
+    if plain_spans[0].kind != lang.KIND_PLAIN
+        io.println("plain_kind_fail")
+        return
+    end
+
+    io.println("ok")
+end

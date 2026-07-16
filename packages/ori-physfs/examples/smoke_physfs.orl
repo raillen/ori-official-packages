@@ -1,0 +1,111 @@
+module app.smoke_physfs
+
+imports
+    physfs.fs = pfs
+    ori.io = io
+end
+
+main()
+    if not pfs.init()
+        io.println("init_fail")
+        return
+    end
+
+    -- Multi-mount: A at root, B under "mod/"
+    if not pfs.mount("/tmp/ori_physfs_test", "")
+        io.println("mount_a_fail")
+        const _d1: bool = pfs.deinit()
+        return
+    end
+    if not pfs.mount("/tmp/ori_physfs_test_b", "mod")
+        io.println("mount_b_fail")
+        const _d2: bool = pfs.deinit()
+        return
+    end
+    if not pfs.exists("hello.txt")
+        io.println("exists_a_fail")
+        const _d3: bool = pfs.deinit()
+        return
+    end
+    if not pfs.exists("mod/other.txt")
+        io.println("exists_b_fail")
+        const _d4: bool = pfs.deinit()
+        return
+    end
+    const n: int = pfs.read("hello.txt")
+    -- "hello-physfs\n" = 13 bytes
+    if n != 13
+        io.println("read_len_fail")
+        const _d5: bool = pfs.deinit()
+        return
+    end
+    if pfs.last_sum() <= 0
+        io.println("sum_fail")
+        const _d6: bool = pfs.deinit()
+        return
+    end
+    const nb: int = pfs.read("mod/other.txt")
+    if nb != 7
+        io.println("read_b_fail")
+        const _d7: bool = pfs.deinit()
+        return
+    end
+
+    -- Write dir + write + read-back
+    if not pfs.set_write_dir("/tmp/ori_physfs_write")
+        io.println("write_dir_fail")
+        const _d8: bool = pfs.deinit()
+        return
+    end
+    if not pfs.mount("/tmp/ori_physfs_write", "w")
+        io.println("mount_write_fail")
+        const _d9: bool = pfs.deinit()
+        return
+    end
+    if not pfs.mkdir("out")
+        io.println("mkdir_fail")
+        const _d10: bool = pfs.deinit()
+        return
+    end
+    const wrote: int = pfs.write("out/smoke.txt", "ok-write")
+    if wrote != 8
+        io.println("write_fail")
+        const _d11: bool = pfs.deinit()
+        return
+    end
+    if not pfs.exists("w/out/smoke.txt")
+        io.println("write_exists_fail")
+        const _d12: bool = pfs.deinit()
+        return
+    end
+    const nw: int = pfs.read("w/out/smoke.txt")
+    if nw != 8
+        io.println("write_read_fail")
+        const _d13: bool = pfs.deinit()
+        return
+    end
+
+    -- Unmount secondary pack
+    if not pfs.unmount("/tmp/ori_physfs_test_b")
+        io.println("unmount_fail")
+        const _d14: bool = pfs.deinit()
+        return
+    end
+    if pfs.exists("mod/other.txt")
+        io.println("unmount_still_visible")
+        const _d15: bool = pfs.deinit()
+        return
+    end
+
+    const cnt: int = pfs.enumerate_count("")
+    if cnt < 1
+        io.println("enum_fail")
+        const _d16: bool = pfs.deinit()
+        return
+    end
+    if not pfs.deinit()
+        io.println("deinit_fail")
+        return
+    end
+    io.println("ok")
+end

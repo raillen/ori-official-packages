@@ -1,0 +1,139 @@
+module game.ogame_alarms
+
+-- GM-style alarms (N2): fixed 8 slots as separate fields (codegen-safe).
+-- remaining_ms < 0 = off; 0 = fired; >0 = countdown.
+
+public struct AlarmBank
+    a0: int
+    a1: int
+    a2: int
+    a3: int
+    a4: int
+    a5: int
+    a6: int
+    a7: int
+end
+
+public empty_bank() -> AlarmBank
+    return AlarmBank {
+        a0: -1,
+        a1: -1,
+        a2: -1,
+        a3: -1,
+        a4: -1,
+        a5: -1,
+        a6: -1,
+        a7: -1
+    }
+end
+
+public set_alarm(bank: AlarmBank, slot: int, ms: int) -> AlarmBank
+    var out: AlarmBank = bank
+    if slot == 0
+        out.a0 = ms
+    end
+    if slot == 1
+        out.a1 = ms
+    end
+    if slot == 2
+        out.a2 = ms
+    end
+    if slot == 3
+        out.a3 = ms
+    end
+    if slot == 4
+        out.a4 = ms
+    end
+    if slot == 5
+        out.a5 = ms
+    end
+    if slot == 6
+        out.a6 = ms
+    end
+    if slot == 7
+        out.a7 = ms
+    end
+    return out
+end
+
+public get_alarm(bank: AlarmBank, slot: int) -> int
+    if slot == 0
+        return bank.a0
+    end
+    if slot == 1
+        return bank.a1
+    end
+    if slot == 2
+        return bank.a2
+    end
+    if slot == 3
+        return bank.a3
+    end
+    if slot == 4
+        return bank.a4
+    end
+    if slot == 5
+        return bank.a5
+    end
+    if slot == 6
+        return bank.a6
+    end
+    if slot == 7
+        return bank.a7
+    end
+    return -1
+end
+
+tick_one(v: int, dt_ms: int) -> int
+    if v <= 0
+        return v
+    end
+    var next: int = v - dt_ms
+    if next < 0
+        return 0
+    end
+    return next
+end
+
+public tick_bank(bank: AlarmBank, dt_ms: int) -> AlarmBank
+    var out: AlarmBank = bank
+    out.a0 = tick_one(out.a0, dt_ms)
+    out.a1 = tick_one(out.a1, dt_ms)
+    out.a2 = tick_one(out.a2, dt_ms)
+    out.a3 = tick_one(out.a3, dt_ms)
+    out.a4 = tick_one(out.a4, dt_ms)
+    out.a5 = tick_one(out.a5, dt_ms)
+    out.a6 = tick_one(out.a6, dt_ms)
+    out.a7 = tick_one(out.a7, dt_ms)
+    return out
+end
+
+public fire_count_after_tick(bank: AlarmBank, dt_ms: int) -> int
+    var tmp: AlarmBank = tick_bank(bank, dt_ms)
+    var count: int = 0
+    if tmp.a0 == 0
+        count = count + 1
+    end
+    if tmp.a1 == 0
+        count = count + 1
+    end
+    if tmp.a2 == 0
+        count = count + 1
+    end
+    if tmp.a3 == 0
+        count = count + 1
+    end
+    if tmp.a4 == 0
+        count = count + 1
+    end
+    if tmp.a5 == 0
+        count = count + 1
+    end
+    if tmp.a6 == 0
+        count = count + 1
+    end
+    if tmp.a7 == 0
+        count = count + 1
+    end
+    return count
+end

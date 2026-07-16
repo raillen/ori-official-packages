@@ -1,0 +1,99 @@
+module app.sample_2d_walk
+
+-- T3: minimal 2D walk sample (tilemap solids + circle player).
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.tilemap = tilemap
+    game.shape = shape
+    ori.list = lists
+    ori.math.vec2 = vec2
+    ori.format = fmt
+end
+
+var walk_map: tilemap.Tilemap = tilemap.create(16, 10, 32.0)
+var px: float = 48.0
+var py: float = 48.0
+const PR: float = 10.0
+const SPEED: float = 120.0
+var ready: bool = false
+
+bootstrap() -> void
+    if ready
+        return
+    end
+    walk_map = tilemap.fill_rect(walk_map, 0, 9, 15, 9, 1)
+    walk_map = tilemap.paint(walk_map, 4, 8, 1)
+    walk_map = tilemap.paint(walk_map, 5, 8, 1)
+    walk_map = tilemap.paint(walk_map, 10, 7, 1)
+    ready = true
+end
+
+axis(neg: int, pos: int) -> float
+    var v: float = 0.0
+    if input.key_down(neg)
+        v = v - 1.0
+    end
+    if input.key_down(pos)
+        v = v + 1.0
+    end
+    return v
+end
+
+collides_at(x: float, y: float) -> bool
+    const solids: list[shape.Rectangle] = tilemap.collect_solid_rects(walk_map)
+    const n: int = lists.len(solids)
+    var i: int = 0
+    while i < n
+        const r: shape.Rectangle = solids[i]
+        const cx: float = r.x + r.width * 0.5
+        const cy: float = r.y + r.height * 0.5
+        const hx: float = r.width * 0.5 + PR
+        const hy: float = r.height * 0.5 + PR
+        if x >= cx - hx and x <= cx + hx and y >= cy - hy and y <= cy + hy
+            return true
+        end
+        i = i + 1
+    end
+    return false
+end
+
+on_update(dt: float) -> void
+    bootstrap()
+    const mx: float = axis(input.KEY_A, input.KEY_D)
+    const my: float = axis(input.KEY_W, input.KEY_S)
+    const nx: float = px + mx * SPEED * dt
+    const ny: float = py + my * SPEED * dt
+    if collides_at(nx, py) == false
+        px = nx
+    end
+    if collides_at(px, ny) == false
+        py = ny
+    end
+end
+
+on_draw() -> void
+    bootstrap()
+    const solids: list[shape.Rectangle] = tilemap.collect_solid_rects(walk_map)
+    const n: int = lists.len(solids)
+    var i: int = 0
+    while i < n
+        const r: shape.Rectangle = solids[i]
+        draw.draw_rect(r, color.DARKGRAY)
+        i = i + 1
+    end
+    draw.draw_circle(vec2.Vec2 { x: px, y: py }, PR, color.GREEN)
+    draw.draw_text(
+        "T3 2D walk WASD solids=" + fmt.number_int(tilemap.solid_count(walk_map)),
+        vec2.Vec2 { x: 8.0, y: 8.0 },
+        16,
+        color.WHITE
+    )
+end
+
+main()
+    app.run_window("sample_2d_walk", 640, 400, on_update, on_draw)
+end

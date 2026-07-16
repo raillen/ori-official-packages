@@ -1,0 +1,90 @@
+module test.timeline
+
+imports
+    imgui.timeline = tl
+    ori.test = test
+end
+
+@test
+tracks_add_remove_count()
+    var t: tl.Timeline = tl.create(2000)
+    test.equal_int(tl.track_count(t), 0)
+    t = tl.add_track(t, "pos_x")
+    t = tl.add_track(t, "pos_y")
+    test.equal_int(tl.track_count(t), 2)
+    test.assert(tl.track_name(t, 0) == "pos_x", "track0 name")
+    t = tl.rename_track(t, 1, "pos_z")
+    test.assert(tl.track_name(t, 1) == "pos_z", "rename")
+    t = tl.remove_track(t, 0)
+    test.equal_int(tl.track_count(t), 1)
+    test.assert(tl.track_name(t, 0) == "pos_z", "after remove")
+end
+
+@test
+key_crud_add_remove_set()
+    var t: tl.Timeline = tl.create(1000)
+    t = tl.add_track(t, "v")
+    t = tl.add_key(t, 0, 500, 50)
+    t = tl.add_key(t, 0, 0, 0)
+    t = tl.add_key(t, 0, 1000, 100)
+    -- Sorted insert: times 0, 500, 1000
+    test.equal_int(tl.key_count(t, 0), 3)
+    test.equal_int(tl.get_key(t, 0, 0).time_milli, 0)
+    test.equal_int(tl.get_key(t, 0, 1).time_milli, 500)
+    test.equal_int(tl.get_key(t, 0, 2).value_milli, 100)
+    test.equal_int(tl.find_key_at(t, 0, 500), 1)
+    t = tl.set_key(t, 0, 1, 400, 40)
+    test.equal_int(tl.get_key(t, 0, 1).time_milli, 400)
+    test.equal_int(tl.get_key(t, 0, 1).value_milli, 40)
+    t = tl.remove_key(t, 0, 1)
+    test.equal_int(tl.key_count(t, 0), 2)
+    test.equal_int(tl.find_key_at(t, 0, 400), -1)
+    test.equal_int(tl.get_key(t, 0, 1).time_milli, 1000)
+end
+
+@test
+playhead_seek_tick_clamp()
+    var t: tl.Timeline = tl.create(1000)
+    test.equal_int(tl.playhead(t), 0)
+    test.equal_int(tl.duration(t), 1000)
+    test.assert(not tl.is_playing(t), "starts paused")
+    t = tl.seek(t, 1500)
+    test.equal_int(tl.playhead(t), 1000)
+    t = tl.seek(t, -10)
+    test.equal_int(tl.playhead(t), 0)
+    t = tl.play(t)
+    test.assert(tl.is_playing(t), "playing")
+    t = tl.tick(t, 400)
+    test.equal_int(tl.playhead(t), 400)
+    t = tl.tick(t, 700)
+    test.equal_int(tl.playhead(t), 1000)
+    test.assert(not tl.is_playing(t), "stops at end")
+    t = tl.set_duration(t, 500)
+    test.equal_int(tl.duration(t), 500)
+    test.equal_int(tl.playhead(t), 500)
+    t = tl.pause(t)
+    t = tl.seek(t, 100)
+    t = tl.tick(t, 50)
+    test.equal_int(tl.playhead(t), 100)
+end
+
+@test
+sample_step_and_lerp()
+    var t: tl.Timeline = tl.create(1000)
+    t = tl.add_track(t, "x")
+    t = tl.add_key(t, 0, 0, 0)
+    t = tl.add_key(t, 0, 1000, 1000)
+    t = tl.seek(t, 0)
+    test.equal_int(tl.sample(t, 0), 0)
+    test.equal_int(tl.sample_lerp(t, 0), 0)
+    t = tl.seek(t, 500)
+    -- Step holds previous key (0) until next key time.
+    test.equal_int(tl.sample(t, 0), 0)
+    test.equal_int(tl.sample_lerp(t, 0), 500)
+    t = tl.seek(t, 1000)
+    test.equal_int(tl.sample(t, 0), 1000)
+    test.equal_int(tl.sample_lerp(t, 0), 1000)
+    -- OOB track
+    test.equal_int(tl.sample(t, 9), 0)
+    test.equal_int(tl.key_count(t, 9), 0)
+end

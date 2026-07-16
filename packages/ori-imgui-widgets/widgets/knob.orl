@@ -1,0 +1,163 @@
+module widgets.knob
+
+-- Rotary knob widget state (headless product surface).
+-- Value is milli-int (e.g. 0..1000 ≈ 0.0..1.0); angle_milli maps for draw.
+
+public struct Knob
+    value_milli: int
+    min_milli: int
+    max_milli: int
+    label: string
+    active: bool
+    -- Sweep of the dial in milli-degrees (default 270000 = 270°).
+    sweep_milli_deg: int
+end
+
+-- Full circle in milli-degrees.
+public const FULL_CIRCLE_MILLI_DEG: int = 360000
+public const DEFAULT_SWEEP_MILLI_DEG: int = 270000
+
+clamp_int(v: int, lo: int, hi: int) -> int
+    if v < lo
+        return lo
+    end
+    if v > hi
+        return hi
+    end
+    return v
+end
+
+public create(min_milli: int, max_milli: int, initial_milli: int) -> Knob
+    var lo: int = min_milli
+    var hi: int = max_milli
+    if hi < lo
+        const tmp: int = lo
+        lo = hi
+        hi = tmp
+    end
+    if hi == lo
+        hi = lo + 1
+    end
+    return Knob {
+        value_milli: clamp_int(initial_milli, lo, hi),
+        min_milli: lo,
+        max_milli: hi,
+        label: "",
+        active: false,
+        sweep_milli_deg: DEFAULT_SWEEP_MILLI_DEG
+    }
+end
+
+public create_unit(initial_milli: int) -> Knob
+    return create(0, 1000, initial_milli)
+end
+
+public set_label(k: Knob, label: string) -> Knob
+    var out: Knob = k
+    out.label = label
+    return out
+end
+
+public label_of(k: Knob) -> string
+    return k.label
+end
+
+public set_value_milli(k: Knob, value_milli: int) -> Knob
+    var out: Knob = k
+    out.value_milli = clamp_int(value_milli, out.min_milli, out.max_milli)
+    return out
+end
+
+public value_milli_of(k: Knob) -> int
+    return k.value_milli
+end
+
+public min_milli_of(k: Knob) -> int
+    return k.min_milli
+end
+
+public max_milli_of(k: Knob) -> int
+    return k.max_milli
+end
+
+public set_range(k: Knob, min_milli: int, max_milli: int) -> Knob
+    var out: Knob = k
+    var lo: int = min_milli
+    var hi: int = max_milli
+    if hi < lo
+        const tmp: int = lo
+        lo = hi
+        hi = tmp
+    end
+    if hi == lo
+        hi = lo + 1
+    end
+    out.min_milli = lo
+    out.max_milli = hi
+    out.value_milli = clamp_int(out.value_milli, lo, hi)
+    return out
+end
+
+public set_active(k: Knob, active: bool) -> Knob
+    var out: Knob = k
+    out.active = active
+    return out
+end
+
+public is_active(k: Knob) -> bool
+    return k.active
+end
+
+-- Nudge value by a drag delta (milli units of the value range).
+public nudge_value_milli(k: Knob, delta_milli: int) -> Knob
+    return set_value_milli(k, k.value_milli + delta_milli)
+end
+
+-- Normalized 0..1000 across the knob range (independent of min/max).
+public normalized_milli_of(k: Knob) -> int
+    const span: int = k.max_milli - k.min_milli
+    if span <= 0
+        return 0
+    end
+    return ((k.value_milli - k.min_milli) * 1000) / span
+end
+
+public set_normalized_milli(k: Knob, normalized_milli: int) -> Knob
+    const n: int = clamp_int(normalized_milli, 0, 1000)
+    const span: int = k.max_milli - k.min_milli
+    const raw: int = k.min_milli + (n * span) / 1000
+    return set_value_milli(k, raw)
+end
+
+public set_sweep_milli_deg(k: Knob, sweep_milli_deg: int) -> Knob
+    var out: Knob = k
+    var s: int = sweep_milli_deg
+    if s < 1
+        s = 1
+    end
+    if s > FULL_CIRCLE_MILLI_DEG
+        s = FULL_CIRCLE_MILLI_DEG
+    end
+    out.sweep_milli_deg = s
+    return out
+end
+
+public sweep_milli_deg_of(k: Knob) -> int
+    return k.sweep_milli_deg
+end
+
+-- Angle of the pointer from start of sweep (0 = min, sweep = max), milli-degrees.
+public angle_milli_deg_of(k: Knob) -> int
+    const n: int = normalized_milli_of(k)
+    return (n * k.sweep_milli_deg) / 1000
+end
+
+-- Map a milli-degree angle within the sweep back to a value (headless drag helper).
+public set_from_angle_milli_deg(k: Knob, angle_milli_deg: int) -> Knob
+    const a: int = clamp_int(angle_milli_deg, 0, k.sweep_milli_deg)
+    if k.sweep_milli_deg <= 0
+        return k
+    end
+    const n: int = (a * 1000) / k.sweep_milli_deg
+    return set_normalized_milli(k, n)
+end

@@ -1,0 +1,158 @@
+# particles — Sistema de Partículas
+
+Módulo para efeitos de partículas.
+
+## Particle
+
+Partícula individual.
+
+```ori
+struct Particle
+    pos: Vec2
+    vel: Vec2
+    life: float
+    max_life: float
+    color_start: Color
+    color_end: Color
+    size_start: float
+    size_end: float
+    alpha: float = 1.0
+end
+```
+
+## ParticleEmitter
+
+Emissor de partículas.
+
+```ori
+struct ParticleEmitter
+    pos: Vec2
+    rate: float = 10.0
+    speed: float = 100.0
+    spread: float = 360.0
+    lifetime: float = 1.0
+    color_start: Color = RED
+    color_end: Color = YELLOW
+    size_start: float = 8.0
+    size_end: float = 0.0
+    gravity: float = 200.0
+    active: bool = true
+    emit_timer: float = 0.0
+end
+```
+
+## ParticleSystem
+
+Sistema de partículas.
+
+```ori
+struct ParticleSystem
+    particles: list<Particle>
+    emitters: list<ParticleEmitter>
+    max_particles: int = 1000
+end
+```
+
+## Funções
+
+### create_particle_system
+
+Cria um novo sistema de partículas.
+
+```ori
+func create_particle_system(max_particles: int) -> ParticleSystem
+```
+
+### add_emitter
+
+Adiciona um emissor ao sistema.
+
+```ori
+func add_emitter(system: ParticleSystem, emitter: ParticleEmitter) -> void
+```
+
+### emit
+
+Emite partículas de um emissor.
+
+```ori
+func emit(system: ParticleSystem, emitter: ParticleEmitter, count: int) -> void
+```
+
+### emit_at
+
+Emite partículas em uma posição específica.
+
+```ori
+func emit_at(system: ParticleSystem, pos: Vec2, count: int, config: ParticleEmitter) -> void
+```
+
+### update_particles
+
+Atualiza todas as partículas.
+
+```ori
+func update_particles(system: ParticleSystem, dt: float) -> void
+```
+
+### draw_particles
+
+Desenha todas as partículas.
+
+```ori
+func draw_particles(system: ParticleSystem) -> void
+```
+
+### clear_particles
+
+Remove todas as partículas.
+
+```ori
+func clear_particles(system: ParticleSystem) -> void
+```
+
+### particle_count
+
+Retorna o número de partículas.
+
+```ori
+func particle_count(system: ParticleSystem) -> int
+```
+
+**Exemplo — Explosão:**
+```ori
+var system = particles.create_particle_system(200)
+
+var explosion = particles.ParticleEmitter(
+    pos: vec2.Vec2(x: 320.0, y: 240.0),
+    rate: 0.0,
+    speed: 200.0,
+    spread: 360.0,
+    lifetime: 1.0,
+    color_start: color.RED,
+    color_end: color.YELLOW
+)
+
+-- Ao explodir:
+particles.emit(system, explosion, 50)
+
+-- No update:
+particles.update_particles(system, dt)
+particles.draw_particles(system)
+```
+
+**Exemplo — Fumaça:**
+```ori
+var smoke = particles.ParticleEmitter(
+    pos: vec2.Vec2(x: 320.0, y: 400.0),
+    rate: 10.0,
+    speed: 50.0,
+    spread: 30.0,
+    lifetime: 3.0,
+    color_start: color.GRAY,
+    color_end: color.LIGHTGRAY,
+    size_start: 5.0,
+    size_end: 20.0,
+    gravity: -50.0
+)
+```

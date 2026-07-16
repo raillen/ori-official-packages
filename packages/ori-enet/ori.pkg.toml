@@ -1,0 +1,8 @@
+[package]
+name = "enet"
+version = "0.3.0"
+entry = "enet/host.orl"
+ori_version = "0.3.0"
+description = "ENet UDP multiplayer for Ori (host/peer + jam protocol helpers)"
+license = "MIT"
+native_libs = ["ori_enet_shim", "enet"]

@@ -1,0 +1,139 @@
+# dialogue — Sistema de Diálogos
+
+Módulo para diálogos com personagens e escolhas.
+
+## DialogueLine
+
+Linha de diálogo.
+
+```ori
+struct DialogueLine
+    speaker: string
+    text: string
+    choices: list<DialogueChoice> = nil
+    auto_advance: bool = false
+    auto_advance_time: float = 2.0
+end
+```
+
+## DialogueChoice
+
+Escolha no diálogo.
+
+```ori
+struct DialogueChoice
+    text: string
+    next_index: int
+    condition: func() -> bool = nil
+end
+```
+
+## DialogueState
+
+Estado do diálogo.
+
+```ori
+struct DialogueState
+    lines: list<DialogueLine>
+    current_index: int = 0
+    active: bool = false
+    char_index: int = 0
+    char_timer: float = 0.0
+    char_speed: float = 0.05
+    text_complete: bool = false
+    selected_choice: int = 0
+    on_complete: func() -> void = nil
+end
+```
+
+## Funções
+
+### start_dialogue
+
+Inicia um diálogo.
+
+```ori
+func start_dialogue(state: DialogueState, lines: list<DialogueLine>) -> void
+```
+
+### advance_dialogue
+
+Avança para a próxima linha.
+
+```ori
+func advance_dialogue(state: DialogueState) -> void
+```
+
+### select_choice
+
+Seleciona uma escolha.
+
+```ori
+func select_choice(state: DialogueState, index: int) -> void
+```
+
+### update_dialogue
+
+Atualiza o diálogo (efeito typewriter).
+
+```ori
+func update_dialogue(state: DialogueState, dt: float) -> void
+```
+
+### get_display_text
+
+Retorna o texto atual sendo exibido.
+
+```ori
+func get_display_text(state: DialogueState) -> string
+```
+
+### get_current_speaker
+
+Retorna o nome do falante atual.
+
+```ori
+func get_current_speaker(state: DialogueState) -> string
+```
+
+### has_choices
+
+Verifica se a linha atual tem escolhas.
+
+```ori
+func has_choices(state: DialogueState) -> bool
+```
+
+### get_choices
+
+Retorna as escolhas disponíveis.
+
+```ori
+func get_choices(state: DialogueState) -> list<DialogueChoice>
+```
+
+### end_dialogue
+
+Finaliza o diálogo.
+
+```ori
+func end_dialogue(state: DialogueState) -> void
+```
+
+**Exemplo:**
+```ori
+var lines = list<dialogue.DialogueLine>()
+lines.add(dialogue.DialogueLine(speaker: "NPC", text: "Olá!"))
+lines.add(dialogue.DialogueLine(speaker: "NPC", text: "Como posso ajudar?"))
+
+var state = dialogue.DialogueState(lines: lines)
+dialogue.start_dialogue(state, lines)
+
+-- No update:
+if dialogue_active
+    if input.key_pressed(32)
+        dialogue.advance_dialogue(state)
+    end
+    dialogue.update_dialogue(state, dt)
+end
+```

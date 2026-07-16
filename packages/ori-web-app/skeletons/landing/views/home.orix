@@ -1,0 +1,27 @@
+@{ layout "layouts/app" }
+@{ assign title = "{{AppName}}" }
+
+<section class="hero">
+  <p class="eyebrow">Ori web framework</p>
+  <h1>Readable products, shipped as real HTTP.</h1>
+  <p class="lede">Landing skeleton — server HTML by default. Prefer Svelte/Vue/Solid via <code>--ui</code> without coupling the core.</p>
+  <a class="btn" href="#contact">Get in touch</a>
+</section>
+
+<section id="features" class="grid">
+  <article class="card"><h3>Templates</h3><p>ori-templates with escape-by-default.</p></article>
+  <article class="card"><h3>Clean structure</h3><p>Small handlers, explicit routes.</p></article>
+  <article class="card"><h3>Optional JS</h3><p>HTMX · Svelte · Vue · Solid presets.</p></article>
+</section>
+
+<section id="contact" class="card">
+  <h2>Contact</h2>
+  <p class="muted">Leads this process: @{ leads }</p>
+  <form method="post" action="/contact" class="row">
+    <input type="hidden" name="csrf_token" value="@{ csrf_token }">
+    <input type="email" name="email" required placeholder="you@example.com">
+    <button type="submit">Send</button>
+  </form>
+</section>
+
+@{ end }

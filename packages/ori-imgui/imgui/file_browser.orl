@@ -1,0 +1,212 @@
+module imgui.file_browser
+
+-- Tier 1 file browser: pure Ori + ori.fs + imgui.ui (no native NFD).
+-- Usage: open → draw each frame → if confirmed, take path and close.
+
+import imgui.ui = ui
+import ori.fs = fs
+import ori.list = lists
+import ori.path = path
+import ori.os = os
+public struct Browser
+    open: bool
+    dir: string
+    filter_ext: string
+    selected: string
+    confirmed: bool
+    entries: list[string]
+    status: string
+end
+
+public create(start_dir: string, filter_ext: string) -> Browser
+    var empty: list[string] = []
+    var dir: string = start_dir
+    if dir == ""
+        dir = os.current_dir_or(".")
+    end
+    return Browser {
+        open: false,
+        dir: dir,
+        filter_ext: filter_ext,
+        selected: "",
+        confirmed: false,
+        entries: empty,
+        status: ""
+    }
+end
+
+public open(b: Browser) -> Browser
+    var out: Browser = b
+    out.open = true
+    out.confirmed = false
+    out.selected = ""
+    out = refresh(out)
+    return out
+end
+
+public close(b: Browser) -> Browser
+    var out: Browser = b
+    out.open = false
+    return out
+end
+
+public is_open(b: Browser) -> bool
+    return b.open
+end
+
+public take_confirmed(b: Browser) -> Browser
+    var out: Browser = b
+    out.confirmed = false
+    out.open = false
+    return out
+end
+
+join2(a: string, b: string) -> string
+    var parts: list[string] = []
+    lists.push(parts, a)
+    lists.push(parts, b)
+    return path.join(parts)
+end
+
+public selected_path(b: Browser) -> string
+    if b.selected == ""
+        return ""
+    end
+    return join2(b.dir, b.selected)
+end
+
+accept_entry(dir: string, name: string, filter_ext: string) -> bool
+    if name == "."
+        return false
+    end
+    if name == ".."
+        return false
+    end
+    if filter_ext == ""
+        return true
+    end
+    const full: string = join2(dir, name)
+    match fs.is_dir(full)
+        case ok(is_d):
+            if is_d
+                return true
+            end
+            return path.has_extension(name, filter_ext)
+        case err(_):
+            return true
+    end
+    return true
+end
+
+refresh(b: Browser) -> Browser
+    var out: Browser = b
+    var entries: list[string] = []
+    match fs.list_dir(out.dir)
+        case ok(items):
+            const n: int = lists.len(items)
+            var i: int = 0
+            while i < n
+                const name: string = items[i]
+                if accept_entry(out.dir, name, out.filter_ext)
+                    lists.push(entries, name)
+                end
+                i = i + 1
+            end
+            out.entries = entries
+            out.status = ""
+        case err(msg):
+            out.entries = entries
+            out.status = msg
+    end
+    return out
+end
+
+open_selected(out: Browser) -> Browser
+    if out.selected == ""
+        return out
+    end
+    const full: string = join2(out.dir, out.selected)
+    match fs.is_dir(full)
+        case ok(is_d):
+            if is_d
+                var next: Browser = out
+                next.dir = full
+                next.selected = ""
+                return refresh(next)
+            end
+            var conf: Browser = out
+            conf.confirmed = true
+            return conf
+        case err(_):
+            var conf2: Browser = out
+            conf2.confirmed = true
+            return conf2
+    end
+    return out
+end
+
+-- Draw browser window; returns updated state. Call only when open.
+public draw(b: Browser, title: string) -> Browser
+    if not b.open
+        return b
+    end
+    var out: Browser = b
+    ui.set_next_window_size(480, 360)
+    if ui.begin_window(title)
+        ui.text(out.dir)
+        if ui.button("Up")
+            const parent: string = path.parent(out.dir)
+            if parent != ""
+                if parent != out.dir
+                    out.dir = parent
+                    out.selected = ""
+                    out = refresh(out)
+                end
+            end
+        end
+        ui.same_line()
+        if ui.button("Refresh")
+            out = refresh(out)
+        end
+        ui.same_line()
+        if ui.button("Cancel")
+            out.open = false
+            out.confirmed = false
+        end
+        ui.separator()
+        if ui.begin_child("entries", 0, 220, true)
+            const n: int = lists.len(out.entries)
+            var i: int = 0
+            while i < n
+                const name: string = out.entries[i]
+                const full: string = join2(out.dir, name)
+                var is_directory: bool = false
+                match fs.is_dir(full)
+                    case ok(d):
+                        is_directory = d
+                    case err(_):
+                end
+                var label: string = name
+                if is_directory
+                    label = ori.string.concat("[dir] ", name)
+                end
+                if ui.selectable(label, out.selected == name)
+                    out.selected = name
+                end
+                i = i + 1
+            end
+            ui.end_child()
+        end
+        if out.selected != ""
+            ui.text(ori.string.concat("Selected: ", out.selected))
+        end
+        if out.status != ""
+            ui.text_disabled(out.status)
+        end
+        if ui.button("Open")
+            out = open_selected(out)
+        end
+        ui.end_window()
+    end
+    return out
+end

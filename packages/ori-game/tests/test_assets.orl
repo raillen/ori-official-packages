@@ -1,0 +1,19 @@
+module test.assets
+
+imports
+    ori.test = test
+    game.assets = assets
+end
+
+@test
+cache_dedupes_texture_path()
+    var cache: assets.AssetCache = assets.create()
+    test.equal_int(assets.texture_count(cache), 0)
+    cache = assets.remember_texture(cache, "player.png", 42)
+    cache = assets.remember_texture(cache, "player.png", 99)
+    test.equal_int(assets.texture_count(cache), 1)
+    test.equal_int(assets.get_texture(cache, "player.png"), 42)
+    test.assert(assets.has_texture(cache, "player.png"), "has")
+    cache = assets.clear(cache)
+    test.equal_int(assets.texture_count(cache), 0)
+end

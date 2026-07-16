@@ -1,0 +1,85 @@
+module game.nav_path
+
+-- GP4: path-query host. Pure data + thin wrappers over game.navmesh when linked.
+-- Unit tests can use empty_host without pulling recast if they only read fields.
+-- Full find_path_m calls navmesh (requires staged recast native_libs).
+
+import game.navmesh = nav
+import ori.math = math
+
+public struct PathResult
+    ok: bool
+    waypoint_count: int
+end
+
+public struct NavHost
+    built: bool
+    width_m: int
+    depth_m: int
+    cell_m: int
+end
+
+public empty_host() -> NavHost
+    return NavHost {
+        built: false,
+        width_m: 40000,
+        depth_m: 40000,
+        cell_m: 500
+    }
+end
+
+public ensure_plane(host: NavHost) -> NavHost
+    var out: NavHost = host
+    if out.built
+        return out
+    end
+    nav.mesh_clear()
+    out.built = nav.build_plane(out.width_m, out.depth_m, out.cell_m)
+    return out
+end
+
+-- Marca built após bake externo (game.nav_bake.bake_solids).
+public mark_built(host: NavHost, ok: bool) -> NavHost
+    var out: NavHost = host
+    out.built = ok
+    return out
+end
+
+public find_path_m(
+    host: NavHost,
+    sx: float,
+    sy: float,
+    sz: float,
+    ex: float,
+    ey: float,
+    ez: float
+) -> PathResult
+    var h: NavHost = ensure_plane(host)
+    if h.built == false
+        return PathResult { ok: false, waypoint_count: 0 }
+    end
+    const n: int = nav.find_path(
+        math.round(sx * 1000.0),
+        math.round(sy * 1000.0),
+        math.round(sz * 1000.0),
+        math.round(ex * 1000.0),
+        math.round(ey * 1000.0),
+        math.round(ez * 1000.0)
+    )
+    if n <= 0
+        return PathResult { ok: false, waypoint_count: 0 }
+    end
+    return PathResult { ok: true, waypoint_count: n }
+end
+
+public waypoint_world_x(i: int) -> float
+    return float(nav.waypoint_x(i)) / 1000.0
+end
+
+public waypoint_world_y(i: int) -> float
+    return float(nav.waypoint_y(i)) / 1000.0
+end
+
+public waypoint_world_z(i: int) -> float
+    return float(nav.waypoint_z(i)) / 1000.0
+end

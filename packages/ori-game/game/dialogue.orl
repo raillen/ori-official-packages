@@ -1,0 +1,96 @@
+module game.dialogue
+
+import ori.list = lists
+
+public struct DialogueChoice
+    label: string
+    next_line: int
+end
+
+public struct DialogueLine
+    speaker: string
+    text: string
+    choices: list[DialogueChoice]
+end
+
+public struct Dialogue
+    lines: list[DialogueLine]
+    current: int
+    active: bool
+end
+
+public create() -> Dialogue
+    var lines: list[DialogueLine] = []
+    return Dialogue { lines: lines, current: 0, active: false }
+end
+
+public add_line(dlg: Dialogue, speaker: string, text: string) -> Dialogue
+    var out: Dialogue = dlg
+    var choices: list[DialogueChoice] = []
+    lists.push(out.lines, DialogueLine { speaker: speaker, text: text, choices: choices })
+    return out
+end
+
+public start(dlg: Dialogue, line: int) -> Dialogue
+    var out: Dialogue = dlg
+    out.current = line
+    out.active = true
+    return out
+end
+
+public current_text(dlg: Dialogue) -> string
+    if not dlg.active or dlg.current < 0 or dlg.current >= lists.len(dlg.lines)
+        return ""
+    end
+    return dlg.lines[dlg.current].text
+end
+
+public advance(dlg: Dialogue) -> Dialogue
+    var out: Dialogue = dlg
+    out.current = out.current + 1
+    if out.current >= lists.len(out.lines)
+        out.active = false
+    end
+    return out
+end
+
+public add_choice(dlg: Dialogue, line: int, label: string, next_line: int) -> Dialogue
+    var out: Dialogue = dlg
+    if line < 0 or line >= lists.len(out.lines)
+        return out
+    end
+    var ln: DialogueLine = out.lines[line]
+    lists.push(ln.choices, DialogueChoice { label: label, next_line: next_line })
+    lists.set(out.lines, line, ln)
+    return out
+end
+
+public choice_count(dlg: Dialogue) -> int
+    if not dlg.active or dlg.current < 0 or dlg.current >= lists.len(dlg.lines)
+        return 0
+    end
+    return lists.len(dlg.lines[dlg.current].choices)
+end
+
+public choose(dlg: Dialogue, choice_index: int) -> Dialogue
+    var out: Dialogue = dlg
+    if not out.active or out.current < 0 or out.current >= lists.len(out.lines)
+        return out
+    end
+    const choices: list[DialogueChoice] = out.lines[out.current].choices
+    if choice_index < 0 or choice_index >= lists.len(choices)
+        return out
+    end
+    out.current = choices[choice_index].next_line
+    if out.current < 0 or out.current >= lists.len(out.lines)
+        out.active = false
+    end
+    return out
+end
+
+public current_speaker(dlg: Dialogue) -> string
+    if not dlg.active or dlg.current < 0 or dlg.current >= lists.len(dlg.lines)
+        return ""
+    end
+    return dlg.lines[dlg.current].speaker
+end

@@ -1,0 +1,110 @@
+module app.smoke_gizmo
+
+imports
+    imguizmo.gizmo = gz
+    imguizmo.curve = curve
+    imguizmo.gradient = grad
+    imguizmo.zoom = zoom
+    ori.io = io
+end
+
+main()
+    gz.identity()
+    gz.set_translation_m(1000, 2000, 3000)
+    if gz.tx_m() != 1000 or gz.ty_m() != 2000 or gz.tz_m() != 3000
+        io.println("set_fail")
+        return
+    end
+    gz.translate_m(500, 0, 0)
+    if gz.tx_m() != 1500
+        io.println("move_fail")
+        return
+    end
+
+    -- Rotate (milli-degrees) + scale (milli-factor): ≥2 ops beyond translate
+    gz.set_rotation_m(0, 90000, 0)
+    if gz.ry_m() != 90000
+        io.println("rotate_fail")
+        return
+    end
+    gz.set_scale_m(2000, 2000, 2000)
+    if gz.sx_m() != 2000 or gz.sy_m() != 2000 or gz.sz_m() != 2000
+        io.println("scale_fail")
+        return
+    end
+    if gz.matrix_m(12) != 1500
+        io.println("matrix_t_fail")
+        return
+    end
+    -- With 0 rotation, scale lands on the diagonal (milli 2000 = 2.0).
+    gz.set_rotation_m(0, 0, 0)
+    if gz.matrix_m(0) != 2000 or gz.matrix_m(5) != 2000 or gz.matrix_m(10) != 2000
+        io.println("matrix_s_fail")
+        return
+    end
+
+    -- Headless manipulate: callable, no change without ImGui frame
+    if gz.manipulate_translate()
+        io.println("manip_t_unexpected")
+        return
+    end
+    if gz.last_op() != gz.OP_TRANSLATE
+        io.println("last_op_fail")
+        return
+    end
+    if gz.manipulate_rotate()
+        io.println("manip_r_unexpected")
+        return
+    end
+    if gz.manipulate_scale()
+        io.println("manip_s_unexpected")
+        return
+    end
+
+    gz.identity()
+    if gz.tx_m() != 0 or gz.sx_m() != 1000 or gz.rx_m() != 0
+        io.println("identity_fail")
+        return
+    end
+
+    -- CurveEdit: sample + edit points (milli)
+    curve.clear()
+    curve.add_point_m(0, 0)
+    curve.add_point_m(1000, 1000)
+    if curve.sample_m(500) != 500
+        io.println("curve_sample_fail")
+        return
+    end
+    if curve.edit()
+        io.println("curve_edit_unexpected")
+        return
+    end
+
+    -- Gradient: color stops + mid sample
+    grad.clear()
+    grad.add_stop_m(0, 0, 0, 1000, 0)
+    grad.add_stop_m(1000, 1000, 1000, 1000, 1000)
+    if grad.sample_r_m(500) != 500
+        io.println("grad_sample_fail")
+        return
+    end
+    if grad.edit()
+        io.println("grad_edit_unexpected")
+        return
+    end
+
+    -- ZoomSlider: view span as zoom value
+    zoom.reset()
+    zoom.set_range_m(0, 1000)
+    zoom.set_view_m(250, 750)
+    if zoom.span_m() != 500
+        io.println("zoom_span_fail")
+        return
+    end
+    if zoom.slider()
+        io.println("zoom_slider_unexpected")
+        return
+    end
+
+    io.println("ok")
+end

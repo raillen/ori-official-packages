@@ -1,0 +1,141 @@
+module app.physics_host_sample
+
+-- R4.1: pure Ori PhysicsHost gravity + move + collision (Linux, no ECO Jolt required).
+
+imports
+    game.app = app
+    game.draw = draw
+    game.draw3d = draw3d
+    game.camera3d = cam3
+    game.color = color
+    game.input = input
+    game.world = world
+    game.world_systems = systems
+    game.world_physics = wphys
+    game.ogame_level = level
+    ori.list = lists
+    ori.math.vec2 = vec2
+    ori.math.vec3 = vec3
+    ori.format = fmt
+end
+
+var cam: cam3.Camera3D = cam3.create_perspective(
+    vec3.Vec3 { x: 40.0, y: 30.0, z: 60.0 },
+    vec3.Vec3 { x: 0.0, y: 8.0, z: 0.0 },
+    45.0
+)
+var w: world.World = world.empty_world()
+var phys: wphys.PhysicsHost = wphys.empty_host()
+var solids: list[level.SolidPiece] = []
+var ready: bool = false
+var player_id: world.EntityId = 0
+var ball_y: float = 40.0
+
+bootstrap() -> void
+    if ready
+        return
+    end
+    lists.push(solids, level.SolidPiece {
+        x: 0.0, y: 0.0, z: 0.0,
+        sx: 200.0, sy: 2.0, sz: 200.0,
+        r: 90, g: 120, b: 70, a: 255,
+        metallic: 0.0, roughness: 0.9,
+        layer: 1, collider: true
+    })
+    var t: world.Transform = world.empty_transform()
+    t.x = 0.0
+    t.y = 40.0
+    t.z = 0.0
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "ball",
+            entity_type: "player",
+            primary_tag: "player"
+        },
+        t
+    )
+    player_id = world.get_entity(w, 0).id
+    w = world.set_collider(w, player_id, world.ColliderComp {
+        kind: "sphere",
+        radius: 6.0,
+        layer: 1
+    })
+    w = world.set_velocity(w, player_id, world.Velocity {
+        vx: 0.0, vy: 0.0, vz: 0.0
+    })
+    phys = wphys.attach(phys, player_id, wphys.empty_body())
+    ready = true
+end
+
+axis(neg: int, pos: int) -> float
+    var v: float = 0.0
+    if input.key_down(neg)
+        v = v - 1.0
+    end
+    if input.key_down(pos)
+        v = v + 1.0
+    end
+    return v
+end
+
+on_update(dt: float) -> void
+    bootstrap()
+    var fi: systems.FrameInput = systems.empty_input()
+    fi.move_x = axis(input.KEY_A, input.KEY_D)
+    fi.move_z = axis(input.KEY_W, input.KEY_S)
+    match world.find_by_id(w, player_id)
+        case some(e):
+            var v: world.Velocity = e.velocity
+            v.vx = fi.move_x * 40.0
+            v.vz = fi.move_z * 40.0
+            w = world.set_velocity(w, player_id, v)
+        case none:
+    end
+    w = systems.physics_system(w, phys, -280.0, dt)
+    w = systems.move_system(w, dt)
+    w = systems.collision_system(w, solids)
+    match world.find_by_id(w, player_id)
+        case some(e2):
+            ball_y = e2.transform.y
+        case none:
+    end
+end
+
+on_draw() -> void
+    bootstrap()
+    cam3.begin_mode(cam)
+    draw3d.draw_grid(40, 8.0)
+    match world.find_by_id(w, player_id)
+        case some(e):
+            draw3d.draw_sphere(
+                vec3.Vec3 {
+                    x: e.transform.x,
+                    y: e.transform.y,
+                    z: e.transform.z
+                },
+                6.0,
+                color.ORANGE
+            )
+            cam = cam3.look_at(
+                cam,
+                vec3.Vec3 {
+                    x: e.transform.x,
+                    y: e.transform.y + 8.0,
+                    z: e.transform.z
+                }
+            )
+        case none:
+    end
+    cam3.end_mode()
+    draw.draw_text(
+        "R4.1 PhysicsHost gravity · WASD · y=" + fmt.number_with(ball_y, 1),
+        vec2.Vec2 { x: 8.0, y: 8.0 },
+        16,
+        color.WHITE
+    )
+end
+
+main()
+    app.run_window("physics_host_sample", 960, 540, on_update, on_draw)
+end

@@ -1,0 +1,391 @@
+module game.aseprite
+
+-- Aseprite JSON hash/array export (spritesheet metadata).
+-- Frames + meta.frameTags + optional meta.image path.
+-- Playback is pure Ori; drawing uses game.draw when a texture is loaded.
+
+import ori.json = json
+import ori.map = maps
+import ori.list = lists
+import ori.math = math
+import ori.fs = fs
+import game.shape = shape
+
+public struct AseFrame
+    name: string
+    x: float
+    y: float
+    w: float
+    h: float
+    duration_ms: int
+end
+
+public struct AseTag
+    name: string
+    from_frame: int
+    to_frame: int
+    direction: string
+end
+
+public struct AseSheet
+    image: string
+    sheet_w: int
+    sheet_h: int
+    frames: list[AseFrame]
+    tags: list[AseTag]
+end
+
+public struct AsePlayer
+    sheet: AseSheet
+    tag_index: int
+    frame_index: int
+    elapsed_ms: float
+    playing: bool
+    does_loop: bool
+end
+
+public alias LoadResult = result[AseSheet, string]
+
+-- ── JSON helpers (try_get only — map.get missing key is unsafe) ──
+
+-- Variant payload field is always named `fields` on Object.
+as_object(val: json.Value) -> optional[map[string, json.Value]]
+    match val
+        case Object(fields):
+            return some(fields)
+        case else:
+            return none
+    end
+    return none
+end
+
+json_number(fields: map[string, json.Value], key: string, fallback: float) -> float
+    if some(v) = maps.try_get(fields, key)
+        match v
+            case Number(value):
+                return value
+            case else:
+                return fallback
+        end
+    end
+    return fallback
+end
+
+json_int(fields: map[string, json.Value], key: string, fallback: int) -> int
+    return math.round(json_number(fields, key, float(fallback)))
+end
+
+json_string(fields: map[string, json.Value], key: string, fallback: string) -> string
+    if some(v) = maps.try_get(fields, key)
+        match v
+            case String(value):
+                return value
+            case else:
+                return fallback
+        end
+    end
+    return fallback
+end
+
+parse_frame_rect(fields: map[string, json.Value]) -> shape.Rectangle
+    if some(fr) = maps.try_get(fields, "frame")
+        match as_object(fr)
+            case some(rf):
+                return shape.rect(
+                    json_number(rf, "x", 0.0),
+                    json_number(rf, "y", 0.0),
+                    json_number(rf, "w", 0.0),
+                    json_number(rf, "h", 0.0)
+                )
+            case none:
+        end
+    end
+    return shape.rect(0.0, 0.0, 0.0, 0.0)
+end
+
+parse_frame_object(name: string, val: json.Value) -> AseFrame
+    match as_object(val)
+        case some(fields):
+            const r: shape.Rectangle = parse_frame_rect(fields)
+            return AseFrame {
+                name: name,
+                x: r.x,
+                y: r.y,
+                w: r.width,
+                h: r.height,
+                duration_ms: json_int(fields, "duration", 100)
+            }
+        case none:
+            return AseFrame { name: name, x: 0.0, y: 0.0, w: 0.0, h: 0.0, duration_ms: 100 }
+    end
+    return AseFrame { name: name, x: 0.0, y: 0.0, w: 0.0, h: 0.0, duration_ms: 100 }
+end
+
+parse_frames_array(items: list[json.Value]) -> list[AseFrame]
+    var out: list[AseFrame] = []
+    const n: int = lists.len(items)
+    var i: int = 0
+    while i < n
+        match as_object(items[i])
+            case some(fields):
+                const fname: string = json_string(fields, "filename", "")
+                lists.push(out, parse_frame_object(fname, items[i]))
+            case none:
+        end
+        i = i + 1
+    end
+    return out
+end
+
+parse_frames_object(fields: map[string, json.Value]) -> list[AseFrame]
+    var out: list[AseFrame] = []
+    const keys: list[string] = maps.keys(fields)
+    const n: int = lists.len(keys)
+    var i: int = 0
+    while i < n
+        const k: string = keys[i]
+        if some(v) = maps.try_get(fields, k)
+            lists.push(out, parse_frame_object(k, v))
+        end
+        i = i + 1
+    end
+    return out
+end
+
+parse_tag(val: json.Value) -> AseTag
+    match as_object(val)
+        case some(fields):
+            return AseTag {
+                name: json_string(fields, "name", ""),
+                from_frame: json_int(fields, "from", 0),
+                to_frame: json_int(fields, "to", 0),
+                direction: json_string(fields, "direction", "forward")
+            }
+        case none:
+            return AseTag { name: "", from_frame: 0, to_frame: 0, direction: "forward" }
+    end
+    return AseTag { name: "", from_frame: 0, to_frame: 0, direction: "forward" }
+end
+
+parse_tags(val: json.Value) -> list[AseTag]
+    var out: list[AseTag] = []
+    match val
+        case Array(items):
+            const n: int = lists.len(items)
+            var i: int = 0
+            while i < n
+                lists.push(out, parse_tag(items[i]))
+                i = i + 1
+            end
+        case else:
+    end
+    return out
+end
+
+-- ── Public load/parse ─────────────────────────────────────
+
+public parse_sheet(text: string) -> LoadResult
+    match json.parse(text)
+        case ok(val):
+            match as_object(val)
+                case some(root):
+                    var frames: list[AseFrame] = []
+                    if some(fr) = maps.try_get(root, "frames")
+                        match fr
+                            case Array(items):
+                                frames = parse_frames_array(items)
+                            case Object(fields):
+                                frames = parse_frames_object(fields)
+                            case else:
+                                return err("frames must be array or object")
+                        end
+                    end
+                    if lists.len(frames) == 0
+                        return err("no frames in sheet")
+                    end
+                    var tags: list[AseTag] = []
+                    var image: string = ""
+                    var sheet_w: int = 0
+                    var sheet_h: int = 0
+                    if some(meta_v) = maps.try_get(root, "meta")
+                        match as_object(meta_v)
+                            case some(meta):
+                                image = json_string(meta, "image", "")
+                                if some(sz) = maps.try_get(meta, "size")
+                                    match as_object(sz)
+                                        case some(sfields):
+                                            sheet_w = json_int(sfields, "w", 0)
+                                            sheet_h = json_int(sfields, "h", 0)
+                                        case none:
+                                    end
+                                end
+                                if some(ft) = maps.try_get(meta, "frameTags")
+                                    tags = parse_tags(ft)
+                                end
+                            case none:
+                        end
+                    end
+                    if lists.len(tags) == 0
+                        lists.push(tags, AseTag {
+                            name: "default",
+                            from_frame: 0,
+                            to_frame: lists.len(frames) - 1,
+                            direction: "forward"
+                        })
+                    end
+                    return ok(AseSheet {
+                        image: image,
+                        sheet_w: sheet_w,
+                        sheet_h: sheet_h,
+                        frames: frames,
+                        tags: tags
+                    })
+                case none:
+                    return err("root must be object")
+            end
+        case err(msg):
+            return err(msg)
+    end
+    return err("parse failed")
+end
+
+public load_sheet(path: string) -> LoadResult
+    match fs.read_text(path)
+        case ok(text):
+            return parse_sheet(text)
+        case err(_):
+            return err("failed to read aseprite json")
+    end
+    return err("failed to read aseprite json")
+end
+
+public frame_count(sheet: AseSheet) -> int
+    return lists.len(sheet.frames)
+end
+
+public tag_count(sheet: AseSheet) -> int
+    return lists.len(sheet.tags)
+end
+
+public tag_by_name(sheet: AseSheet, name: string) -> optional[AseTag]
+    const n: int = lists.len(sheet.tags)
+    var i: int = 0
+    while i < n
+        const t: AseTag = sheet.tags[i]
+        if t.name == name
+            return some(t)
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public frame_rect(frame: AseFrame) -> shape.Rectangle
+    return shape.rect(frame.x, frame.y, frame.w, frame.h)
+end
+
+public get_frame(sheet: AseSheet, index: int) -> optional[AseFrame]
+    if index < 0 or index >= lists.len(sheet.frames)
+        return none
+    end
+    return some(sheet.frames[index])
+end
+
+-- ── Playback ──────────────────────────────────────────────
+
+public create_player(sheet: AseSheet, does_loop: bool) -> AsePlayer
+    return AsePlayer {
+        sheet: sheet,
+        tag_index: 0,
+        frame_index: 0,
+        elapsed_ms: 0.0,
+        playing: true,
+        does_loop: does_loop
+    }
+end
+
+public play_tag(p: AsePlayer, tag_name: string) -> AsePlayer
+    var out: AsePlayer = p
+    match tag_by_name(out.sheet, tag_name)
+        case some(t):
+            const n: int = lists.len(out.sheet.tags)
+            var i: int = 0
+            while i < n
+                const tg: AseTag = out.sheet.tags[i]
+                if tg.name == tag_name
+                    out.tag_index = i
+                    out.frame_index = tg.from_frame
+                    out.elapsed_ms = 0.0
+                    out.playing = true
+                    return out
+                end
+                i = i + 1
+            end
+        case none:
+    end
+    return out
+end
+
+public current_frame(p: AsePlayer) -> optional[AseFrame]
+    return get_frame(p.sheet, p.frame_index)
+end
+
+public current_source_rect(p: AsePlayer) -> shape.Rectangle
+    match current_frame(p)
+        case some(f):
+            return frame_rect(f)
+        case none:
+            return shape.rect(0.0, 0.0, 0.0, 0.0)
+    end
+    return shape.rect(0.0, 0.0, 0.0, 0.0)
+end
+
+public tick(p: AsePlayer, dt: float) -> AsePlayer
+    var out: AsePlayer = p
+    if not out.playing
+        return out
+    end
+    const tags_n: int = lists.len(out.sheet.tags)
+    if tags_n == 0
+        return out
+    end
+    if out.tag_index < 0 or out.tag_index >= tags_n
+        out.tag_index = 0
+    end
+    const tag: AseTag = out.sheet.tags[out.tag_index]
+    match get_frame(out.sheet, out.frame_index)
+        case some(fr):
+            out.elapsed_ms = out.elapsed_ms + dt * 1000.0
+            const dur: float = float(fr.duration_ms)
+            if out.elapsed_ms >= dur
+                out.elapsed_ms = out.elapsed_ms - dur
+                if tag.direction == "reverse"
+                    out.frame_index = out.frame_index - 1
+                    if out.frame_index < tag.from_frame
+                        if out.does_loop
+                            out.frame_index = tag.to_frame
+                        else
+                            out.frame_index = tag.from_frame
+                            out.playing = false
+                        end
+                    end
+                else
+                    out.frame_index = out.frame_index + 1
+                    if out.frame_index > tag.to_frame
+                        if out.does_loop
+                            out.frame_index = tag.from_frame
+                        else
+                            out.frame_index = tag.to_frame
+                            out.playing = false
+                        end
+                    end
+                end
+            end
+        case none:
+            out.playing = false
+    end
+    return out
+end
+
+-- Drawing: use current_source_rect + game.draw.draw_texture_rec(texture, src, pos, tint)
+-- or draw_rect for debug. Kept out of this module so unit tests do not link raylib.

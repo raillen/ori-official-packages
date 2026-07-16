@@ -1,0 +1,116 @@
+module enet.session
+
+-- R7: minimal host/client session (loopback-friendly) for game samples.
+
+import enet.host = enet
+
+public const ROLE_NONE: int = 0
+public const ROLE_HOST: int = 1
+public const ROLE_CLIENT: int = 2
+
+public struct NetSession
+    role: int
+    port: int
+    channels: int
+    host: enet.Host
+    remote: enet.Peer
+    peer: enet.Peer
+    ready: bool
+    connected: bool
+end
+
+public empty() -> NetSession
+    return NetSession {
+        role: ROLE_NONE,
+        port: 27780,
+        channels: 2,
+        host: enet.Host { id: 0 - 1 },
+        remote: enet.Peer { id: 0 - 1 },
+        peer: enet.Peer { id: 0 - 1 },
+        ready: false,
+        connected: false
+    }
+end
+
+public start_host(port: int) -> NetSession
+    var s: NetSession = empty()
+    s.port = port
+    if enet.initialize_ok() == false
+        return s
+    end
+    s.host = enet.create_server(port, 8, s.channels)
+    s.role = ROLE_HOST
+    s.ready = enet.is_valid(s.host)
+    return s
+end
+
+public start_client(addr: string, port: int) -> NetSession
+    var s: NetSession = empty()
+    s.port = port
+    if enet.initialize_ok() == false
+        return s
+    end
+    s.host = enet.create_client(1, s.channels)
+    if enet.is_valid(s.host) == false
+        return s
+    end
+    s.remote = enet.connect(s.host, addr, port, s.channels)
+    s.role = ROLE_CLIENT
+    s.ready = enet.peer_is_valid(s.remote)
+    return s
+end
+
+public service(s: NetSession, timeout_ms: int) -> NetSession
+    var out: NetSession = s
+    if out.ready == false
+        return out
+    end
+    const ev: int = enet.service(out.host, timeout_ms)
+    if ev == enet.EVENT_CONNECT
+        out.connected = true
+        if out.role == ROLE_HOST
+            out.peer = enet.event_peer()
+        end
+    end
+    return out
+end
+
+public send_text(s: NetSession, msg: string) -> bool
+    if s.ready == false or s.connected == false
+        return false
+    end
+    var peer: enet.Peer = s.remote
+    if s.role == ROLE_HOST
+        peer = s.peer
+    end
+    if enet.peer_is_valid(peer) == false
+        return false
+    end
+    const rc: int = enet.send_text(peer, msg, 0, true)
+    enet.flush(s.host)
+    return rc == 0
+end
+
+public poll_receive(s: NetSession, timeout_ms: int) -> optional[string]
+    if s.ready == false
+        return none
+    end
+    const ev: int = enet.service(s.host, timeout_ms)
+    if ev == enet.EVENT_RECEIVE
+        const msg: string = enet.packet_text()
+        enet.destroy_packet()
+        return some(msg)
+    end
+    return none
+end
+
+public shutdown(s: NetSession) -> NetSession
+    if s.ready
+        enet.destroy(s.host)
+    end
+    return empty()
+end
+
+public deinit_global() -> void
+    enet.deinitialize()
+end

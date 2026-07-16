@@ -1,0 +1,116 @@
+{
+  "brushes": [
+    {
+      "a": 255,
+      "b": 72,
+      "collider": true,
+      "color": "#5c7848",
+      "g": 120,
+      "id": "brush_floor",
+      "kind": "box",
+      "layer": 1,
+      "meshPath": "",
+      "metallic": 0.0,
+      "r": 92,
+      "roughness": 0.92,
+      "rx": 0.0,
+      "ry": 0.0,
+      "rz": 0.0,
+      "sx": 200.0,
+      "sy": 2.0,
+      "sz": 200.0,
+      "x": 0.0,
+      "y": 0.0,
+      "z": -0.1
+    },
+    {
+      "a": 255,
+      "b": 90,
+      "collider": true,
+      "color": "#6a7a8a",
+      "g": 120,
+      "id": "brush_wall_n",
+      "kind": "box",
+      "layer": 1,
+      "meshPath": "",
+      "metallic": 0.05,
+      "r": 106,
+      "roughness": 0.85,
+      "rx": 0.0,
+      "ry": 0.0,
+      "rz": 0.0,
+      "sx": 80.0,
+      "sy": 24.0,
+      "sz": 4.0,
+      "x": 0.0,
+      "y": 12.0,
+      "z": 48.0
+    }
+  ],
+  "chunk_size": 64.0,
+  "chunks_enabled": false,
+  "format_version": 1,
+  "instances": [
+    {
+      "entity": "player",
+      "id": "inst_player_cowboy",
+      "parent": "",
+      "rx": 0.0,
+      "ry": 180.0,
+      "rz": 0.0,
+      "sx": 16.0,
+      "sy": 16.0,
+      "sz": 16.0,
+      "var_overrides": {
+        "collider_radius": 8.0,
+        "collision_layer": 1,
+        "mesh_path": "assets/models/brazilian-cowboy.glb",
+        "mesh_scale": 48.0,
+        "move_speed": 48.0
+      },
+      "x": 0.0,
+      "y": 1.0,
+      "z": 8.0
+    },
+    {
+      "entity": "enemy",
+      "id": "inst_enemy_01",
+      "parent": "",
+      "rx": 0.0,
+      "ry": 0.0,
+      "rz": 0.0,
+      "sx": 8.0,
+      "sy": 8.0,
+      "sz": 8.0,
+      "var_overrides": {
+        "hp": 3.0,
+        "collider_radius": 8.0,
+        "collision_layer": 1
+      },
+      "x": 20.0,
+      "y": 1.0,
+      "z": 24.0
+    },
+    {
+      "entity": "solid",
+      "id": "inst_goal",
+      "parent": "",
+      "rx": 0.0,
+      "ry": 0.0,
+      "rz": 0.0,
+      "sx": 8.0,
+      "sy": 8.0,
+      "sz": 8.0,
+      "var_overrides": {
+        "collider_radius": 6.0,
+        "collision_layer": 1
+      },
+      "x": 0.0,
+      "y": 4.0,
+      "z": 36.0
+    }
+  ],
+  "name": "engine_test",
+  "subtracts": [],
+  "terrain": null
+}

@@ -1,0 +1,152 @@
+module freetype.face
+
+-- FreeType face + glyph raster (shim). Handles are ints (64-bit ABI).
+
+import ori.mem = mem
+
+public alias FaceId = int
+
+extern c
+    public ori_ft_init() -> int
+    public ori_ft_done() -> void
+    public ori_ft_new_face(path_ptr: int, face_index: int) -> int
+    public ori_ft_done_face(face: int) -> void
+    public ori_ft_set_pixel_sizes(face: int, width: int, height: int) -> int
+    public ori_ft_render_char(face: int, codepoint: int) -> int
+    public ori_ft_render_glyph_index(face: int, glyph_index: int) -> int
+    public ori_ft_char_index(face: int, codepoint: int) -> int
+    public ori_ft_bitmap_width() -> int
+    public ori_ft_bitmap_height() -> int
+    public ori_ft_bitmap_pitch() -> int
+    public ori_ft_bearing_x() -> int
+    public ori_ft_bearing_y() -> int
+    public ori_ft_advance_m() -> int
+    public ori_ft_bitmap_ink_sum() -> int
+    public ori_ft_bitmap_sample(x: int, y: int) -> int
+    public ori_ft_face_ptr(face: int) -> int
+    public ori_ft_write_bitmap_pgm(path_ptr: int) -> int
+    public ori_ft_ascender_m(face: int) -> int
+    public ori_ft_descender_m(face: int) -> int
+    public ori_ft_height_m(face: int) -> int
+    public ori_ft_has_kerning(face: int) -> int
+    public ori_ft_kerning_x_m(face: int, left_gi: int, right_gi: int) -> int
+    public ori_ft_units_per_em(face: int) -> int
+    public ori_ft_num_faces(face: int) -> int
+    public ori_ft_num_glyphs(face: int) -> int
+end
+
+public init() -> bool
+    return ori_ft_init() == 0
+end
+
+public done() -> void
+    ori_ft_done()
+end
+
+public new_face(path: string) -> FaceId
+    return ori_ft_new_face(mem.string_as_ptr(path), 0)
+end
+
+public new_face_index(path: string, face_index: int) -> FaceId
+    return ori_ft_new_face(mem.string_as_ptr(path), face_index)
+end
+
+public done_face(face: FaceId) -> void
+    ori_ft_done_face(face)
+end
+
+public set_pixel_sizes(face: FaceId, width: int, height: int) -> bool
+    return ori_ft_set_pixel_sizes(face, width, height) == 0
+end
+
+public set_pixel_sizes_rc(face: FaceId, width: int, height: int) -> int
+    return ori_ft_set_pixel_sizes(face, width, height)
+end
+
+public render_char(face: FaceId, codepoint: int) -> bool
+    return ori_ft_render_char(face, codepoint) == 0
+end
+
+public render_glyph_index(face: FaceId, glyph_index: int) -> bool
+    return ori_ft_render_glyph_index(face, glyph_index) == 0
+end
+
+public char_index(face: FaceId, codepoint: int) -> int
+    return ori_ft_char_index(face, codepoint)
+end
+
+public bitmap_width() -> int
+    return ori_ft_bitmap_width()
+end
+
+public bitmap_height() -> int
+    return ori_ft_bitmap_height()
+end
+
+public bitmap_pitch() -> int
+    return ori_ft_bitmap_pitch()
+end
+
+public bearing_x() -> int
+    return ori_ft_bearing_x()
+end
+
+public bearing_y() -> int
+    return ori_ft_bearing_y()
+end
+
+public advance_m() -> int
+    return ori_ft_advance_m()
+end
+
+public bitmap_ink_sum() -> int
+    return ori_ft_bitmap_ink_sum()
+end
+
+public bitmap_sample(x: int, y: int) -> int
+    return ori_ft_bitmap_sample(x, y)
+end
+
+public write_bitmap_pgm(path: string) -> bool
+    return ori_ft_write_bitmap_pgm(mem.string_as_ptr(path)) == 0
+end
+
+public ascender_m(face: FaceId) -> int
+    return ori_ft_ascender_m(face)
+end
+
+public descender_m(face: FaceId) -> int
+    return ori_ft_descender_m(face)
+end
+
+public height_m(face: FaceId) -> int
+    return ori_ft_height_m(face)
+end
+
+public has_kerning(face: FaceId) -> bool
+    return ori_ft_has_kerning(face) != 0
+end
+
+public kerning_x_m(face: FaceId, left_gi: int, right_gi: int) -> int
+    return ori_ft_kerning_x_m(face, left_gi, right_gi)
+end
+
+public units_per_em(face: FaceId) -> int
+    return ori_ft_units_per_em(face)
+end
+
+public num_faces(face: FaceId) -> int
+    return ori_ft_num_faces(face)
+end
+
+public num_glyphs(face: FaceId) -> int
+    return ori_ft_num_glyphs(face)
+end
+
+public is_valid_face(face: FaceId) -> bool
+    return face >= 0 and ori_ft_face_ptr(face) != 0
+end
+
+public face_ptr(face: FaceId) -> int
+    return ori_ft_face_ptr(face)
+end

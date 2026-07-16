@@ -1,0 +1,152 @@
+module box2d.world_sync
+
+-- Bridge: game.world entities ↔ Box2D bodies (F optional full solver).
+-- Uses PhysicsHost.body_handle as Box2D Body.id.
+-- Mapping: World XZ ground plane → Box2D XY (Y-up in 2D = World Y height ignored for step).
+
+import box2d.dynamics = b2
+import box2d.units = units
+import game.world = world
+import game.world_physics = wphys
+
+public struct SyncHost
+    b2_world: b2.World
+    physics: wphys.PhysicsHost
+    ground: b2.Body
+end
+
+public create(gravity_y_m: int) -> SyncHost
+    const bw: b2.World = b2.create_world(0, gravity_y_m)
+    -- Wide static floor under origin (milli-meters).
+    const ground: b2.Body = b2.create_static_box(bw, 0, 0 - 500, 200000, 500)
+    return SyncHost {
+        b2_world: bw,
+        physics: wphys.empty_host(),
+        ground: ground
+    }
+end
+
+public destroy(host: SyncHost) -> void
+    b2.destroy_body(host.ground)
+    b2.destroy_world(host.b2_world)
+end
+
+public is_valid(host: SyncHost) -> bool
+    return b2.is_valid(host.b2_world)
+end
+
+-- Attach a dynamic circle for entity at transform X/Z (radius world units).
+public attach_circle(
+    host: SyncHost,
+    w: world.World,
+    id: world.EntityId,
+    radius: float,
+    density_m: int
+) -> SyncHost
+    const idx: int = world.index_of_id(w, id)
+    if idx < 0
+        return host
+    end
+    const e: world.Entity = w.entities[idx]
+    if e.alive == false
+        return host
+    end
+    var out: SyncHost = host
+    const x_m: int = units.meters_to_milli(e.transform.x)
+    const y_m: int = units.meters_to_milli(e.transform.z)
+    const r_m: int = units.meters_to_milli(radius)
+    const body: b2.Body = b2.create_dynamic_circle(
+        out.b2_world,
+        x_m,
+        y_m,
+        r_m,
+        density_m
+    )
+    out.physics = wphys.attach(
+        out.physics,
+        id,
+        wphys.PhysicsBodyComp {
+            mass: 1.0,
+            use_gravity: false,
+            gravity_scale: 1.0,
+            body_handle: body.id
+        }
+    )
+    return out
+end
+
+-- Attach dynamic box (half-extents in world units on XZ).
+public attach_box(
+    host: SyncHost,
+    w: world.World,
+    id: world.EntityId,
+    half_x: float,
+    half_z: float,
+    density_m: int
+) -> SyncHost
+    const idx: int = world.index_of_id(w, id)
+    if idx < 0
+        return host
+    end
+    const e: world.Entity = w.entities[idx]
+    if e.alive == false
+        return host
+    end
+    var out: SyncHost = host
+    const x_m: int = units.meters_to_milli(e.transform.x)
+    const y_m: int = units.meters_to_milli(e.transform.z)
+    const hx: int = units.meters_to_milli(half_x)
+    const hy: int = units.meters_to_milli(half_z)
+    const body: b2.Body = b2.create_dynamic_box(
+        out.b2_world,
+        x_m,
+        y_m,
+        hx,
+        hy,
+        density_m
+    )
+    out.physics = wphys.attach(
+        out.physics,
+        id,
+        wphys.PhysicsBodyComp {
+            mass: 1.0,
+            use_gravity: false,
+            gravity_scale: 1.0,
+            body_handle: body.id
+        }
+    )
+    return out
+end
+
+public body_count(host: SyncHost) -> int
+    return wphys.body_count(host.physics)
+end
+
+-- Step Box2D and write X/Z back into World transforms.
+public step_sync(host: SyncHost, w: world.World, dt: float) -> world.World
+    b2.step(host.b2_world, units.seconds_to_micros(dt))
+    var out: world.World = w
+    const n: int = wphys.body_count(host.physics)
+    var i: int = 0
+    while i < n
+        const id: world.EntityId = host.physics.entity_ids[i]
+        const body_comp: wphys.PhysicsBodyComp = host.physics.bodies[i]
+        const body: b2.Body = b2.Body { id: body_comp.body_handle }
+        if b2.body_is_valid(body)
+            const idx: int = world.index_of_id(out, id)
+            if idx >= 0
+                var e: world.Entity = out.entities[idx]
+                if e.alive
+                    e.transform.x = units.milli_to_meters(b2.body_x_m(body))
+                    e.transform.z = units.milli_to_meters(b2.body_y_m(body))
+                    e.velocity.vx = units.milli_to_meters(b2.body_vx_m(body))
+                    e.velocity.vz = units.milli_to_meters(b2.body_vy_m(body))
+                    e.has_velocity = true
+                    out.entities[idx] = e
+                end
+            end
+        end
+        i = i + 1
+    end
+    return out
+end

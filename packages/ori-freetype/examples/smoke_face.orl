@@ -1,0 +1,97 @@
+module app.smoke_face
+
+imports
+    freetype.face = ft
+    freetype.text = text
+    ori.io = io
+    ori.os = os
+end
+
+main()
+    const path: string = os.env_or("ORI_FT_SMOKE_FONT", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    if not ft.init()
+        io.println("init_fail")
+        return
+    end
+    const face: ft.FaceId = ft.new_face(path)
+    if not ft.is_valid_face(face)
+        io.println("face_fail")
+        ft.done()
+        return
+    end
+    if not ft.set_pixel_sizes(face, 0, 32)
+        io.println("size_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    if ft.num_glyphs(face) <= 0 or ft.units_per_em(face) <= 0
+        io.println("meta_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    if ft.height_m(face) <= 0 or ft.ascender_m(face) <= 0
+        io.println("metrics_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    if not ft.render_char(face, 65)
+        io.println("render_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    if ft.bitmap_width() <= 0 or ft.bitmap_ink_sum() <= 0
+        io.println("bitmap_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    const ink: int = ft.bitmap_sample(ft.bitmap_width() / 2, ft.bitmap_height() / 2)
+    if ink < 0
+        io.println("sample_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    const gi_a: int = ft.char_index(face, 65)
+    if gi_a <= 0
+        io.println("char_index_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    if not ft.render_glyph_index(face, gi_a)
+        io.println("glyph_index_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    const fm: text.FaceMetrics = text.face_metrics(face)
+    if fm.height_m <= 0
+        io.println("face_metrics_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    const cps: list[int] = [72, 105]
+    const adv: int = text.measure_codepoints_advance_m(face, cps)
+    if adv <= 0
+        io.println("advance_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    const pgm: string = "/tmp/ori_ft_smoke_A.pgm"
+    if not ft.write_bitmap_pgm(pgm)
+        io.println("pgm_fail")
+        ft.done_face(face)
+        ft.done()
+        return
+    end
+    ft.done_face(face)
+    ft.done()
+    io.println("ok")
+end

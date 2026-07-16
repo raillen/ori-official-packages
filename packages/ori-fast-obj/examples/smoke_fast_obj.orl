@@ -1,0 +1,103 @@
+module app.smoke_fast_obj
+
+imports
+    fast_obj.mesh = obj
+    ori.io = io
+end
+
+main()
+    -- Path relative to package root (smoke runs from package root).
+    if not obj.load("tests/fixtures/triangle.obj")
+        io.println("load_fail")
+        return
+    end
+    -- fast_obj: position_count includes dummy at index 0 → 4 for 3 verts
+    const pc: int = obj.position_count()
+    const fc: int = obj.face_count()
+    const nc: int = obj.normal_count()
+    const tc: int = obj.texcoord_count()
+    const ic: int = obj.index_count()
+    const mc: int = obj.material_count()
+    if pc < 4
+        io.println("pos_fail")
+        obj.free()
+        return
+    end
+    if fc < 1
+        io.println("face_fail")
+        obj.free()
+        return
+    end
+    if nc < 2
+        io.println("normal_fail")
+        obj.free()
+        return
+    end
+    if tc < 4
+        io.println("uv_fail")
+        obj.free()
+        return
+    end
+    if ic != 3
+        io.println("index_fail")
+        obj.free()
+        return
+    end
+    if mc < 1
+        io.println("mat_fail")
+        obj.free()
+        return
+    end
+    if obj.material_name_len(0) != 7
+        io.println("mat_name_fail")
+        obj.free()
+        return
+    end
+    if obj.normal_m(0, 2) != 1000
+        io.println("normal_m_fail")
+        obj.free()
+        return
+    end
+    if obj.texcoord_m(1, 0) != 1000
+        io.println("uv_m_fail")
+        obj.free()
+        return
+    end
+    if not obj.export_mesh()
+        io.println("export_fail")
+        obj.free()
+        return
+    end
+    if obj.export_vertex_count() != 3
+        io.println("export_vert_fail")
+        obj.free()
+        return
+    end
+    if obj.export_float_count() != 24
+        io.println("export_float_fail")
+        obj.free()
+        return
+    end
+    if obj.export_pos_m(1, 0) != 1000
+        io.println("export_pos_fail")
+        obj.free()
+        return
+    end
+    if obj.export_normal_m(0, 2) != 1000
+        io.println("export_nrm_fail")
+        obj.free()
+        return
+    end
+    if obj.export_uv_m(2, 1) != 1000
+        io.println("export_uv_fail")
+        obj.free()
+        return
+    end
+    if obj.export_sum_m() != 7000
+        io.println("export_sum_fail")
+        obj.free()
+        return
+    end
+    obj.free()
+    io.println("ok")
+end

@@ -1,0 +1,67 @@
+module test.tracy
+
+imports
+    tracy.profiler = tracy
+    ori.test = test
+end
+
+@test
+zone_stack()
+    tracy.reset_stats()
+    tracy.zone_begin("a")
+    tracy.zone_begin("b")
+    test.equal_int(tracy.zone_depth(), 2)
+    tracy.zone_end()
+    test.equal_int(tracy.zone_depth(), 1)
+    tracy.zone_end()
+    test.equal_int(tracy.zone_depth(), 0)
+    test.equal_int(tracy.zone_begins(), 2)
+    test.equal_int(tracy.zone_ends(), 2)
+end
+
+@test
+frame_marks()
+    tracy.reset_stats()
+    tracy.frame_mark()
+    tracy.frame_mark()
+    test.equal_int(tracy.frame_count(), 2)
+end
+
+@test
+message_and_plot()
+    tracy.reset_stats()
+    tracy.message("hello")
+    tracy.message("world")
+    tracy.plot_m("fps", 60000)
+    tracy.plot_m("ms", 16666)
+    test.equal_int(tracy.message_count(), 2)
+    test.equal_int(tracy.plot_count(), 2)
+    test.equal_int(tracy.last_plot_value_m(), 16666)
+end
+
+@test
+orphan_end_edge()
+    tracy.reset_stats()
+    tracy.zone_end()
+    tracy.zone_end()
+    test.equal_int(tracy.zone_depth(), 0)
+    test.equal_int(tracy.orphan_ends(), 2)
+    test.equal_int(tracy.zone_ends(), 2)
+end
+
+@test
+full_build_flag_and_reset()
+    tracy.reset_stats()
+    tracy.zone_begin("x")
+    tracy.message("m")
+    tracy.plot_m("p", 1000)
+    tracy.frame_mark()
+    -- headless primary shim used by tests is never FULL
+    test.is_false(tracy.is_full_build())
+    tracy.reset_stats()
+    test.equal_int(tracy.zone_depth(), 0)
+    test.equal_int(tracy.zone_begins(), 0)
+    test.equal_int(tracy.message_count(), 0)
+    test.equal_int(tracy.plot_count(), 0)
+    test.equal_int(tracy.frame_count(), 0)
+end

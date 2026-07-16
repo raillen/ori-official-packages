@@ -1,0 +1,69 @@
+module test.physfs_assets
+
+imports
+    game.physfs_assets = pfs
+    ori.test = test
+end
+
+@test
+mount_exists_read()
+    test.assert(pfs.init(), "init")
+    test.assert(pfs.mount("tests/fixtures/physfs_root", ""), "mount fixture dir")
+    test.assert(pfs.exists("hello.txt"), "exists hello.txt")
+    test.assert(not pfs.exists("no-such-file-xyz"), "missing")
+    const n: int = pfs.read("hello.txt")
+    test.equal_int(n, 13)
+    test.equal_int(pfs.last_len(), 13)
+    test.assert(pfs.last_sum() > 0, "sum")
+    -- first byte of "hello-physfs\n" is 'h' = 104
+    test.equal_int(pfs.last_byte(0), 104)
+    test.assert(pfs.enumerate_count("") >= 1, "enumerate")
+    test.assert(pfs.deinit(), "deinit")
+end
+
+@test
+write_to_write_dir()
+    test.assert(pfs.init(), "init")
+    test.assert(pfs.set_write_dir("/tmp/ori_game_physfs_write"), "write_dir")
+    test.assert(pfs.mount("/tmp/ori_game_physfs_write", ""), "mount_write")
+    test.assert(pfs.mkdir("saves"), "mkdir")
+    const payload: string = "save-v1"
+    const n: int = pfs.write("saves/slot1.txt", payload)
+    test.equal_int(n, 7)
+    test.equal_int(pfs.last_write_len(), 7)
+    test.assert(pfs.exists("saves/slot1.txt"), "exists_after_write")
+    const r: int = pfs.read("saves/slot1.txt")
+    test.equal_int(r, 7)
+    -- first byte 's' = 115
+    test.equal_int(pfs.last_byte(0), 115)
+    test.assert(pfs.deinit(), "deinit")
+end
+
+@test
+unmount_hides_files()
+    test.assert(pfs.init(), "init")
+    test.assert(pfs.mount("tests/fixtures/physfs_root", ""), "mount")
+    test.assert(pfs.exists("hello.txt"), "before")
+    test.assert(pfs.unmount("tests/fixtures/physfs_root"), "unmount")
+    test.assert(not pfs.exists("hello.txt"), "after")
+    test.assert(pfs.mount("tests/fixtures/physfs_root", ""), "remount")
+    test.assert(pfs.exists("hello.txt"), "remounted")
+    test.assert(pfs.deinit(), "deinit")
+end
+
+@test
+multi_mount_read()
+    test.assert(pfs.init(), "init")
+    test.assert(pfs.mount("tests/fixtures/physfs_root", ""), "mount_a")
+    test.assert(pfs.mount("tests/fixtures/physfs_root_b", "mod"), "mount_b")
+    test.assert(pfs.exists("hello.txt"), "a_file")
+    test.assert(pfs.exists("mod/other.txt"), "b_file")
+    const na: int = pfs.read("hello.txt")
+    test.equal_int(na, 13)
+    const nb: int = pfs.read("mod/other.txt")
+    test.equal_int(nb, 7)
+    -- 'f' = 102 from "from-b\n"
+    test.equal_int(pfs.last_byte(0), 102)
+    test.assert(pfs.enumerate_count("") >= 2, "root has hello + mod")
+    test.assert(pfs.deinit(), "deinit")
+end

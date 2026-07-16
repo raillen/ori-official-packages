@@ -1,0 +1,19 @@
+module app.smoke
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    ori.math.vec2 = vec2
+end
+
+on_update(_dt: float) -> void
+end
+
+on_draw() -> void
+    draw.draw_circle(vec2.Vec2 { x: 100.0, y: 100.0 }, 20.0, color.RED)
+end
+
+main()
+    app.run_window("Smoke", 320, 240, on_update, on_draw)
+end

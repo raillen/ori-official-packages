@@ -1,0 +1,15 @@
+[package]
+name = "web_framework"
+version = "0.1.0"
+entry = "src/lib.orl"
+ori_version = "0.3.0"
+description = "Symbolic meta-package: pulls the Ori web core stack (web, templates, web_app) from the registry"
+
+# Version pins only — no vendored sources. `ori install web_framework@0.1.0`
+# fetches this tiny package, then recursively installs each dependency from
+# ORI_REGISTRY (OriLamp). Optional auth / SQLite sessions: install those lamps
+# separately. Import the real modules (web, templates, …) in application code.
+[dependencies]
+web = "0.1.0"
+templates = "0.1.0"
+web_app = "0.1.0"

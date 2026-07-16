@@ -1,0 +1,76 @@
+module game.font_atlas
+
+-- FreeType atlas → raylib texture + draw helpers.
+
+import freetype.face = ft
+import freetype.atlas = atlas
+import game.draw = draw
+import game.color = color
+import game.shape = shape
+import ori.math.vec2 = vec2
+
+public struct FontAtlas
+    texture: draw.TextureId
+    atlas_w: int
+    atlas_h: int
+    glyph_count: int
+    face: ft.FaceId
+end
+
+public empty() -> FontAtlas
+    return FontAtlas {
+        texture: 0,
+        atlas_w: 0,
+        atlas_h: 0,
+        glyph_count: 0,
+        face: -1
+    }
+end
+
+-- Build ASCII atlas (32..126) and upload gray coverage as texture.
+public build_ascii(face: ft.FaceId, padding: int) -> FontAtlas
+    const n: int = atlas.build_ascii(face, padding)
+    if n <= 0
+        return empty()
+    end
+    const w: int = atlas.width()
+    const h: int = atlas.height()
+    const ptr: int = atlas.pixels_ptr()
+    const tex: draw.TextureId = draw.load_texture_from_gray8(ptr, w, h, w)
+    return FontAtlas {
+        texture: tex,
+        atlas_w: w,
+        atlas_h: h,
+        glyph_count: n,
+        face: face
+    }
+end
+
+public unload(fa: FontAtlas) -> void
+    if fa.texture != 0
+        draw.unload_texture(fa.texture)
+    end
+end
+
+public is_valid(fa: FontAtlas) -> bool
+    return fa.texture != 0 and fa.glyph_count > 0
+end
+
+public draw_codepoint(fa: FontAtlas, codepoint: int, x: float, y: float, tint: color.Color) -> float
+    const g: atlas.GlyphUv = atlas.glyph_for(codepoint)
+    if g.w <= 0 or g.h <= 0
+        return 0.0
+    end
+    const src: shape.Rectangle = shape.Rectangle {
+        x: float(g.x),
+        y: float(g.y),
+        width: float(g.w),
+        height: float(g.h)
+    }
+    const pos: vec2.Vec2 = vec2.Vec2 {
+        x: x + float(g.bearing_x),
+        y: y - float(g.bearing_y)
+    }
+    draw.draw_texture_rec(fa.texture, src, pos, tint)
+    return float(g.advance_m) / 1000.0
+end

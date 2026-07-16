@@ -1,0 +1,153 @@
+module game.tilemap
+
+import ori.list = lists
+import ori.format = fmt
+import ori.fs = fs
+import ori.math = math
+import game.shape = shape
+
+public struct Tilemap
+    width: int
+    height: int
+    tile_size: float
+    tiles: list[int]
+end
+
+public create(width: int, height: int, tile_size: float) -> Tilemap
+    var tiles: list[int] = []
+    const total: int = width * height
+    var i: int = 0
+    while i < total
+        lists.push(tiles, 0)
+        i = i + 1
+    end
+    return Tilemap { width: width, height: height, tile_size: tile_size, tiles: tiles }
+end
+
+public index_of(tm: Tilemap, x: int, y: int) -> int
+    return y * tm.width + x
+end
+
+public get_tile(tm: Tilemap, x: int, y: int) -> int
+    if x < 0 or x >= tm.width or y < 0 or y >= tm.height
+        return 0
+    end
+    return tm.tiles[index_of(tm, x, y)]
+end
+
+public set_tile(tm: Tilemap, x: int, y: int, value: int) -> Tilemap
+    if x < 0 or x >= tm.width or y < 0 or y >= tm.height
+        return tm
+    end
+    var out: Tilemap = tm
+    lists.set(out.tiles, index_of(out, x, y), value)
+    return out
+end
+
+public tile_rect(tm: Tilemap, x: int, y: int) -> shape.Rectangle
+    return shape.Rectangle {
+        x: float(x) * tm.tile_size,
+        y: float(y) * tm.tile_size,
+        width: tm.tile_size,
+        height: tm.tile_size
+    }
+end
+
+-- E3 paint helpers -----------------------------------------------------------
+
+public width_of(tm: Tilemap) -> int
+    return tm.width
+end
+
+public height_of(tm: Tilemap) -> int
+    return tm.height
+end
+
+public is_solid(tm: Tilemap, x: int, y: int) -> bool
+    return get_tile(tm, x, y) != 0
+end
+
+public paint(tm: Tilemap, x: int, y: int, tile_id: int) -> Tilemap
+    return set_tile(tm, x, y, tile_id)
+end
+
+public erase(tm: Tilemap, x: int, y: int) -> Tilemap
+    return set_tile(tm, x, y, 0)
+end
+
+public fill_rect(
+    tm: Tilemap,
+    x0: int,
+    y0: int,
+    x1: int,
+    y1: int,
+    tile_id: int
+) -> Tilemap
+    var out: Tilemap = tm
+    var y: int = y0
+    while y <= y1
+        var x: int = x0
+        while x <= x1
+            out = set_tile(out, x, y, tile_id)
+            x = x + 1
+        end
+        y = y + 1
+    end
+    return out
+end
+
+public solid_count(tm: Tilemap) -> int
+    const n: int = lists.len(tm.tiles)
+    var count: int = 0
+    var i: int = 0
+    while i < n
+        if tm.tiles[i] != 0
+            count = count + 1
+        end
+        i = i + 1
+    end
+    return count
+end
+
+-- Collect solid tile AABBs as rectangles (2D collision wiring).
+public collect_solid_rects(tm: Tilemap) -> list[shape.Rectangle]
+    var out: list[shape.Rectangle] = []
+    var y: int = 0
+    while y < tm.height
+        var x: int = 0
+        while x < tm.width
+            if get_tile(tm, x, y) != 0
+                lists.push(out, tile_rect(tm, x, y))
+            end
+            x = x + 1
+        end
+        y = y + 1
+    end
+    return out
+end
+
+-- T1: compact serialize (CSV of tile ids; first line w,h,tile_size milli).
+public serialize_compact(tm: Tilemap) -> string
+    var out: string = fmt.number_int(tm.width) + "," + fmt.number_int(tm.height)
+    out = out + "," + fmt.number_int(math.round(tm.tile_size * 1000.0)) + "\n"
+    const n: int = lists.len(tm.tiles)
+    var i: int = 0
+    while i < n
+        if i > 0
+            out = out + ","
+        end
+        out = out + fmt.number_int(tm.tiles[i])
+        i = i + 1
+    end
+    return out
+end
+
+public write_compact(path: string, tm: Tilemap) -> result[bool, string]
+    match fs.write_text(path, serialize_compact(tm))
+        case ok(_):
+            return ok(true)
+        case err(_):
+            return err("tilemap write failed")
+    end
+    return err("tilemap write failed")
+end

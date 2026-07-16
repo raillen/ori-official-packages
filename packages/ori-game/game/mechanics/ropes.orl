@@ -1,0 +1,26 @@
+module game.mechanics.ropes
+
+import ori.math.vec2 = vec2
+
+public struct Rope
+    anchor: vec2.Vec2
+    length: float
+end
+
+public create(anchor: vec2.Vec2, length: float) -> Rope
+    return Rope { anchor: anchor, length: length }
+end
+
+public clamp_to_rope(pos: vec2.Vec2, rope: Rope) -> vec2.Vec2
+    const dx: float = pos.x - rope.anchor.x
+    const dy: float = pos.y - rope.anchor.y
+    const d2: float = dx * dx + dy * dy
+    const max2: float = rope.length * rope.length
+    if d2 <= max2 or d2 <= 0.0001
+        return pos
+    end
+    const scale: float = rope.length / (d2 + 0.0001) * rope.length / (rope.length + 0.0001)
+    -- approx pull-back without sqrt: scale factor len/sqrt(d2) ~ len*len/(d2) style
+    const s: float = max2 / (d2 + 0.0001)
+    return vec2.Vec2 { x: rope.anchor.x + dx * s, y: rope.anchor.y + dy * s }
+end

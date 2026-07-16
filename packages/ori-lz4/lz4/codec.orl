@@ -1,0 +1,113 @@
+module lz4.codec
+
+import ori.mem = mem
+
+extern c
+    public ori_lz4_compress_bound(src_nbytes: int) -> int
+    public ori_lz4_stream_bound(src_nbytes: int, chunk_size: int) -> int
+    public ori_lz4_compress(src_ptr: int, src_nbytes: int) -> int
+    public ori_lz4_compress_cstr(text_ptr: int) -> int
+    public ori_lz4_decompress(src_ptr: int, src_nbytes: int, max_out: int) -> int
+    public ori_lz4_stream_compress(src_ptr: int, src_nbytes: int, chunk_size: int) -> int
+    public ori_lz4_stream_compress_cstr(text_ptr: int, chunk_size: int) -> int
+    public ori_lz4_stream_decompress(src_ptr: int, src_nbytes: int, max_out: int) -> int
+    public ori_lz4_out_len() -> int
+    public ori_lz4_out_ptr() -> int
+    public ori_lz4_src_len() -> int
+    public ori_lz4_out_byte(i: int) -> int
+    public ori_lz4_out_sum() -> int
+    public ori_lz4_pattern_roundtrip(nbytes: int) -> int
+    public ori_lz4_pattern_stream_roundtrip(nbytes: int, chunk_size: int) -> int
+end
+
+-- Max compressed size for a block of src_nbytes plain bytes (<0 invalid).
+public compress_bound(src_nbytes: int) -> int
+    return ori_lz4_compress_bound(src_nbytes)
+end
+
+-- Worst-case OLZ1 frame size for src_nbytes with chunk_size (0 = default 4096).
+public stream_bound(src_nbytes: int, chunk_size: int) -> int
+    return ori_lz4_stream_bound(src_nbytes, chunk_size)
+end
+
+-- Compress raw buffer at src_ptr. Returns compressed length (<0 fail).
+public compress(src_ptr: int, src_nbytes: int) -> int
+    return ori_lz4_compress(src_ptr, src_nbytes)
+end
+
+-- Compress UTF-8 text; returns compressed byte length (<0 fail).
+public compress_text(text: string) -> int
+    return ori_lz4_compress_cstr(mem.string_as_ptr(text))
+end
+
+-- Decompress LZ4 block at src_ptr. max_out 0 = internal capacity. Returns plain length.
+public decompress(src_ptr: int, src_nbytes: int, max_out: int) -> int
+    return ori_lz4_decompress(src_ptr, src_nbytes, max_out)
+end
+
+-- Compress into OLZ1 multi-block stream frame (LZ4 stream continue).
+public stream_compress(src_ptr: int, src_nbytes: int, chunk_size: int) -> int
+    return ori_lz4_stream_compress(src_ptr, src_nbytes, chunk_size)
+end
+
+public stream_compress_text(text: string, chunk_size: int) -> int
+    return ori_lz4_stream_compress_cstr(mem.string_as_ptr(text), chunk_size)
+end
+
+-- Decompress OLZ1 frame at src_ptr into internal buffer.
+public stream_decompress(src_ptr: int, src_nbytes: int, max_out: int) -> int
+    return ori_lz4_stream_decompress(src_ptr, src_nbytes, max_out)
+end
+
+public out_len() -> int
+    return ori_lz4_out_len()
+end
+
+public out_ptr() -> int
+    return ori_lz4_out_ptr()
+end
+
+public out_byte(i: int) -> int
+    return ori_lz4_out_byte(i)
+end
+
+public out_sum() -> int
+    return ori_lz4_out_sum()
+end
+
+public last_src_len() -> int
+    return ori_lz4_src_len()
+end
+
+-- Round-trip block compress then decompress; returns decompressed byte length.
+public roundtrip_len(text: string) -> int
+    const clen: int = compress_text(text)
+    if clen <= 0
+        return -1
+    end
+    const p: int = out_ptr()
+    const expected: int = last_src_len()
+    const ulen: int = ori_lz4_decompress(p, clen, expected)
+    return ulen
+end
+
+-- Round-trip OLZ1 stream frame; returns plain length.
+public stream_roundtrip_len(text: string, chunk_size: int) -> int
+    const flen: int = stream_compress_text(text, chunk_size)
+    if flen <= 0
+        return -1
+    end
+    const p: int = out_ptr()
+    const expected: int = last_src_len()
+    return ori_lz4_stream_decompress(p, flen, expected)
+end
+
+-- Larger fixture: pattern buffer block round-trip (native fill + verify).
+public pattern_roundtrip(nbytes: int) -> int
+    return ori_lz4_pattern_roundtrip(nbytes)
+end
+
+-- Larger fixture: pattern buffer OLZ1 stream round-trip.
+public pattern_stream_roundtrip(nbytes: int, chunk_size: int) -> int
+    return ori_lz4_pattern_stream_roundtrip(nbytes, chunk_size)
+end

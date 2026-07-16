@@ -1,0 +1,40 @@
+module app.jolt_character_test
+
+imports
+    jolt.dynamics = jolt
+    jolt.units = units
+    ori.io = io
+end
+
+main()
+    const g: int = units.gravity_earth_y_m()
+    var sys: jolt.System = jolt.create_system(0, g, 0)
+    -- Wave 4: prefer floor helper (top surface at y=0).
+    const floor: jolt.Body = jolt.create_static_floor(sys, 0)
+    if not jolt.body_is_valid(floor)
+        io.print("bad_floor")
+        return
+    end
+    var ch: jolt.Character = jolt.create_character(sys, 0, 2000, 0, 300, 500)
+    if not jolt.character_is_valid(ch)
+        io.print("bad_char")
+        return
+    end
+    jolt.character_set_velocity(ch, 2000, 0, 0)
+    jolt.character_jump(ch, 4000)
+    const dt: int = units.step_60hz_micros()
+    var i: int = 0
+    while i < 90
+        jolt.step(sys, dt)
+        i = i + 1
+    end
+    const x: int = jolt.character_x_m(ch)
+    if x > 0
+        io.print("walked")
+    else
+        io.print("stuck")
+    end
+    jolt.destroy_character(ch)
+    jolt.destroy_body(floor)
+    jolt.destroy_system(sys)
+end

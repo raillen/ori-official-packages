@@ -1,0 +1,16 @@
+module web_framework
+
+/// Symbolic meta-package for the Ori web core stack (OriLamp).
+///
+/// Installing `web_framework` pulls from the registry:
+///   web · templates · web_app
+///
+/// Optional (install separately when needed):
+///   web_auth · web_session_sqlite (+ sqlite transitively)
+///
+/// Prefer importing those packages directly in application code:
+///   import web
+///   import templates
+///
+/// This module only exists so the package has a valid entry point.
+public let STACK_VERSION: string = "0.1.0"

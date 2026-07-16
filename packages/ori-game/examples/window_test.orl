@@ -1,0 +1,36 @@
+module app.window_test
+
+import ori.io = io
+import ori.mem
+
+-- Raylib extern declarations
+extern c
+    InitWindow(width: int, height: int, title: int) -> void
+    CloseWindow() -> void
+    WindowShouldClose() -> bool
+    BeginDrawing() -> void
+    EndDrawing() -> void
+    ClearBackground(color: int) -> void
+    DrawText(text: int, posX: int, posY: int, fontSize: int, color: int) -> void
+    SetTargetFPS(fps: int) -> void
+end
+
+main()
+    io.print("Initializing window...")
+    const title_ptr: int = mem.string_as_ptr("Ori Game Test")
+    InitWindow(800, 600, title_ptr)
+    io.print("Window created!")
+
+    SetTargetFPS(60)
+
+    while not WindowShouldClose()
+        BeginDrawing()
+        ClearBackground(0x00000000)  -- Black
+        const text_ptr: int = mem.string_as_ptr("Hello from Ori!")
+        DrawText(text_ptr, 190, 200, 20, 0xFFFFFFFF)  -- White
+        EndDrawing()
+    end
+
+    CloseWindow()
+    io.print("Window closed!")
+end

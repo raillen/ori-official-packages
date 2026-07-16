@@ -1,0 +1,24 @@
+module test.pathfind
+
+imports
+    game.pathfind = pf
+    ori.test = test
+    ori.list = lists
+end
+
+@test
+open_grid_path()
+    var g: pf.Grid = pf.make_grid(5, 5, 0)
+    const path: list[int] = pf.find_path(g, 0, 0, 4, 4)
+    test.assert(pf.path_len(path) > 0, "path exists")
+    test.equal_int(path[0], pf.index_of(g, 0, 0))
+    test.equal_int(path[lists.len(path) - 1], pf.index_of(g, 4, 4))
+end
+
+@test
+blocked_no_path()
+    var g: pf.Grid = pf.make_grid(3, 1, 0)
+    g = pf.set_blocked(g, 1, 0, true)
+    const path: list[int] = pf.find_path(g, 0, 0, 2, 0)
+    test.equal_int(pf.path_len(path), 0)
+end

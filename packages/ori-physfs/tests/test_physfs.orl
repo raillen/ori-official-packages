@@ -1,0 +1,89 @@
+module test.physfs
+
+imports
+    physfs.fs = pfs
+    ori.test = test
+end
+
+-- Fixtures prepared by tools/smoke_linux.sh:
+--   /tmp/ori_physfs_test/hello.txt          ("hello-physfs\n", 13 bytes)
+--   /tmp/ori_physfs_test_b/other.txt        ("from-b\n", 7 bytes)
+--   /tmp/ori_physfs_write/                  (empty write dir)
+
+@test
+mount_exists_read()
+    test.assert(pfs.init(), "init")
+    test.assert(pfs.mount("/tmp/ori_physfs_test", ""), "mount")
+    test.assert(pfs.exists("hello.txt"), "exists")
+    test.assert(pfs.exists("no-such-file-xyz") == false, "missing")
+    const n: int = pfs.read("hello.txt")
+    test.equal_int(n, 13)
+    test.equal_int(pfs.last_len(), 13)
+    test.assert(pfs.last_sum() > 0, "sum")
+    -- first byte of "hello-physfs\n" is 'h' = 104
+    test.equal_int(pfs.last_byte(0), 104)
+    test.assert(pfs.deinit(), "deinit")
+end
+
+@test
+enumerate_root()
+    test.assert(pfs.init(), "init")
+    test.assert(pfs.mount("/tmp/ori_physfs_test", ""), "mount")
+    const c: int = pfs.enumerate_count("")
+    test.assert(c >= 1, "count")
+    test.assert(pfs.deinit(), "deinit")
+end
+
+@test
+write_to_write_dir()
+    test.assert(pfs.init(), "init")
+    test.assert(pfs.set_write_dir("/tmp/ori_physfs_write"), "write_dir")
+    -- Also mount so we can read back via VFS
+    test.assert(pfs.mount("/tmp/ori_physfs_write", ""), "mount_write")
+    test.assert(pfs.mkdir("saves"), "mkdir")
+    const payload: string = "save-v1"
+    const n: int = pfs.write("saves/slot1.txt", payload)
+    test.equal_int(n, 7)
+    test.equal_int(pfs.last_write_len(), 7)
+    test.assert(pfs.exists("saves/slot1.txt"), "exists_after_write")
+    const r: int = pfs.read("saves/slot1.txt")
+    test.equal_int(r, 7)
+    -- first byte 's' = 115
+    test.equal_int(pfs.last_byte(0), 115)
+    test.assert(pfs.deinit(), "deinit")
+end
+
+@test
+unmount_hides_files()
+    test.assert(pfs.init(), "init")
+    test.assert(pfs.mount("/tmp/ori_physfs_test", ""), "mount")
+    test.assert(pfs.exists("hello.txt"), "before")
+    test.assert(pfs.unmount("/tmp/ori_physfs_test"), "unmount")
+    test.assert(pfs.exists("hello.txt") == false, "after")
+    -- remount still works
+    test.assert(pfs.mount("/tmp/ori_physfs_test", ""), "remount")
+    test.assert(pfs.exists("hello.txt"), "remounted")
+    test.assert(pfs.deinit(), "deinit")
+end
+
+@test
+multi_mount_read()
+    test.assert(pfs.init(), "init")
+    -- Root mount: hello.txt
+    test.assert(pfs.mount("/tmp/ori_physfs_test", ""), "mount_a")
+    -- Second mount under virtual "mod/"
+    test.assert(pfs.mount("/tmp/ori_physfs_test_b", "mod"), "mount_b")
+    test.assert(pfs.exists("hello.txt"), "a_file")
+    test.assert(pfs.exists("mod/other.txt"), "b_file")
+    const na: int = pfs.read("hello.txt")
+    test.equal_int(na, 13)
+    const nb: int = pfs.read("mod/other.txt")
+    test.equal_int(nb, 7)
+    -- 'f' = 102 from "from-b\n"
+    test.equal_int(pfs.last_byte(0), 102)
+    const root_n: int = pfs.enumerate_count("")
+    test.assert(root_n >= 2, "root has hello + mod")
+    const mod_n: int = pfs.enumerate_count("mod")
+    test.assert(mod_n >= 1, "mod has other")
+    test.assert(pfs.deinit(), "deinit")
+end

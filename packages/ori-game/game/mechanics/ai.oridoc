@@ -1,0 +1,119 @@
+# ai — Comportamentos de IA
+
+Módulo com comportamentos de inteligência artificial para personagens.
+
+## PatrolState
+
+Estado de patrulha.
+
+```ori
+struct PatrolState
+    points: list<Vec2>
+    current_index: int = 0
+    speed: float = 100.0
+    wait_time: float = 0.0
+    current_wait: float = 0.0
+end
+```
+
+## Funções de Patrulha
+
+### update_patrol
+
+Atualiza o comportamento de patrulha.
+
+```ori
+func update_patrol(e: Entity, state: PatrolState, dt: float) -> void
+```
+
+**Comportamento:**
+- Move a entidade entre os pontos de patrulha
+- Espera `wait_time` em cada ponto
+- Repete o ciclo infinitamente
+
+**Exemplo:**
+```ori
+var points = list<vec2.Vec2>()
+points.add(vec2.Vec2(x: 100.0, y: 100.0))
+points.add(vec2.Vec2(x: 300.0, y: 100.0))
+points.add(vec2.Vec2(x: 300.0, y: 300.0))
+
+var patrol = ai.PatrolState(points: points, speed: 80.0)
+
+-- No update:
+ai.update_patrol(enemy, patrol, dt)
+```
+
+## Funções de Perseguição
+
+### update_chase
+
+Faz a entidade perseguir um alvo.
+
+```ori
+func update_chase(e: Entity, target: Vec2, speed: float, dt: float) -> void
+```
+
+### update_flee
+
+Faz a entidade fugir de uma ameaça.
+
+```ori
+func update_flee(e: Entity, threat: Vec2, speed: float, dt: float) -> void
+```
+
+## Funções de Percepção
+
+### can_see
+
+Verifica se a entidade pode ver o alvo (distância máxima).
+
+```ori
+func can_see(e: Entity, target: Vec2, max_dist: float) -> bool
+```
+
+### distance_to
+
+Calcula a distância até um alvo.
+
+```ori
+func distance_to(e: Entity, target: Vec2) -> float
+```
+
+**Exemplo — Perseguição com detecção:**
+```ori
+var dist = ai.distance_to(enemy, player.pos)
+if dist < 200.0
+    ai.update_chase(enemy, player.pos, 150.0, dt)
+else
+    ai.update_patrol(enemy, patrol, dt)
+end
+```
+
+## WanderState
+
+Estado de vagueio aleatório.
+
+```ori
+struct WanderState
+    radius: float = 100.0
+    speed: float = 50.0
+    change_timer: float = 0.0
+    change_interval: float = 2.0
+    wander_target: Vec2 = nil
+    origin: Vec2 = nil
+end
+```
+
+### update_wander
+
+Atualiza o comportamento de vagueio.
+
+```ori
+func update_wander(e: Entity, state: WanderState, dt: float) -> void
+```
+
+**Comportamento:**
+- Escolhe um ponto aleatório dentro do raio
+- Move até o ponto
+- Escolhe um novo ponto quando chega

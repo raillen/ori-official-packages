@@ -1,0 +1,144 @@
+module app.space_shooter
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.shape = shape
+    game.collision = collision
+    game.mechanics.combat = combat
+    game.timer = timer
+    ori.math.vec2 = vec2
+    ori.list = lists
+end
+
+struct Bullet
+    x: float
+    y: float
+    alive: bool
+end
+
+struct Enemy
+    x: float
+    y: float
+    alive: bool
+end
+
+var px: float = 300.0
+var py: float = 300.0
+var hp: combat.Health = combat.create_health(5)
+var bullets: list[Bullet] = []
+var enemies: list[Enemy] = []
+var spawn: timer.Timer = timer.create(1.2, true)
+var score: int = 0
+var shoot_cd: float = 0.0
+var spawn_acc: float = 0.0
+
+on_update(dt: float) -> void
+    if combat.is_dead(hp)
+        return
+    end
+    if input.key_down(input.KEY_LEFT)
+        px = px - 240.0 * dt
+    end
+    if input.key_down(input.KEY_RIGHT)
+        px = px + 240.0 * dt
+    end
+    if shoot_cd > 0.0
+        shoot_cd = shoot_cd - dt
+    end
+    if input.key_down(input.KEY_SPACE) and shoot_cd <= 0.0
+        lists.push(bullets, Bullet { x: px + 12.0, y: py, alive: true })
+        shoot_cd = 0.2
+    end
+
+    spawn_acc = spawn_acc + dt
+    if spawn_acc >= 1.2
+        spawn_acc = 0.0
+        lists.push(enemies, Enemy { x: 40.0 + float(score % 10) * 50.0, y: 20.0, alive: true })
+    end
+
+    var bi: int = 0
+    while bi < lists.len(bullets)
+        var b: Bullet = bullets[bi]
+        if b.alive
+            b.y = b.y - 400.0 * dt
+            if b.y < 0.0
+                b.alive = false
+            end
+            lists.set(bullets, bi, b)
+        end
+        bi = bi + 1
+    end
+
+    var ei: int = 0
+    while ei < lists.len(enemies)
+        var e: Enemy = enemies[ei]
+        if e.alive
+            e.y = e.y + 80.0 * dt
+            if e.y > 360.0
+                e.alive = false
+                hp = combat.damage(hp, 1)
+            end
+            lists.set(enemies, ei, e)
+        end
+        ei = ei + 1
+    end
+
+    bi = 0
+    while bi < lists.len(bullets)
+        const bb: Bullet = bullets[bi]
+        if bb.alive
+            ei = 0
+            while ei < lists.len(enemies)
+                const ee: Enemy = enemies[ei]
+                if ee.alive
+                    if collision.rects_overlap(
+                        shape.rect(bb.x, bb.y, 4.0, 10.0),
+                        shape.rect(ee.x, ee.y, 28.0, 28.0)
+                    )
+                        var e2: Enemy = ee
+                        e2.alive = false
+                        lists.set(enemies, ei, e2)
+                        var b2: Bullet = bb
+                        b2.alive = false
+                        lists.set(bullets, bi, b2)
+                        score = score + 1
+                    end
+                end
+                ei = ei + 1
+            end
+        end
+        bi = bi + 1
+    end
+end
+
+on_draw() -> void
+    draw.draw_rect(shape.rect(px, py, 28.0, 28.0), color.GREEN)
+    var i: int = 0
+    while i < lists.len(bullets)
+        const b: Bullet = bullets[i]
+        if b.alive
+            draw.draw_rect(shape.rect(b.x, b.y, 4.0, 10.0), color.YELLOW)
+        end
+        i = i + 1
+    end
+    i = 0
+    while i < lists.len(enemies)
+        const e: Enemy = enemies[i]
+        if e.alive
+            draw.draw_rect(shape.rect(e.x, e.y, 28.0, 28.0), color.RED)
+        end
+        i = i + 1
+    end
+    if combat.is_dead(hp)
+        draw.draw_text("GAME OVER", vec2.Vec2 { x: 240.0, y: 160.0 }, 28, color.WHITE)
+    else
+        draw.draw_text("Arrows + Space shoot", vec2.Vec2 { x: 10.0, y: 10.0 }, 16, color.WHITE)
+    end
+end
+
+main()
+    app.run_window("Space Shooter", 640, 360, on_update, on_draw)
+end

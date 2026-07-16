@@ -1,0 +1,115 @@
+# collision — Detecção de Colisão 2D
+
+Módulo com funções de colisão entre formas geométricas.
+
+## Funções de Ponto dentro de Forma
+
+### point_in_rect
+
+Verifica se um ponto está dentro de um retângulo.
+
+```ori
+func point_in_rect(point: Vec2, rect: Rectangle) -> bool
+```
+
+**Exemplo:**
+```ori
+const p = vec2.Vec2(x: 50.0, y: 50.0)
+const rect = shape.Rectangle(x: 0.0, y: 0.0, width: 100.0, height: 100.0)
+if collision.point_in_rect(p, rect)
+    io.print("Ponto dentro do retangulo")
+end
+```
+
+### point_in_circle
+
+Verifica se um ponto está dentro de um círculo.
+
+```ori
+func point_in_circle(point: Vec2, circle: Circle) -> bool
+```
+
+### point_in_triangle
+
+Verifica se um ponto está dentro de um triângulo.
+
+```ori
+func point_in_triangle(point: Vec2, tri: Triangle) -> bool
+```
+
+## Colisões entre Formas
+
+### rects_collide
+
+Verifica se dois retângulos colidem (AABB).
+
+```ori
+func rects_collide(a: Rectangle, b: Rectangle) -> bool
+```
+
+**Retorna:** `true` se há sobreposição.
+
+### rect_in_rect
+
+Verifica a relação entre dois retângulos.
+
+```ori
+func rect_in_rect(a: Rectangle, b: Rectangle) -> int
+```
+
+**Retorna:**
+- `0` — não toca
+- `1` — A totalmente dentro de B
+- `2` — sobreposição parcial
+
+### circles_collide
+
+Verifica se dois círculos colidem.
+
+```ori
+func circles_collide(a: Circle, b: Circle) -> bool
+```
+
+### rect_circle_collide
+
+Verifica se um retângulo e um círculo colidem.
+
+```ori
+func rect_circle_collide(rect: Rectangle, circle: Circle) -> bool
+```
+
+## Colisões entre Linhas
+
+### lines_intersect
+
+Verifica se duas linhas se cruzam.
+
+```ori
+func lines_intersect(a: Line, b: Line) -> bool
+```
+
+### line_rect_intersect
+
+Verifica se uma linha cruza um retângulo.
+
+```ori
+func line_rect_intersect(line: Line, rect: Rectangle) -> bool
+```
+
+## Colisão com Polígonos (SAT)
+
+### polygons_collide
+
+Verifica se dois polígonos colidem usando o teorema do eixo separador.
+
+```ori
+func polygons_collide(a: list<Vec2>, b: list<Vec2>) -> bool
+```
+
+### point_in_polygon
+
+Verifica se um ponto está dentro de um polígono.
+
+```ori
+func point_in_polygon(point: Vec2, poly: list<Vec2>) -> bool
+```

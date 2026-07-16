@@ -1,0 +1,177 @@
+module game.inventory
+
+import ori.list = lists
+
+public struct Item
+    id: string
+    name: string
+    stackable: bool
+    max_stack: int
+end
+
+public struct InventorySlot
+    item: Item
+    count: int
+    empty: bool
+end
+
+public struct Inventory
+    slots: list[InventorySlot]
+    max_slots: int
+end
+
+public empty_item() -> Item
+    return Item { id: "", name: "", stackable: false, max_stack: 1 }
+end
+
+public create(max_slots: int) -> Inventory
+    var slots: list[InventorySlot] = []
+    var i: int = 0
+    while i < max_slots
+        lists.push(slots, InventorySlot { item: empty_item(), count: 0, empty: true })
+        i = i + 1
+    end
+    return Inventory { slots: slots, max_slots: max_slots }
+end
+
+public count_of(inv: Inventory, item_id: string) -> int
+    var total: int = 0
+    const n: int = lists.len(inv.slots)
+    var i: int = 0
+    while i < n
+        const s: InventorySlot = inv.slots[i]
+        if not s.empty and s.item.id == item_id
+            total = total + s.count
+        end
+        i = i + 1
+    end
+    return total
+end
+
+public add(inv: Inventory, item: Item, amount: int) -> Inventory
+    var out: Inventory = inv
+    var remaining: int = amount
+    const n: int = lists.len(out.slots)
+    if item.stackable
+        var i: int = 0
+        while i < n and remaining > 0
+            var s: InventorySlot = out.slots[i]
+            if not s.empty and s.item.id == item.id and s.count < item.max_stack
+                const room: int = item.max_stack - s.count
+                var take: int = remaining
+                if take > room
+                    take = room
+                end
+                s.count = s.count + take
+                remaining = remaining - take
+                lists.set(out.slots, i, s)
+            end
+            i = i + 1
+        end
+    end
+    var j: int = 0
+    while j < n and remaining > 0
+        var s2: InventorySlot = out.slots[j]
+        if s2.empty
+            var put: int = remaining
+            if item.stackable
+                if put > item.max_stack
+                    put = item.max_stack
+                end
+            else
+                put = 1
+            end
+            s2.item = item
+            s2.count = put
+            s2.empty = false
+            remaining = remaining - put
+            lists.set(out.slots, j, s2)
+        end
+        j = j + 1
+    end
+    return out
+end
+
+public remove(inv: Inventory, item_id: string, amount: int) -> Inventory
+    var out: Inventory = inv
+    var remaining: int = amount
+    var i: int = 0
+    const n: int = lists.len(out.slots)
+    while i < n and remaining > 0
+        var s: InventorySlot = out.slots[i]
+        if not s.empty and s.item.id == item_id
+            if s.count <= remaining
+                remaining = remaining - s.count
+                s.count = 0
+                s.empty = true
+                s.item = empty_item()
+            else
+                s.count = s.count - remaining
+                remaining = 0
+            end
+            lists.set(out.slots, i, s)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+public try_use(inv: Inventory, item_id: string) -> Inventory
+    if count_of(inv, item_id) <= 0
+        return inv
+    end
+    return remove(inv, item_id, 1)
+end
+
+-- Compact serialize: id:count,id:count
+public to_compact(inv: Inventory) -> string
+    var s: string = ""
+    var first: bool = true
+    var i: int = 0
+    while i < lists.len(inv.slots)
+        const slot: InventorySlot = inv.slots[i]
+        if not slot.empty and slot.count > 0
+            if not first
+                s = s + ","
+            end
+            s = s + slot.item.id + ":" + count_digits(slot.count)
+            first = false
+        end
+        i = i + 1
+    end
+    return s
+end
+
+count_digits(n: int) -> string
+    if n == 0
+        return "0"
+    end
+    var v: int = n
+    var s: string = ""
+    while v > 0
+        const d: int = v - (v / 10) * 10
+        if d == 0
+            s = "0" + s
+        elif d == 1
+            s = "1" + s
+        elif d == 2
+            s = "2" + s
+        elif d == 3
+            s = "3" + s
+        elif d == 4
+            s = "4" + s
+        elif d == 5
+            s = "5" + s
+        elif d == 6
+            s = "6" + s
+        elif d == 7
+            s = "7" + s
+        elif d == 8
+            s = "8" + s
+        else
+            s = "9" + s
+        end
+        v = v / 10
+    end
+    return s
+end

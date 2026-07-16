@@ -1,0 +1,57 @@
+module app.ai_demo
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.mechanics.ai = ai
+    ori.math.vec2 = vec2
+end
+
+var px: float = 320.0
+var py: float = 180.0
+var ex: float = 80.0
+var ey: float = 80.0
+var mode_chase: bool = true
+
+on_update(dt: float) -> void
+    if input.key_down(input.KEY_RIGHT)
+        px = px + 200.0 * dt
+    end
+    if input.key_down(input.KEY_LEFT)
+        px = px - 200.0 * dt
+    end
+    if input.key_down(input.KEY_DOWN)
+        py = py + 200.0 * dt
+    end
+    if input.key_down(input.KEY_UP)
+        py = py - 200.0 * dt
+    end
+    if input.key_pressed(input.KEY_SPACE)
+        mode_chase = not mode_chase
+    end
+    var player: vec2.Vec2 = vec2.Vec2 { x: px, y: py }
+    var enemy: vec2.Vec2 = vec2.Vec2 { x: ex, y: ey }
+    if mode_chase
+        enemy = ai.chase(enemy, player, 120.0, dt)
+    else
+        enemy = ai.flee(enemy, player, 140.0, dt)
+    end
+    ex = enemy.x
+    ey = enemy.y
+end
+
+on_draw() -> void
+    draw.draw_circle(vec2.Vec2 { x: px, y: py }, 14.0, color.GREEN)
+    draw.draw_circle(vec2.Vec2 { x: ex, y: ey }, 14.0, color.RED)
+    if mode_chase
+        draw.draw_text("AI: chase (Space toggles flee)", vec2.Vec2 { x: 10.0, y: 10.0 }, 18, color.WHITE)
+    else
+        draw.draw_text("AI: flee (Space toggles chase)", vec2.Vec2 { x: 10.0, y: 10.0 }, 18, color.WHITE)
+    end
+end
+
+main()
+    app.run_window("AI Demo", 640, 360, on_update, on_draw)
+end

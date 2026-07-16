@@ -1,0 +1,56 @@
+module app.smoke_lz4
+
+imports
+    lz4.codec = lz
+    ori.io = io
+end
+
+main()
+    const clen: int = lz.compress_text("hello-ori-lz4")
+    if clen <= 0
+        io.println("compress_fail")
+        return
+    end
+    const ulen: int = lz.roundtrip_len("hello-ori-lz4")
+    if ulen != 13
+        io.println("roundtrip_fail")
+        return
+    end
+    -- Repetitive text should compress smaller than raw length
+    const rep: string = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    const rlen: int = lz.compress_text(rep)
+    if rlen <= 0
+        io.println("rep_compress_fail")
+        return
+    end
+    if rlen >= 50
+        io.println("rep_not_smaller")
+        return
+    end
+    -- Bound helpers
+    if lz.compress_bound(50) <= 50
+        io.println("bound_fail")
+        return
+    end
+    -- OLZ1 stream frame round-trip
+    const flen: int = lz.stream_compress_text("hello-ori-lz4", 8)
+    if flen <= 0
+        io.println("stream_compress_fail")
+        return
+    end
+    const sulen: int = lz.stream_roundtrip_len("hello-ori-lz4", 8)
+    if sulen != 13
+        io.println("stream_roundtrip_fail")
+        return
+    end
+    -- Larger fixture (8 KiB pattern)
+    if lz.pattern_roundtrip(8192) != 8192
+        io.println("pattern_fail")
+        return
+    end
+    if lz.pattern_stream_roundtrip(8192, 1024) != 8192
+        io.println("pattern_stream_fail")
+        return
+    end
+    io.println("ok")
+end

@@ -1,0 +1,54 @@
+module stb.image
+
+import ori.mem = mem
+
+extern c
+    public ori_stb_load(path_ptr: int, desired_channels: int) -> int
+    public ori_stb_width() -> int
+    public ori_stb_height() -> int
+    public ori_stb_comp() -> int
+    public ori_stb_pixels_ptr() -> int
+    public ori_stb_pixel_sum() -> int
+    public ori_stb_free() -> void
+    public ori_stb_write_png(path_ptr: int, w: int, h: int, data_ptr: int) -> int
+    public ori_stb_write_solid_gray_png(path_ptr: int, w: int, h: int, gray: int) -> int
+end
+
+-- Load image from path. desired_channels 0 = source components, else force N.
+public load(path: string, desired_channels: int) -> bool
+    return ori_stb_load(mem.string_as_ptr(path), desired_channels) == 0
+end
+
+public width() -> int
+    return ori_stb_width()
+end
+
+public height() -> int
+    return ori_stb_height()
+end
+
+public channels() -> int
+    return ori_stb_comp()
+end
+
+public pixels_ptr() -> int
+    return ori_stb_pixels_ptr()
+end
+
+public pixel_sum() -> int
+    return ori_stb_pixel_sum()
+end
+
+public free() -> void
+    ori_stb_free()
+end
+
+-- Write 8-bit grayscale PNG from caller-owned buffer.
+public write_png_gray(path: string, w: int, h: int, data_ptr: int) -> bool
+    return ori_stb_write_png(mem.string_as_ptr(path), w, h, data_ptr) == 0
+end
+
+-- Write solid gray PNG (allocates temporary buffer in shim).
+public write_solid_gray_png(path: string, w: int, h: int, gray: int) -> bool
+    return ori_stb_write_solid_gray_png(mem.string_as_ptr(path), w, h, gray) == 0
+end

@@ -1,0 +1,66 @@
+module app.state_demo
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.state_machine = sm
+    ori.math.vec2 = vec2
+end
+
+var machine: sm.StateMachine = sm.create("idle")
+var px: float = 320.0
+var py: float = 180.0
+
+on_update(dt: float) -> void
+    var moving: bool = false
+    if input.key_down(input.KEY_RIGHT)
+        px = px + 160.0 * dt
+        moving = true
+    end
+    if input.key_down(input.KEY_LEFT)
+        px = px - 160.0 * dt
+        moving = true
+    end
+    if input.key_down(input.KEY_UP)
+        py = py - 160.0 * dt
+        moving = true
+    end
+    if input.key_down(input.KEY_DOWN)
+        py = py + 160.0 * dt
+        moving = true
+    end
+
+    if input.key_pressed(input.KEY_SPACE)
+        machine = sm.set_state(machine, "jump")
+    end
+    if not input.key_pressed(input.KEY_SPACE)
+        if moving
+            machine = sm.set_state(machine, "walk")
+        end
+        if not moving
+            if not sm.is_state(machine, "jump")
+                machine = sm.set_state(machine, "idle")
+            end
+        end
+    end
+    if sm.is_state(machine, "jump")
+        if not input.key_down(input.KEY_SPACE)
+            machine = sm.set_state(machine, "idle")
+        end
+    end
+end
+
+on_draw() -> void
+    draw.draw_circle(vec2.Vec2 { x: px, y: py }, 18.0, color.PURPLE)
+    draw.draw_text("state machine (named states only)", vec2.Vec2 { x: 10.0, y: 10.0 }, 16, color.WHITE)
+    draw.draw_text(sm.current(machine), vec2.Vec2 { x: 10.0, y: 36.0 }, 28, color.YELLOW)
+    draw.draw_text("Arrows move, Space = jump state", vec2.Vec2 { x: 10.0, y: 80.0 }, 16, color.LIGHTGRAY)
+end
+
+main()
+    machine = sm.add_state(machine, "walk")
+    machine = sm.add_state(machine, "jump")
+    app.run_window("State Demo", 640, 360, on_update, on_draw)
+end

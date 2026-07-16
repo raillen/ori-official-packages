@@ -1,0 +1,14 @@
+module test.inventory
+
+imports
+    ori.test = test
+    game.inventory = inv
+end
+
+@test
+add_stackable()
+    var bag: inv.Inventory = inv.create(4)
+    const coin: inv.Item = inv.Item { id: "coin", name: "Coin", stackable: true, max_stack: 99 }
+    bag = inv.add(bag, coin, 5)
+    test.equal_int(inv.count_of(bag, "coin"), 5)
+end

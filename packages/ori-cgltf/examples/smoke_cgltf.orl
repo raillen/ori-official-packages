@@ -1,0 +1,96 @@
+module app.smoke_cgltf
+
+imports
+    cgltf.loader = gltf
+    ori.io = io
+end
+
+main()
+    -- Relative to package root (smoke_linux.sh cds there).
+    if not gltf.load_file("tests/fixtures/minimal.gltf")
+        io.println("load_fail")
+        return
+    end
+    if gltf.mesh_count() != 1
+        io.println("mesh_fail")
+        gltf.free()
+        return
+    end
+    if gltf.mesh_primitive_count(0) != 1
+        io.println("prim_fail")
+        gltf.free()
+        return
+    end
+    if not gltf.mesh_has_position(0, 0)
+        io.println("pos_fail")
+        gltf.free()
+        return
+    end
+    if not gltf.mesh_has_normal(0, 0)
+        io.println("nrm_fail")
+        gltf.free()
+        return
+    end
+    if gltf.node_count() != 1
+        io.println("node_fail")
+        gltf.free()
+        return
+    end
+    if gltf.node_translation_m(0, 0) != 1500
+        io.println("trs_fail")
+        gltf.free()
+        return
+    end
+    if gltf.material_count() != 1
+        io.println("mat_fail")
+        gltf.free()
+        return
+    end
+    if gltf.material_base_color_m(0, 0) != 500
+        io.println("color_fail")
+        gltf.free()
+        return
+    end
+    if gltf.animation_count() != 0
+        io.println("anim_fail")
+        gltf.free()
+        return
+    end
+    if gltf.mesh0_vertex_count() != 3
+        io.println("vert_fail")
+        gltf.free()
+        return
+    end
+    if not gltf.export_mesh(0, 0)
+        io.println("export_fail")
+        gltf.free()
+        return
+    end
+    if gltf.export_vertex_count() != 3
+        io.println("export_vert_fail")
+        gltf.free()
+        return
+    end
+    if gltf.export_float_count() != 18
+        io.println("export_float_fail")
+        gltf.free()
+        return
+    end
+    if gltf.export_pos_m(1, 0) != 1000
+        io.println("export_pos_fail")
+        gltf.free()
+        return
+    end
+    if gltf.export_normal_m(0, 2) != 1000
+        io.println("export_nrm_fail")
+        gltf.free()
+        return
+    end
+    if gltf.export_sum_m() != 5000
+        io.println("export_sum_fail")
+        gltf.free()
+        return
+    end
+    gltf.free()
+    io.println("ok")
+end

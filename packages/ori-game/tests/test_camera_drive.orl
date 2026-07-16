@@ -1,0 +1,39 @@
+module test.camera_drive
+
+imports
+    game.camera_drive = drive
+    game.camera_stack = cstack
+    ori.test = test
+end
+
+@test
+default_clip_samples()
+    var c: drive.CamClip = drive.default_orbit_clip()
+    c = drive.seek(c, 0)
+    const k0: drive.CamKey = drive.sample_offset(c)
+    test.assert(k0.ox == 40.0, "start ox")
+    c = drive.seek(c, 2000)
+    const k1: drive.CamKey = drive.sample_offset(c)
+    test.assert(k1.ox == 70.0, "mid ox")
+end
+
+@test
+tick_advances_and_loops()
+    var c: drive.CamClip = drive.default_orbit_clip()
+    c = drive.play(c)
+    c = drive.tick(c, 1000)
+    test.equal_int(drive.playhead_ms(c), 1000)
+    test.assert(drive.is_playing(c), "playing")
+    c = drive.tick(c, 6000)
+    test.assert(drive.playhead_ms(c) < 6000, "looped")
+end
+
+@test
+apply_to_stack_updates_offset()
+    var c: drive.CamClip = drive.default_orbit_clip()
+    c = drive.seek(c, 2000)
+    var s: cstack.CamStack = cstack.default_play_stack()
+    s = drive.apply_to_stack(c, s)
+    const off = cstack.offset_of_active(s)
+    test.assert(off.x == 70.0, "stack ox from drive")
+end

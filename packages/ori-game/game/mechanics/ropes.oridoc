@@ -1,0 +1,102 @@
+# ropes — Sistema de Cordas
+
+Módulo com simulação de cordas e balanço.
+
+## Rope
+
+Estrutura de corda.
+
+```ori
+struct Rope
+    anchor: Vec2
+    length: float
+    segments: int = 10
+    angle: float = 0.0
+    ang_vel: float = 0.0
+    attached: bool = false
+    damping: float = 0.99
+    gravity: float = 980.0
+    swing_speed: float = 3.0
+end
+```
+
+## Funções
+
+### create_rope
+
+Cria uma nova corda.
+
+```ori
+func create_rope(anchor: Vec2, length: float) -> Rope
+```
+
+### attach_to_rope
+
+Agrupa uma entidade à corda.
+
+```ori
+func attach_to_rope(e: Entity, rope: Rope) -> void
+```
+
+### detach_from_rope
+
+Solta a entidade da corda (aplica impulso).
+
+```ori
+func detach_from_rope(e: Entity, rope: Rope) -> void
+```
+
+### swing_rope
+
+Faz a entidade balançar na corda.
+
+```ori
+func swing_rope(e: Entity, rope: Rope, input_dir: float, dt: float) -> void
+```
+
+**Parâmetros:**
+- `input_dir` — Direção do input (-1.0 esquerda, 1.0 direita, 0.0 neutro)
+
+### get_rope_end
+
+Retorna a posição final da corda.
+
+```ori
+func get_rope_end(rope: Rope) -> Vec2
+```
+
+### get_rope_points
+
+Retorna os pontos da corda para desenho.
+
+```ori
+func get_rope_points(rope: Rope) -> list<Vec2>
+```
+
+**Exemplo — Corda com balanço:**
+```ori
+var rope = ropes.create_rope(vec2.Vec2(x: 400.0, y: 50.0), 200.0)
+
+-- No update:
+var swing_input = 0.0
+if input.key_down(37)
+    swing_input = -1.0
+end
+if input.key_down(39)
+    swing_input = 1.0
+end
+ropes.swing_rope(player, rope, swing_input, dt)
+
+-- Desenhar corda
+var points = ropes.get_rope_points(rope)
+for i in range(0, points.len() - 1)
+    draw.draw_line(points[i], points[i + 1], color.WHITE, 2.0)
+end
+```
+
+**Exemplo — Soltar da corda:**
+```ori
+if input.key_pressed(32)  -- SPACE
+    ropes.detach_from_rope(player, rope)
+end
+```

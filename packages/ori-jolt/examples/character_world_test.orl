@@ -1,0 +1,72 @@
+module app.jolt_character_world_test
+
+-- R4.3: World player + static floor/solids + CharacterVirtual step (headless).
+
+imports
+    jolt.world_character = wc
+    game.world = world
+    game.ogame_level = level
+    ori.list = lists
+    ori.io = io
+end
+
+main()
+    var w: world.World = world.empty_world()
+    var t: world.Transform = world.empty_transform()
+    t.x = 0.0
+    t.y = 12.0
+    t.z = 0.0
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "player",
+            entity_type: "player",
+            primary_tag: "player"
+        },
+        t
+    )
+    const pid: world.EntityId = world.get_entity(w, 0).id
+    var h: wc.Host = wc.create_for_player(w, pid, 4.0, 6.0, 30.0, 40.0)
+    if wc.is_active(h) == false
+        io.print("bad_host")
+        return
+    end
+    -- Floor at y=0 (thin) + side wall solid for collision smoke
+    h = wc.add_static_box(h, 0.0, 0.0, 0.0, 200.0, 2.0, 200.0)
+    var solids: list[level.SolidPiece] = []
+    lists.push(solids, level.SolidPiece {
+        x: 40.0, y: 8.0, z: 0.0,
+        sx: 8.0, sy: 16.0, sz: 8.0,
+        r: 100, g: 100, b: 100, a: 255,
+        metallic: 0.0, roughness: 0.8,
+        layer: 1, collider: true
+    })
+    h = wc.bake_solids(h, solids)
+    const dt: float = 1.0 / 60.0
+    var i: int = 0
+    while i < 120
+        h = wc.step(h, w, 1.0, 0.0, false, dt)
+        w = wc.apply_to_world(h, w)
+        i = i + 1
+    end
+    const x1: float = wc.x_game(h)
+    const y1: float = wc.y_game(h)
+    -- Jump while walking
+    i = 0
+    while i < 30
+        h = wc.step(h, w, 0.5, 0.0, i == 0, dt)
+        w = wc.apply_to_world(h, w)
+        i = i + 1
+    end
+    const x2: float = wc.x_game(h)
+    if x1 > 1.0 and y1 < 20.0
+        if x2 >= x1
+            io.print("world_char_ok")
+        else
+            io.print("no_walk")
+        end
+    else
+        io.print("bad_pose")
+    end
+    wc.destroy(h)
+end

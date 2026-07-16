@@ -1,0 +1,125 @@
+module clay.layout
+
+-- Clay immediate-mode UI layout (headless) — milli-pixel bounds + command export.
+
+extern c
+    public ori_clay_init(width: int, height: int) -> int
+    public ori_clay_shutdown() -> void
+    public ori_clay_layout_two_boxes() -> int
+    public ori_clay_layout_nested() -> int
+    public ori_clay_box_count() -> int
+    public ori_clay_box_x_m(index: int) -> int
+    public ori_clay_box_y_m(index: int) -> int
+    public ori_clay_box_w_m(index: int) -> int
+    public ori_clay_box_h_m(index: int) -> int
+    public ori_clay_cmd_count() -> int
+    public ori_clay_cmd_type(index: int) -> int
+    public ori_clay_cmd_x_m(index: int) -> int
+    public ori_clay_cmd_y_m(index: int) -> int
+    public ori_clay_cmd_w_m(index: int) -> int
+    public ori_clay_cmd_h_m(index: int) -> int
+    public ori_clay_cmd_r(index: int) -> int
+    public ori_clay_cmd_g(index: int) -> int
+    public ori_clay_cmd_b(index: int) -> int
+    public ori_clay_cmd_a(index: int) -> int
+    public ori_clay_rect_cmd_count() -> int
+end
+
+-- Command type: matches Clay_RenderCommandType (RECTANGLE = 1).
+public const CMD_NONE: int = 0
+public const CMD_RECTANGLE: int = 1
+public const CMD_BORDER: int = 2
+public const CMD_TEXT: int = 3
+
+-- Nested layout box indices (after layout_nested).
+public const BOX_HEADER: int = 0
+public const BOX_BODY: int = 1
+public const BOX_LEFT: int = 2
+public const BOX_RIGHT: int = 3
+
+-- Initialize Clay arena for the given layout size (pixels). Returns true on success.
+public init(width: int, height: int) -> bool
+    return ori_clay_init(width, height) == 0
+end
+
+public shutdown() -> void
+    ori_clay_shutdown()
+end
+
+-- Begin → root + 2 fixed LTR siblings (pad=16, gap=16) → end.
+-- Returns box count (2) or 0 on failure. Fills command list.
+public layout_two_boxes() -> int
+    return ori_clay_layout_two_boxes()
+end
+
+-- Nested multi-box: Root(pad=20,gap=10,TTB) → Header + Body(pad=12,gap=8,LTR) → Left/Right.
+-- Boxes: 0=Header, 1=Body, 2=Left, 3=Right. Returns 4 or 0. Fills command list.
+public layout_nested() -> int
+    return ori_clay_layout_nested()
+end
+
+public box_count() -> int
+    return ori_clay_box_count()
+end
+
+public box_x_m(index: int) -> int
+    return ori_clay_box_x_m(index)
+end
+
+public box_y_m(index: int) -> int
+    return ori_clay_box_y_m(index)
+end
+
+public box_w_m(index: int) -> int
+    return ori_clay_box_w_m(index)
+end
+
+public box_h_m(index: int) -> int
+    return ori_clay_box_h_m(index)
+end
+
+-- Render command list from last layout (for pure-Ori / raylib drawers).
+public cmd_count() -> int
+    return ori_clay_cmd_count()
+end
+
+public cmd_type(index: int) -> int
+    return ori_clay_cmd_type(index)
+end
+
+public cmd_x_m(index: int) -> int
+    return ori_clay_cmd_x_m(index)
+end
+
+public cmd_y_m(index: int) -> int
+    return ori_clay_cmd_y_m(index)
+end
+
+public cmd_w_m(index: int) -> int
+    return ori_clay_cmd_w_m(index)
+end
+
+public cmd_h_m(index: int) -> int
+    return ori_clay_cmd_h_m(index)
+end
+
+public cmd_r(index: int) -> int
+    return ori_clay_cmd_r(index)
+end
+
+public cmd_g(index: int) -> int
+    return ori_clay_cmd_g(index)
+end
+
+public cmd_b(index: int) -> int
+    return ori_clay_cmd_b(index)
+end
+
+public cmd_a(index: int) -> int
+    return ori_clay_cmd_a(index)
+end
+
+-- Count of RECTANGLE commands only.
+public rect_cmd_count() -> int
+    return ori_clay_rect_cmd_count()
+end

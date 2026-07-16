@@ -1,0 +1,238 @@
+module jolt.world_character
+
+-- R4.3: Jolt CharacterVirtual driven from World player + static solids.
+-- Game units → milli-meters: 1 game unit = 0.1 m (×100 milli).
+-- Lives in ori-jolt (ori_game cannot path-dep jolt — cycle).
+
+import jolt.dynamics = jolt
+import jolt.character_ctrl = ctrl
+import jolt.units = units
+import game.world = world
+import game.ogame_level = level
+import ori.list = lists
+import ori.math = math
+
+-- 1 game unit = 0.1 meter → milli = game * 100
+public const GAME_TO_MILLI: int = 100
+
+public game_to_milli(g: float) -> int
+    return math.floor(g * 100.0 + 0.5)
+end
+
+public milli_to_game(m: int) -> float
+    return float(m) / 100.0
+end
+
+public struct Host
+    system: jolt.System
+    character: ctrl.Controller
+    static_bodies: list[jolt.Body]
+    player_id: world.EntityId
+    active: bool
+    grounded: bool
+end
+
+public empty_host() -> Host
+    var bodies: list[jolt.Body] = []
+    return Host {
+        system: jolt.System { id: 0 },
+        character: ctrl.Controller {
+            character: jolt.Character { id: 0 },
+            speed_m: 0,
+            jump_m: 0,
+            wish_x_m: 0,
+            wish_z_m: 0,
+            jump_pressed: false
+        },
+        static_bodies: bodies,
+        player_id: 0,
+        active: false,
+        grounded: false
+    }
+end
+
+public is_active(h: Host) -> bool
+    return h.active
+end
+
+public on_ground(h: Host) -> bool
+    return h.grounded
+end
+
+-- Create Jolt system + character at player world transform.
+public create_for_player(
+    w: world.World,
+    player_id: world.EntityId,
+    radius_game: float,
+    half_height_game: float,
+    speed_game: float,
+    jump_game: float
+) -> Host
+    var h: Host = empty_host()
+    match world.find_by_id(w, player_id)
+        case some(e):
+            const g: int = units.gravity_earth_y_m()
+            h.system = jolt.create_system(0, g, 0)
+            h.player_id = player_id
+            const x_m: int = game_to_milli(e.transform.x)
+            const y_m: int = game_to_milli(e.transform.y)
+            const z_m: int = game_to_milli(e.transform.z)
+            const r_m: int = game_to_milli(radius_game)
+            const hh_m: int = game_to_milli(half_height_game)
+            const sp_m: int = game_to_milli(speed_game)
+            const jp_m: int = game_to_milli(jump_game)
+            h.character = ctrl.create(h.system, x_m, y_m, z_m, r_m, hh_m, sp_m, jp_m)
+            h.active = jolt.character_is_valid(h.character.character)
+            h.grounded = false
+            return h
+        case none:
+            return h
+    end
+    return h
+end
+
+public add_static_box(
+    h: Host,
+    x: float,
+    y: float,
+    z: float,
+    sx: float,
+    sy: float,
+    sz: float
+) -> Host
+    if h.active == false
+        return h
+    end
+    var out: Host = h
+    const body: jolt.Body = jolt.create_static_box(
+        out.system,
+        game_to_milli(x),
+        game_to_milli(y),
+        game_to_milli(z),
+        game_to_milli(sx * 0.5),
+        game_to_milli(sy * 0.5),
+        game_to_milli(sz * 0.5)
+    )
+    if jolt.body_is_valid(body)
+        lists.push(out.static_bodies, body)
+    end
+    return out
+end
+
+public add_static_floor(h: Host, y_game: float) -> Host
+    if h.active == false
+        return h
+    end
+    var out: Host = h
+    const body: jolt.Body = jolt.create_static_floor(out.system, game_to_milli(y_game))
+    if jolt.body_is_valid(body)
+        lists.push(out.static_bodies, body)
+    end
+    return out
+end
+
+-- Bake collider solids from level CSG pieces (skip non-colliders).
+public bake_solids(h: Host, solids: list[level.SolidPiece]) -> Host
+    if h.active == false
+        return h
+    end
+    var out: Host = h
+    const n: int = lists.len(solids)
+    var i: int = 0
+    while i < n
+        const s: level.SolidPiece = solids[i]
+        if s.collider
+            out = add_static_box(out, s.x, s.y, s.z, s.sx, s.sy, s.sz)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- Wish direction in game units (−1..1 axes) + jump edge; step physics; write World.
+public step(
+    h: Host,
+    w: world.World,
+    wish_x: float,
+    wish_z: float,
+    jump: bool,
+    dt: float
+) -> Host
+    if h.active == false
+        return h
+    end
+    var out: Host = h
+    -- character_ctrl wish is milli-ish −1000..1000
+    var wx: int = math.floor(wish_x * 1000.0 + 0.5)
+    var wz: int = math.floor(wish_z * 1000.0 + 0.5)
+    if wx > 1000
+        wx = 1000
+    end
+    if wx < 0 - 1000
+        wx = 0 - 1000
+    end
+    if wz > 1000
+        wz = 1000
+    end
+    if wz < 0 - 1000
+        wz = 0 - 1000
+    end
+    out.character = ctrl.set_wish_dir(out.character, wx, wz)
+    out.character = ctrl.set_jump_pressed(out.character, jump)
+    const micros: int = units.seconds_to_micros(dt)
+    out.character = ctrl.tick(out.character, out.system, micros)
+    out.grounded = ctrl.on_ground(out.character)
+    return out
+end
+
+public apply_to_world(h: Host, w: world.World) -> world.World
+    if h.active == false
+        return w
+    end
+    match world.find_by_id(w, h.player_id)
+        case some(e):
+            var t: world.Transform = e.transform
+            t.x = milli_to_game(ctrl.x_m(h.character))
+            t.y = milli_to_game(ctrl.y_m(h.character))
+            t.z = milli_to_game(ctrl.z_m(h.character))
+            return world.set_transform(w, h.player_id, t)
+        case none:
+            return w
+    end
+    return w
+end
+
+public x_game(h: Host) -> float
+    if h.active == false
+        return 0.0
+    end
+    return milli_to_game(ctrl.x_m(h.character))
+end
+
+public y_game(h: Host) -> float
+    if h.active == false
+        return 0.0
+    end
+    return milli_to_game(ctrl.y_m(h.character))
+end
+
+public z_game(h: Host) -> float
+    if h.active == false
+        return 0.0
+    end
+    return milli_to_game(ctrl.z_m(h.character))
+end
+
+public destroy(h: Host) -> void
+    if h.active == false
+        return
+    end
+    ctrl.destroy(h.character)
+    const n: int = lists.len(h.static_bodies)
+    var i: int = 0
+    while i < n
+        jolt.destroy_body(h.static_bodies[i])
+        i = i + 1
+    end
+    jolt.destroy_system(h.system)
+end

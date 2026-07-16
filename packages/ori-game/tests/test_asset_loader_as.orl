@@ -1,0 +1,16 @@
+module test.asset_loader_as
+
+imports
+    ori.test = test
+    game.assets = assets
+end
+
+@test
+remember_under_logical_key()
+    var cache: assets.AssetCache = assets.create()
+    cache = assets.remember_texture(cache, "pack:hero.png", 7)
+    test.equal_int(assets.get_texture(cache, "pack:hero.png"), 7)
+    test.assert(not assets.has_texture(cache, "hero.png"), "disk path not used as key")
+    cache = assets.remember_sound(cache, "pack:hit.wav", 3)
+    test.equal_int(assets.get_sound(cache, "pack:hit.wav"), 3)
+end

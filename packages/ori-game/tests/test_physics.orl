@@ -1,0 +1,16 @@
+module test.physics
+
+imports
+    ori.test = test
+    game.physics = physics
+    ori.math.vec2 = vec2
+end
+
+@test
+body_falls()
+    var world: physics.PhysicsWorld = physics.create_world(980.0)
+    world = physics.add_body(world, vec2.Vec2 { x: 0.0, y: 0.0 }, 1.0, 8.0)
+    world = physics.step(world, 0.016)
+    const b: physics.PhysicsBody = world.bodies[0]
+    test.assert(b.pos.y > 0.0, "fell")
+end

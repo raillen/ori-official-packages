@@ -1,0 +1,111 @@
+module freetype.atlas
+
+-- Shelf-packed gray atlas for a codepoint range (built in shim).
+
+import freetype.face = ft
+import ori.mem = mem
+
+public struct GlyphUv
+    codepoint: int
+    glyph_index: int
+    x: int
+    y: int
+    w: int
+    h: int
+    bearing_x: int
+    bearing_y: int
+    advance_m: int
+end
+
+extern c
+    public ori_ft_atlas_build(face: int, first_cp: int, last_cp: int, padding: int) -> int
+    public ori_ft_atlas_width() -> int
+    public ori_ft_atlas_height() -> int
+    public ori_ft_atlas_count() -> int
+    public ori_ft_atlas_pixels_ptr() -> int
+    public ori_ft_atlas_codepoint(i: int) -> int
+    public ori_ft_atlas_glyph_index(i: int) -> int
+    public ori_ft_atlas_x(i: int) -> int
+    public ori_ft_atlas_y(i: int) -> int
+    public ori_ft_atlas_gw(i: int) -> int
+    public ori_ft_atlas_gh(i: int) -> int
+    public ori_ft_atlas_bearing_x(i: int) -> int
+    public ori_ft_atlas_bearing_y(i: int) -> int
+    public ori_ft_atlas_advance_m(i: int) -> int
+    public ori_ft_atlas_find(codepoint: int) -> int
+    public ori_ft_atlas_ink_sum() -> int
+    public ori_ft_atlas_write_pgm(path_ptr: int) -> int
+end
+
+-- Build atlas for inclusive codepoint range. Returns glyph count (0 on failure).
+public build(face: ft.FaceId, first_cp: int, last_cp: int, padding: int) -> int
+    const n: int = ori_ft_atlas_build(face, first_cp, last_cp, padding)
+    if n < 0
+        return 0
+    end
+    return n
+end
+
+public build_ascii(face: ft.FaceId, padding: int) -> int
+    return build(face, 32, 126, padding)
+end
+
+public width() -> int
+    return ori_ft_atlas_width()
+end
+
+public height() -> int
+    return ori_ft_atlas_height()
+end
+
+public count() -> int
+    return ori_ft_atlas_count()
+end
+
+public pixels_ptr() -> int
+    return ori_ft_atlas_pixels_ptr()
+end
+
+public ink_sum() -> int
+    return ori_ft_atlas_ink_sum()
+end
+
+public write_pgm(path: string) -> bool
+    return ori_ft_atlas_write_pgm(mem.string_as_ptr(path)) == 0
+end
+
+public glyph_at(i: int) -> GlyphUv
+    return GlyphUv {
+        codepoint: ori_ft_atlas_codepoint(i),
+        glyph_index: ori_ft_atlas_glyph_index(i),
+        x: ori_ft_atlas_x(i),
+        y: ori_ft_atlas_y(i),
+        w: ori_ft_atlas_gw(i),
+        h: ori_ft_atlas_gh(i),
+        bearing_x: ori_ft_atlas_bearing_x(i),
+        bearing_y: ori_ft_atlas_bearing_y(i),
+        advance_m: ori_ft_atlas_advance_m(i)
+    }
+end
+
+public find(codepoint: int) -> int
+    return ori_ft_atlas_find(codepoint)
+end
+
+public glyph_for(codepoint: int) -> GlyphUv
+    const i: int = find(codepoint)
+    if i < 0
+        return GlyphUv {
+            codepoint: codepoint,
+            glyph_index: 0,
+            x: 0,
+            y: 0,
+            w: 0,
+            h: 0,
+            bearing_x: 0,
+            bearing_y: 0,
+            advance_m: 0
+        }
+    end
+    return glyph_at(i)
+end

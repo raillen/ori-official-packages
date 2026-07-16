@@ -1,0 +1,10 @@
+@{ layout "layouts/app" }
+@{ assign title = title }
+
+<article class="card">
+  <p class="muted"><a href="/posts">← Posts</a> · #@{ id }</p>
+  <h1>@{ title }</h1>
+  <p>@{ body }</p>
+</article>
+
+@{ end }

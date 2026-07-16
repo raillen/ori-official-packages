@@ -1,0 +1,299 @@
+module imtextedit.lang
+
+-- Language id stub + lightweight highlight tokenizer (headless).
+-- Not full ColorTextEdit grammar — product G1 stub for Studio/script panes.
+
+import imtextedit.buffer = buf
+import ori.list = lists
+import ori.string = str
+
+public const KIND_PLAIN: int = 0
+public const KIND_KEYWORD: int = 1
+public const KIND_COMMENT: int = 2
+public const KIND_STRING: int = 3
+public const KIND_NUMBER: int = 4
+public const KIND_IDENT: int = 5
+
+public struct TokenSpan
+    start: int
+    nbytes: int
+    kind: int
+end
+
+public language_name(language: int) -> string
+    if language == buf.LANG_NONE
+        return "none"
+    end
+    if language == buf.LANG_PLAIN
+        return "plain"
+    end
+    if language == buf.LANG_ORI
+        return "ori"
+    end
+    if language == buf.LANG_C
+        return "c"
+    end
+    return "plain"
+end
+
+public token_kind_name(kind: int) -> string
+    if kind == KIND_KEYWORD
+        return "keyword"
+    end
+    if kind == KIND_COMMENT
+        return "comment"
+    end
+    if kind == KIND_STRING
+        return "string"
+    end
+    if kind == KIND_NUMBER
+        return "number"
+    end
+    if kind == KIND_IDENT
+        return "ident"
+    end
+    return "plain"
+end
+
+is_alpha_char(c: string) -> bool
+    if c == ""
+        return false
+    end
+    const lower: string = str.to_lower(c)
+    if lower == "a" or lower == "b" or lower == "c" or lower == "d" or lower == "e"
+        return true
+    end
+    if lower == "f" or lower == "g" or lower == "h" or lower == "i" or lower == "j"
+        return true
+    end
+    if lower == "k" or lower == "l" or lower == "m" or lower == "n" or lower == "o"
+        return true
+    end
+    if lower == "p" or lower == "q" or lower == "r" or lower == "s" or lower == "t"
+        return true
+    end
+    if lower == "u" or lower == "v" or lower == "w" or lower == "x" or lower == "y" or lower == "z"
+        return true
+    end
+    return false
+end
+
+is_digit_char(c: string) -> bool
+    return c == "0" or c == "1" or c == "2" or c == "3" or c == "4" or c == "5" or c == "6" or c == "7" or c == "8" or c == "9"
+end
+
+is_ident_start(c: string) -> bool
+    if c == "_"
+        return true
+    end
+    return is_alpha_char(c)
+end
+
+is_ident_cont(c: string) -> bool
+    if is_ident_start(c)
+        return true
+    end
+    return is_digit_char(c)
+end
+
+is_space_char(c: string) -> bool
+    return c == " " or c == "\t" or c == "\r" or c == "\n"
+end
+
+-- Minimal keyword tables for stub highlight (not exhaustive upstream grammars).
+is_ori_keyword(word: string) -> bool
+    if word == "module" or word == "imports" or word == "end" or word == "if" or word == "else"
+        return true
+    end
+    if word == "while" or word == "return" or word == "const" or word == "var" or word == "public"
+        return true
+    end
+    if word == "struct" or word == "match" or word == "case" or word == "true" or word == "false"
+        return true
+    end
+    if word == "and" or word == "or" or word == "not" or word == "loop" or word == "break"
+        return true
+    end
+    if word == "continue" or word == "some" or word == "none" or word == "ok" or word == "err"
+        return true
+    end
+    if word == "int" or word == "string" or word == "bool" or word == "list" or word == "void"
+        return true
+    end
+    if word == "import" or word == "from" or word == "as" or word == "apply" or word == "use"
+        return true
+    end
+    return false
+end
+
+is_c_keyword(word: string) -> bool
+    if word == "if" or word == "else" or word == "while" or word == "for" or word == "return"
+        return true
+    end
+    if word == "int" or word == "void" or word == "char" or word == "float" or word == "double"
+        return true
+    end
+    if word == "struct" or word == "const" or word == "static" or word == "typedef" or word == "include"
+        return true
+    end
+    if word == "true" or word == "false" or word == "NULL" or word == "sizeof" or word == "switch"
+        return true
+    end
+    if word == "case" or word == "break" or word == "continue" or word == "default" or word == "enum"
+        return true
+    end
+    return false
+end
+
+is_keyword_for_lang(language: int, word: string) -> bool
+    if language == buf.LANG_ORI
+        return is_ori_keyword(word)
+    end
+    if language == buf.LANG_C
+        return is_c_keyword(word)
+    end
+    return false
+end
+
+push_span(spans: list[TokenSpan], start: int, nbytes: int, kind: int) -> void
+    if nbytes <= 0
+        return
+    end
+    lists.push(spans, TokenSpan { start: start, nbytes: nbytes, kind: kind })
+end
+
+-- Headless highlight of editor buffer for current language.
+public highlight_spans(e: buf.Editor) -> list[TokenSpan]
+    return highlight_text(buf.text_of(e), buf.language_of(e))
+end
+
+-- Tokenize `text` under language stub. LANG_NONE/PLAIN → single plain span.
+public highlight_text(text: string, language: int) -> list[TokenSpan]
+    var spans: list[TokenSpan] = []
+    const total: int = str.len(text)
+    if total == 0
+        return spans
+    end
+    if language == buf.LANG_NONE or language == buf.LANG_PLAIN
+        push_span(spans, 0, total, KIND_PLAIN)
+        return spans
+    end
+
+    var i: int = 0
+    while i < total
+        const c: string = str.slice(text, i, i + 1)
+
+        if is_space_char(c)
+            const start: int = i
+            i = i + 1
+            while i < total
+                const sc: string = str.slice(text, i, i + 1)
+                if not is_space_char(sc)
+                    break
+                end
+                i = i + 1
+            end
+            push_span(spans, start, i - start, KIND_PLAIN)
+            continue
+        end
+
+        -- Line comment //
+        if c == "/"
+            if i + 1 < total
+                if str.slice(text, i + 1, i + 2) == "/"
+                    const start: int = i
+                    i = i + 2
+                    while i < total
+                        if str.slice(text, i, i + 1) == "\n"
+                            break
+                        end
+                        i = i + 1
+                    end
+                    push_span(spans, start, i - start, KIND_COMMENT)
+                    continue
+                end
+            end
+        end
+
+        -- Double-quoted string
+        if c == "\""
+            const start: int = i
+            i = i + 1
+            while i < total
+                const qc: string = str.slice(text, i, i + 1)
+                if qc == "\""
+                    i = i + 1
+                    break
+                end
+                if qc == "\\"
+                    if i + 1 < total
+                        i = i + 2
+                        continue
+                    end
+                end
+                i = i + 1
+            end
+            push_span(spans, start, i - start, KIND_STRING)
+            continue
+        end
+
+        -- Number (digits, optional leading - handled as plain then digits)
+        if is_digit_char(c)
+            const start: int = i
+            i = i + 1
+            while i < total
+                const nc: string = str.slice(text, i, i + 1)
+                if not is_digit_char(nc)
+                    break
+                end
+                i = i + 1
+            end
+            push_span(spans, start, i - start, KIND_NUMBER)
+            continue
+        end
+
+        -- Identifier / keyword
+        if is_ident_start(c)
+            const start: int = i
+            i = i + 1
+            while i < total
+                const ic: string = str.slice(text, i, i + 1)
+                if not is_ident_cont(ic)
+                    break
+                end
+                i = i + 1
+            end
+            const word: string = str.slice(text, start, i)
+            var kind: int = KIND_IDENT
+            if is_keyword_for_lang(language, word)
+                kind = KIND_KEYWORD
+            end
+            push_span(spans, start, i - start, kind)
+            continue
+        end
+
+        -- Single punctuation / other
+        push_span(spans, i, 1, KIND_PLAIN)
+        i = i + 1
+    end
+    return spans
+end
+
+-- Count tokens of a given kind (headless test helper).
+public count_kind(spans: list[TokenSpan], kind: int) -> int
+    const n: int = lists.len(spans)
+    var count: int = 0
+    var i: int = 0
+    while i < n
+        if spans[i].kind == kind
+            count = count + 1
+        end
+        i = i + 1
+    end
+    return count
+end
+
+public span_slice(text: string, span: TokenSpan) -> string
+    const end_pos: int = span.start + span.nbytes
+    return str.slice(text, span.start, end_pos)
+end

@@ -1,0 +1,63 @@
+module test.spine
+
+imports
+    game.spine = spine
+    ori.test = test
+    ori.list = lists
+end
+
+const SAMPLE: string = "{\"skeleton\":{\"spine\":\"4.1.00\"},\"bones\":[{\"name\":\"root\"},{\"name\":\"hip\",\"parent\":\"root\",\"y\":40.0},{\"name\":\"chest\",\"parent\":\"hip\",\"y\":24.0}],\"animations\":{\"idle\":{\"bones\":{\"chest\":{\"rotate\":[{\"time\":0.0,\"value\":0.0},{\"time\":1.0,\"value\":10.0}]}}}}}"
+
+@test
+parse_bones_and_anim()
+    var names: list[string] = []
+    lists.push(names, "idle")
+    match spine.parse_skeleton(SAMPLE, names)
+        case ok(s):
+            test.equal_int(spine.bone_count(s), 3)
+            test.equal_int(spine.animation_count(s), 1)
+            test.equal_int(spine.find_animation(s, "idle"), 0)
+            var hip: spine.SpineBone = s.bones[1]
+            test.assert(hip.parent_index == 0, "hip parent")
+            test.equal_int(hip.y_m, 40000)
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+player_pose_changes()
+    var names: list[string] = []
+    lists.push(names, "idle")
+    match spine.parse_skeleton(SAMPLE, names)
+        case ok(s):
+            var p: spine.SpinePlayer = spine.create_player(s, 0)
+            const r0: int = p.pose_rot_m[2]
+            p = spine.update_player(p, 1.0)
+            const r1: int = p.pose_rot_m[2]
+            test.assert(r1 > r0, "chest rotation increased at t=1s")
+            const world: list[spine.SpineWorldBone] = spine.world_bones(p)
+            test.equal_int(lists.len(world), 3)
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+load_file_sample()
+    var names: list[string] = []
+    lists.push(names, "idle")
+    lists.push(names, "walk")
+    match spine.load_skeleton("assets/sprites/hero_spine.json", names)
+        case ok(s):
+            test.equal_int(spine.bone_count(s), 6)
+            test.equal_int(spine.animation_count(s), 2)
+            test.assert(spine.find_animation(s, "walk") >= 0, "walk")
+            var p: spine.SpinePlayer = spine.create_player(s, spine.find_animation(s, "walk"))
+            p = spine.update_player(p, 0.25)
+            const world: list[spine.SpineWorldBone] = spine.world_bones(p)
+            test.equal_int(lists.len(world), 6)
+        case err(msg):
+            test.assert(false, msg)
+    end
+end

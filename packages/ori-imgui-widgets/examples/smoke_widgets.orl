@@ -1,0 +1,122 @@
+module app.smoke_widgets
+
+imports
+    widgets.knob = knob
+    widgets.toggle = toggle
+    widgets.spinner = spinner
+    widgets.spectrum = spectrum
+    ori.io = io
+end
+
+-- Headless smoke: knob milli, toggle bool, spinner phase, spectrum theme.
+main()
+    -- Rotary knob value milli
+    var k: knob.Knob = knob.create_unit(250)
+    if knob.value_milli_of(k) != 250
+        io.println("knob_init_fail")
+        return
+    end
+    k = knob.set_value_milli(k, 1500)
+    if knob.value_milli_of(k) != 1000
+        io.println("knob_clamp_fail")
+        return
+    end
+    k = knob.set_normalized_milli(k, 500)
+    if knob.value_milli_of(k) != 500
+        io.println("knob_norm_fail")
+        return
+    end
+    const ang: int = knob.angle_milli_deg_of(k)
+    if ang != knob.DEFAULT_SWEEP_MILLI_DEG / 2
+        io.println("knob_angle_fail")
+        return
+    end
+    k = knob.nudge_value_milli(k, 100)
+    if knob.value_milli_of(k) != 600
+        io.println("knob_nudge_fail")
+        return
+    end
+
+    -- Toggle bool
+    var t: toggle.Toggle = toggle.create_labeled("Enable", false)
+    if toggle.is_on(t)
+        io.println("toggle_init_fail")
+        return
+    end
+    t = toggle.toggle(t)
+    if not toggle.is_on(t)
+        io.println("toggle_flip_fail")
+        return
+    end
+    t = toggle.set_disabled(t, true)
+    t = toggle.toggle(t)
+    if not toggle.is_on(t)
+        io.println("toggle_disabled_fail")
+        return
+    end
+    t = toggle.set_disabled(t, false)
+    t = toggle.set_on(t, false)
+    if not toggle.is_off(t)
+        io.println("toggle_off_fail")
+        return
+    end
+
+    -- Spinner phase
+    var s: spinner.Spinner = spinner.create_with_speed(1000)
+    s = spinner.tick(s, 500)
+    if spinner.phase_milli_of(s) != 500
+        io.println("spinner_tick_fail")
+        return
+    end
+    s = spinner.tick(s, 600)
+    if spinner.phase_milli_of(s) != 100
+        io.println("spinner_wrap_fail")
+        return
+    end
+    s = spinner.stop(s)
+    const frozen: int = spinner.phase_milli_of(s)
+    s = spinner.tick(s, 1000)
+    if spinner.phase_milli_of(s) != frozen
+        io.println("spinner_stop_fail")
+        return
+    end
+
+    -- Spectrum theme color helpers
+    var th: spectrum.Theme = spectrum.load_dark()
+    if spectrum.name_of(th) != "dark"
+        io.println("theme_name_fail")
+        return
+    end
+    const prim: spectrum.ColorRgba = spectrum.primary_of(th)
+    if prim.r < 0 or prim.r > 255
+        io.println("theme_primary_fail")
+        return
+    end
+    const mid: spectrum.ColorRgba = spectrum.spectrum_color_at(500)
+    if mid.a != 255
+        io.println("spectrum_alpha_fail")
+        return
+    end
+    const packed: int = spectrum.pack_rgba(mid)
+    const back: spectrum.ColorRgba = spectrum.unpack_rgba(packed)
+    if not spectrum.equal_color(mid, back)
+        io.println("pack_roundtrip_fail")
+        return
+    end
+    th = spectrum.load_style(spectrum.STYLE_SPECTRUM)
+    if spectrum.name_of(th) != "spectrum"
+        io.println("style_load_fail")
+        return
+    end
+    const blend: spectrum.ColorRgba = spectrum.lerp_color(
+        spectrum.rgb(0, 0, 0),
+        spectrum.rgb(100, 100, 100),
+        500
+    )
+    if blend.r != 50
+        io.println("lerp_fail")
+        return
+    end
+
+    io.println("ok")
+end

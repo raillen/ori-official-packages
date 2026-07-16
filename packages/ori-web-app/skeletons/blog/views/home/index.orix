@@ -1,0 +1,10 @@
+@{ layout "layouts/app" }
+@{ assign title = "{{AppName}}" }
+
+<section class="card">
+  <h1>{{AppName}}</h1>
+  <p>Simple blog skeleton — HTML-first with ori-templates.</p>
+  <p><a href="/posts">Browse posts →</a></p>
+</section>
+
+@{ end }

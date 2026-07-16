@@ -1,0 +1,129 @@
+module app.smoke_imgui_extras
+
+imports
+    imgui_extras.notify = notify
+    imgui_extras.search = search
+    imgui_extras.hotkey = hotkey
+    imgui_extras.command_palette = palette
+    imgui_extras.metrics = metrics
+    ori.io = io
+    ori.list = lists
+end
+
+-- Headless smoke: toast queue, filter, hotkey, palette run, fps/frame milli.
+main()
+    -- Toast queue
+    var q: notify.ToastQueue = notify.create(1000, 4)
+    q = notify.push_info(q, "hello")
+    q = notify.push_warn(q, "careful")
+    if notify.count(q) != 2
+        io.println("toast_count_fail")
+        return
+    end
+    q = notify.tick(q, 500)
+    if notify.remaining_at(q, 0) != 500
+        io.println("toast_tick_fail")
+        return
+    end
+    q = notify.tick(q, 600)
+    if notify.count(q) != 0
+        io.println("toast_expire_fail")
+        return
+    end
+
+    -- Filter list
+    var fl: search.FilterList = search.create()
+    fl = search.add_item(fl, "Alpha")
+    fl = search.add_item(fl, "Beta")
+    fl = search.add_item(fl, "Alphabet")
+    fl = search.set_query(fl, "alp")
+    if search.filtered_count(fl) != 2
+        io.println("filter_count_fail")
+        return
+    end
+    if not search.matches_query("Hello World", "world", false)
+        io.println("filter_match_fail")
+        return
+    end
+    if search.matches_query("Hello", "WORLD", true)
+        io.println("filter_case_fail")
+        return
+    end
+
+    -- Hotkey capture
+    var hk: hotkey.HotkeyCapture = hotkey.create()
+    hk = hotkey.begin_capture(hk)
+    if not hotkey.is_capturing(hk)
+        io.println("hotkey_cap_fail")
+        return
+    end
+    hk = hotkey.feed_key(hk, "S", true, true, false)
+    if hotkey.chord_of(hk) != "Ctrl+Shift+S"
+        io.println("hotkey_chord_fail")
+        return
+    end
+    if hotkey.is_capturing(hk)
+        io.println("hotkey_still_capturing")
+        return
+    end
+    if not hotkey.matches_chord("Ctrl+Shift+S", "S", true, true, false)
+        io.println("hotkey_match_fail")
+        return
+    end
+
+    -- Command palette run
+    var p: palette.Palette = palette.create()
+    p = palette.register(p, "file.save", "Save File", "Ctrl+S")
+    p = palette.register(p, "file.open", "Open File", "Ctrl+O")
+    p = palette.register(p, "edit.undo", "Undo", "Ctrl+Z")
+    p = palette.open_ui(p)
+    p = palette.set_query(p, "save")
+    if palette.filtered_count(p) != 1
+        io.println("palette_filter_fail")
+        return
+    end
+    p = palette.run_filtered_at(p, 0)
+    if palette.last_run_id_of(p) != "file.save"
+        io.println("palette_run_fail")
+        return
+    end
+    if palette.is_open(p)
+        io.println("palette_still_open")
+        return
+    end
+    p = palette.take_run(p)
+    if palette.has_run(p)
+        io.println("palette_take_fail")
+        return
+    end
+
+    -- Metrics fps / frame milli
+    var m: metrics.Metrics = metrics.create()
+    m = metrics.record_frame(m, 16)
+    if metrics.frame_milli_of(m) != 16
+        io.println("metrics_frame_fail")
+        return
+    end
+    if metrics.fps_milli_from_frame(16) != 62500
+        io.println("metrics_fps_milli_fail")
+        return
+    end
+    if metrics.integer_fps_from_frame(16) != 62
+        io.println("metrics_int_fps_fail")
+        return
+    end
+    if metrics.sample_count_of(m) != 1
+        io.println("metrics_samples_fail")
+        return
+    end
+
+    -- quiet unused import
+    var unused: list[string] = []
+    lists.push(unused, "ok")
+    if lists.len(unused) != 1
+        io.println("list_fail")
+        return
+    end
+
+    io.println("ok")
+end

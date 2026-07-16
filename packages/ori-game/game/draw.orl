@@ -1,0 +1,191 @@
+module game.draw
+
+import raylib = rl
+import game.color = color
+import game.shape = shape
+import ori.math.vec2 = vec2
+import ori.math = math
+import ori.mem = mem
+import ori.list = lists
+
+public alias TextureId = int
+public alias FontId = int
+
+public clear(c: color.Color) -> void
+    rl.ori_rl_ClearBackground(c.r, c.g, c.b, c.a)
+end
+
+public draw_rect(r: shape.Rectangle, c: color.Color) -> void
+    rl.ori_rl_DrawRectangleRec(r.x, r.y, r.width, r.height, c.r, c.g, c.b, c.a)
+end
+
+public draw_rect_lines(r: shape.Rectangle, thick: int, c: color.Color) -> void
+    rl.ori_rl_DrawRectangleLinesEx(r.x, r.y, r.width, r.height, thick, c.r, c.g, c.b, c.a)
+end
+
+public draw_circle(center: vec2.Vec2, radius: float, c: color.Color) -> void
+    rl.ori_rl_DrawCircleV(center.x, center.y, radius, c.r, c.g, c.b, c.a)
+end
+
+public draw_circle_lines(center: vec2.Vec2, radius: float, c: color.Color) -> void
+    rl.ori_rl_DrawCircleLinesV(center.x, center.y, radius, c.r, c.g, c.b, c.a)
+end
+
+public draw_line(start: vec2.Vec2, end_pos: vec2.Vec2, c: color.Color) -> void
+    rl.ori_rl_DrawLineV(start.x, start.y, end_pos.x, end_pos.y, c.r, c.g, c.b, c.a)
+end
+
+public draw_line_ex(start: vec2.Vec2, end_pos: vec2.Vec2, thick: float, c: color.Color) -> void
+    rl.ori_rl_DrawLineEx(start.x, start.y, end_pos.x, end_pos.y, thick, c.r, c.g, c.b, c.a)
+end
+
+public draw_triangle(v1: vec2.Vec2, v2: vec2.Vec2, v3: vec2.Vec2, c: color.Color) -> void
+    rl.ori_rl_DrawTriangle(v1.x, v1.y, v2.x, v2.y, v3.x, v3.y, c.r, c.g, c.b, c.a)
+end
+
+public draw_poly(center: vec2.Vec2, sides: int, radius: float, rotation: float, c: color.Color) -> void
+    rl.ori_rl_DrawPoly(center.x, center.y, sides, radius, rotation, c.r, c.g, c.b, c.a)
+end
+
+public draw_text(text: string, pos: vec2.Vec2, size: int, c: color.Color) -> void
+    const ptr: int = mem.string_as_ptr(text)
+    const x: int = math.floor(pos.x)
+    const y: int = math.floor(pos.y)
+    rl.ori_rl_DrawText(ptr, x, y, size, c.r, c.g, c.b, c.a)
+end
+
+public draw_text_ex(
+    font: FontId,
+    text: string,
+    pos: vec2.Vec2,
+    size: float,
+    spacing: float,
+    c: color.Color
+) -> void
+    const ptr: int = mem.string_as_ptr(text)
+    rl.ori_rl_DrawTextEx(font, ptr, pos.x, pos.y, size, spacing, c.r, c.g, c.b, c.a)
+end
+
+public measure_text(text: string, size: int) -> int
+    return rl.ori_rl_MeasureText(mem.string_as_ptr(text), size)
+end
+
+public font_default() -> FontId
+    return rl.ori_rl_GetFontDefault()
+end
+
+public load_texture(path: string) -> TextureId
+    return rl.ori_rl_LoadTexture(mem.string_as_ptr(path))
+end
+
+-- Gray8 buffer (e.g. FreeType atlas pixels_ptr) → GPU texture.
+public load_texture_from_gray8(data_ptr: int, width: int, height: int, pitch: int) -> TextureId
+    return rl.ori_rl_LoadTextureFromGray8(data_ptr, width, height, pitch)
+end
+
+public unload_texture(texture: TextureId) -> void
+    rl.ori_rl_UnloadTexture(texture)
+end
+
+public draw_texture(texture: TextureId, pos_x: int, pos_y: int, c: color.Color) -> void
+    rl.ori_rl_DrawTexture(texture, pos_x, pos_y, c.r, c.g, c.b, c.a)
+end
+
+public draw_texture_v(texture: TextureId, pos: vec2.Vec2, c: color.Color) -> void
+    rl.ori_rl_DrawTextureV(texture, pos.x, pos.y, c.r, c.g, c.b, c.a)
+end
+
+public draw_texture_rec(
+    texture: TextureId,
+    source: shape.Rectangle,
+    pos: vec2.Vec2,
+    c: color.Color
+) -> void
+    rl.ori_rl_DrawTextureRec(
+        texture,
+        source.x, source.y, source.width, source.height,
+        pos.x, pos.y,
+        c.r, c.g, c.b, c.a
+    )
+end
+
+public texture_width(texture: TextureId) -> int
+    return rl.ori_rl_GetTextureWidth(texture)
+end
+
+public texture_height(texture: TextureId) -> int
+    return rl.ori_rl_GetTextureHeight(texture)
+end
+
+public texture_gl_id(texture: TextureId) -> int
+    return rl.ori_rl_GetTextureGlId(texture)
+end
+
+-- V3.2: probe image path (load → size → unload).
+public probe_image(path: string) -> bool
+    const t: TextureId = load_texture(path)
+    if t == 0
+        return false
+    end
+    unload_texture(t)
+    return true
+end
+
+public probe_image_size(path: string) -> list[int]
+    var out: list[int] = []
+    const t: TextureId = load_texture(path)
+    if t == 0
+        lists.push(out, 0)
+        lists.push(out, 0)
+        return out
+    end
+    lists.push(out, texture_width(t))
+    lists.push(out, texture_height(t))
+    unload_texture(t)
+    return out
+end
+
+
+public alias RenderTextureId = int
+
+public load_render_texture(width: int, height: int) -> RenderTextureId
+    return rl.ori_rl_LoadRenderTexture(width, height)
+end
+
+public unload_render_texture(rt: RenderTextureId) -> void
+    rl.ori_rl_UnloadRenderTexture(rt)
+end
+
+public begin_texture_mode(rt: RenderTextureId) -> void
+    rl.ori_rl_BeginTextureMode(rt)
+end
+
+public end_texture_mode() -> void
+    rl.ori_rl_EndTextureMode()
+end
+
+public draw_render_texture(rt: RenderTextureId, pos_x: int, pos_y: int, c: color.Color) -> void
+    rl.ori_rl_DrawRenderTexture(rt, pos_x, pos_y, c.r, c.g, c.b, c.a)
+end
+
+public draw_render_texture_rec(
+    rt: RenderTextureId,
+    source: shape.Rectangle,
+    dest: shape.Rectangle,
+    c: color.Color
+) -> void
+    rl.ori_rl_DrawRenderTextureRec(
+        rt,
+        source.x, source.y, source.width, source.height,
+        dest.x, dest.y, dest.width, dest.height,
+        c.r, c.g, c.b, c.a
+    )
+end
+
+public render_texture_width(rt: RenderTextureId) -> int
+    return rl.ori_rl_GetRenderTextureWidth(rt)
+end
+
+public render_texture_height(rt: RenderTextureId) -> int
+    return rl.ori_rl_GetRenderTextureHeight(rt)
+end

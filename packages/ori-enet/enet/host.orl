@@ -1,0 +1,245 @@
+module enet.host
+
+-- ENet UDP multiplayer for Ori (S3). Int handles; packet bytes via path/string.
+
+import ori.mem = mem
+import ori.fs = fs
+
+extern c
+    public ori_enet_initialize() -> int
+    public ori_enet_deinitialize() -> void
+    public ori_enet_host_create(port: int, max_clients: int, channels: int) -> int
+    public ori_enet_host_create_client(max_peers: int, channels: int) -> int
+    public ori_enet_host_destroy(host: int) -> void
+    public ori_enet_host_is_valid(host: int) -> int
+    public ori_enet_host_connect(host: int, host_name_ptr: int, port: int, channels: int) -> int
+    public ori_enet_service(host: int, timeout_ms: int) -> int
+    public ori_enet_host_flush(host: int) -> void
+    public ori_enet_event_peer() -> int
+    public ori_enet_event_channel() -> int
+    public ori_enet_event_data() -> int
+    public ori_enet_packet_size() -> int
+    public ori_enet_packet_to_path(path_ptr: int) -> int
+    public ori_enet_packet_destroy() -> void
+    public ori_enet_send(peer: int, data_ptr: int, byte_len: int, channel: int, reliable: int) -> int
+    public ori_enet_broadcast(host: int, data_ptr: int, byte_len: int, channel: int, reliable: int) -> int
+    public ori_enet_peer_is_valid(peer: int) -> int
+    public ori_enet_peer_disconnect(peer: int) -> void
+    public ori_enet_peer_disconnect_now(peer: int) -> void
+    public ori_enet_peer_rtt_ms(peer: int) -> int
+    public ori_enet_peer_count_live() -> int
+    public ori_enet_errmsg_to_path(path_ptr: int) -> int
+    public ori_enet_host_total_sent(host: int) -> int
+    public ori_enet_host_total_received(host: int) -> int
+    public ori_enet_host_peer_count(host: int) -> int
+    public ori_enet_peer_state(peer: int) -> int
+    public ori_enet_peer_address_to_path(peer: int, path_ptr: int) -> int
+    public ori_enet_service_drain(host: int, max_events: int) -> int
+end
+
+public const EVENT_NONE: int = 0
+public const EVENT_CONNECT: int = 1
+public const EVENT_DISCONNECT: int = 2
+public const EVENT_RECEIVE: int = 3
+
+-- Recommended channel layout for games (convention, not enforced by ENet).
+public const CHANNEL_RELIABLE: int = 0
+public const CHANNEL_UNRELIABLE: int = 1
+
+-- ENetPeerState (subset useful to Ori).
+public const PEER_DISCONNECTED: int = 0
+public const PEER_CONNECTING: int = 1
+public const PEER_ACKNOWLEDGING_CONNECT: int = 2
+public const PEER_CONNECTION_PENDING: int = 3
+public const PEER_CONNECTION_SUCCEEDED: int = 4
+public const PEER_CONNECTED: int = 5
+public const PEER_DISCONNECT_LATER: int = 6
+public const PEER_DISCONNECTING: int = 7
+public const PEER_ACKNOWLEDGING_DISCONNECT: int = 8
+public const PEER_ZOMBIE: int = 9
+
+-- Cwd-relative temps (work on Linux + Windows without /tmp).
+const tmp_packet: string = "ori_enet_packet.tmp"
+const tmp_err: string = "ori_enet_errmsg.tmp"
+const tmp_addr: string = "ori_enet_peer_addr.tmp"
+
+public struct Host
+    id: int
+end
+
+public struct Peer
+    id: int
+end
+
+public initialize() -> int
+    return ori_enet_initialize()
+end
+
+public initialize_ok() -> bool
+    return initialize() == 0
+end
+
+public deinitialize() -> void
+    ori_enet_deinitialize()
+end
+
+-- Server host bound to `port` (all interfaces).
+public create_server(port: int, max_clients: int, channels: int) -> Host
+    return Host { id: ori_enet_host_create(port, max_clients, channels) }
+end
+
+-- Client host (no bind).
+public create_client(max_peers: int, channels: int) -> Host
+    return Host { id: ori_enet_host_create_client(max_peers, channels) }
+end
+
+public destroy(h: Host) -> void
+    ori_enet_host_destroy(h.id)
+end
+
+public is_valid(h: Host) -> bool
+    return ori_enet_host_is_valid(h.id) != 0
+end
+
+public connect(h: Host, hostname: string, port: int, channels: int) -> Peer
+    return Peer {
+        id: ori_enet_host_connect(h.id, mem.string_as_ptr(hostname), port, channels)
+    }
+end
+
+public peer_is_valid(p: Peer) -> bool
+    return ori_enet_peer_is_valid(p.id) != 0
+end
+
+-- Poll one event. Returns EVENT_* constant.
+public service(h: Host, timeout_ms: int) -> int
+    return ori_enet_service(h.id, timeout_ms)
+end
+
+public flush(h: Host) -> void
+    ori_enet_host_flush(h.id)
+end
+
+public event_peer() -> Peer
+    return Peer { id: ori_enet_event_peer() }
+end
+
+public event_channel() -> int
+    return ori_enet_event_channel()
+end
+
+public event_data() -> int
+    return ori_enet_event_data()
+end
+
+public packet_size() -> int
+    return ori_enet_packet_size()
+end
+
+public packet_to_path(path: string) -> int
+    return ori_enet_packet_to_path(mem.string_as_ptr(path))
+end
+
+public packet_text() -> string
+    if packet_to_path(tmp_packet) != 0
+        return ""
+    end
+    return fs.read_text_or(tmp_packet, "")
+end
+
+public destroy_packet() -> void
+    ori_enet_packet_destroy()
+end
+
+public send_bytes(p: Peer, data_ptr: int, byte_len: int, channel: int, reliable: bool) -> int
+    var rel: int = 0
+    if reliable
+        rel = 1
+    end
+    return ori_enet_send(p.id, data_ptr, byte_len, channel, rel)
+end
+
+public send_text(p: Peer, text: string, channel: int, reliable: bool) -> int
+    const n: int = mem.string_len(text)
+    return send_bytes(p, mem.string_as_ptr(text), n, channel, reliable)
+end
+
+public send_reliable(p: Peer, text: string) -> int
+    return send_text(p, text, CHANNEL_RELIABLE, true)
+end
+
+public send_unreliable(p: Peer, text: string) -> int
+    return send_text(p, text, CHANNEL_UNRELIABLE, false)
+end
+
+public broadcast_text(h: Host, text: string, channel: int, reliable: bool) -> int
+    var rel: int = 0
+    if reliable
+        rel = 1
+    end
+    const n: int = mem.string_len(text)
+    return ori_enet_broadcast(h.id, mem.string_as_ptr(text), n, channel, rel)
+end
+
+public broadcast_reliable(h: Host, text: string) -> int
+    return broadcast_text(h, text, CHANNEL_RELIABLE, true)
+end
+
+public broadcast_unreliable(h: Host, text: string) -> int
+    return broadcast_text(h, text, CHANNEL_UNRELIABLE, false)
+end
+
+public disconnect(p: Peer) -> void
+    ori_enet_peer_disconnect(p.id)
+end
+
+public disconnect_now(p: Peer) -> void
+    ori_enet_peer_disconnect_now(p.id)
+end
+
+public peer_rtt_ms(p: Peer) -> int
+    return ori_enet_peer_rtt_ms(p.id)
+end
+
+public live_peer_count() -> int
+    return ori_enet_peer_count_live()
+end
+
+public last_error() -> string
+    if ori_enet_errmsg_to_path(mem.string_as_ptr(tmp_err)) != 0
+        return ""
+    end
+    return fs.read_text_or(tmp_err, "")
+end
+
+public host_total_sent(h: Host) -> int
+    return ori_enet_host_total_sent(h.id)
+end
+
+public host_total_received(h: Host) -> int
+    return ori_enet_host_total_received(h.id)
+end
+
+public host_peer_count(h: Host) -> int
+    return ori_enet_host_peer_count(h.id)
+end
+
+public peer_state(p: Peer) -> int
+    return ori_enet_peer_state(p.id)
+end
+
+public peer_is_connected(p: Peer) -> bool
+    return peer_state(p) == PEER_CONNECTED
+end
+
+public peer_address(p: Peer) -> string
+    if ori_enet_peer_address_to_path(p.id, mem.string_as_ptr(tmp_addr)) != 0
+        return ""
+    end
+    return fs.read_text_or(tmp_addr, "")
+end
+
+-- Process up to max_events with 0ms timeout (RECEIVE payloads discarded).
+public service_drain(h: Host, max_events: int) -> int
+    return ori_enet_service_drain(h.id, max_events)
+end

@@ -1,0 +1,57 @@
+module test.lz4
+
+imports
+    lz4.codec = lz
+    ori.test = test
+end
+
+@test
+compress_roundtrip_len()
+    const s: string = "abcdefghij"
+    test.assert(lz.compress_text(s) > 0, "compress")
+    test.equal_int(lz.roundtrip_len(s), 10)
+end
+
+@test
+repetitive_text_smaller()
+    const s: string = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    const clen: int = lz.compress_text(s)
+    test.assert(clen > 0, "compress")
+    test.assert(clen < 50, "compressed smaller than raw")
+    test.equal_int(lz.roundtrip_len(s), 50)
+end
+
+@test
+stream_roundtrip_small_chunks()
+    -- 49-byte payload, chunk 16 forces multi-block OLZ1 frame
+    const s: string = "stream-payload-ori-lz4-abcdefghijklmnopqrstuvwxyz"
+    const flen: int = lz.stream_compress_text(s, 16)
+    test.assert(flen > 0, "stream compress")
+    test.assert(lz.stream_bound(49, 16) >= flen, "bound covers frame")
+    test.equal_int(lz.stream_roundtrip_len(s, 16), 49)
+end
+
+@test
+compress_bound_positive()
+    const b: int = lz.compress_bound(100)
+    test.assert(b > 100, "bound exceeds plain")
+    test.assert(lz.compress_bound(0) < 0, "zero invalid")
+    test.assert(lz.stream_bound(0, 0) >= 16, "empty frame header")
+end
+
+@test
+larger_fixture_block_and_stream()
+    -- 32 KiB pattern through block + multi-chunk stream (chunk 1 KiB)
+    test.equal_int(lz.pattern_roundtrip(32768), 32768)
+    test.equal_int(lz.pattern_stream_roundtrip(32768, 1024), 32768)
+end
+
+@test
+decompress_garbage_fails()
+    const clen: int = lz.compress_text("payload-xx")
+    test.assert(clen > 4, "need compress")
+    const bad: int = lz.decompress(lz.out_ptr(), 1, 64)
+    test.assert(bad < 0, "garbage should fail")
+    const bad_frame: int = lz.stream_decompress(lz.out_ptr(), 4, 64)
+    test.assert(bad_frame < 0, "short frame should fail")
+end

@@ -1,0 +1,493 @@
+module immemory.hex
+
+-- Hex row / address formatting helpers for immemory.buffer (headless).
+-- Uppercase fixed-width hex without vendoring imgui_club.
+
+import immemory.buffer = buf
+import ori.list = lists
+import ori.string = str
+
+nibble_char(n: int) -> string
+    var v: int = n
+    if v < 0
+        v = 0
+    end
+    if v > 15
+        v = 15
+    end
+    if v == 0
+        return "0"
+    end
+    if v == 1
+        return "1"
+    end
+    if v == 2
+        return "2"
+    end
+    if v == 3
+        return "3"
+    end
+    if v == 4
+        return "4"
+    end
+    if v == 5
+        return "5"
+    end
+    if v == 6
+        return "6"
+    end
+    if v == 7
+        return "7"
+    end
+    if v == 8
+        return "8"
+    end
+    if v == 9
+        return "9"
+    end
+    if v == 10
+        return "A"
+    end
+    if v == 11
+        return "B"
+    end
+    if v == 12
+        return "C"
+    end
+    if v == 13
+        return "D"
+    end
+    if v == 14
+        return "E"
+    end
+    return "F"
+end
+
+-- Always two uppercase hex digits for a byte value.
+public byte_hex(value: int) -> string
+    var v: int = value
+    if v < 0
+        v = 0
+    end
+    if v > 255
+        v = 255
+    end
+    const hi: int = v / 16
+    const lo: int = v - hi * 16
+    return str.concat(nibble_char(hi), nibble_char(lo))
+end
+
+-- Fixed-width uppercase hex for addresses (width in digits, 1..16).
+public address_hex(addr: int, width: int) -> string
+    var w: int = width
+    if w < 1
+        w = 1
+    end
+    if w > 16
+        w = 16
+    end
+    var a: int = addr
+    if a < 0
+        a = 0
+    end
+    var out: string = ""
+    var i: int = 0
+    while i < w
+        const nibble: int = a - (a / 16) * 16
+        out = str.concat(nibble_char(nibble), out)
+        a = a / 16
+        i = i + 1
+    end
+    return out
+end
+
+public display_address(e: buf.Editor, offset: int) -> int
+    return buf.base_addr_of(e) + offset
+end
+
+public row_count(e: buf.Editor) -> int
+    const n: int = buf.nbytes(e)
+    if n == 0
+        return 0
+    end
+    const cols: int = buf.cols_of(e)
+    return (n + cols - 1) / cols
+end
+
+public row_offset(e: buf.Editor, row: int) -> int
+    if row < 0
+        return 0
+    end
+    return row * buf.cols_of(e)
+end
+
+public row_nbytes(e: buf.Editor, row: int) -> int
+    const n: int = buf.nbytes(e)
+    const start: int = row_offset(e, row)
+    if start >= n
+        return 0
+    end
+    const cols: int = buf.cols_of(e)
+    const remain: int = n - start
+    if remain < cols
+        return remain
+    end
+    return cols
+end
+
+-- Space-separated hex bytes for one row (no address prefix).
+public format_row_hex(e: buf.Editor, row: int) -> string
+    const start: int = row_offset(e, row)
+    const count: int = row_nbytes(e, row)
+    if count == 0
+        return ""
+    end
+    var out: string = ""
+    var i: int = 0
+    while i < count
+        if i > 0
+            out = str.concat(out, " ")
+        end
+        out = str.concat(out, byte_hex(buf.read_cell(e, start + i)))
+        i = i + 1
+    end
+    return out
+end
+
+ascii_char(value: int) -> string
+    -- Printable ASCII 0x20..0x7E → self; else '.'
+    if value < 32
+        return "."
+    end
+    if value > 126
+        return "."
+    end
+    if value == 32
+        return " "
+    end
+    -- Build single-byte string via bytes decode path is heavy; map common set.
+    -- For hex dump preview we only need a stable printable placeholder set.
+    -- Use a lookup of known printable range via from_list + decode is unavailable
+    -- without Result. Map via small table of common chars for Studio dump.
+    return ascii_from_code(value)
+end
+
+ascii_from_code(code: int) -> string
+    -- Minimal map: digits, letters, and a few punctuation for dump preview.
+    if code == 33
+        return "!"
+    end
+    if code == 34
+        return "\""
+    end
+    if code == 35
+        return "#"
+    end
+    if code == 36
+        return "$"
+    end
+    if code == 37
+        return "%"
+    end
+    if code == 38
+        return "&"
+    end
+    if code == 39
+        return "'"
+    end
+    if code == 40
+        return "("
+    end
+    if code == 41
+        return ")"
+    end
+    if code == 42
+        return "*"
+    end
+    if code == 43
+        return "+"
+    end
+    if code == 44
+        return ","
+    end
+    if code == 45
+        return "-"
+    end
+    if code == 46
+        return "."
+    end
+    if code == 47
+        return "/"
+    end
+    if code >= 48
+        if code <= 57
+            return nibble_char(code - 48)
+        end
+    end
+    if code == 58
+        return ":"
+    end
+    if code == 59
+        return ";"
+    end
+    if code == 60
+        return "<"
+    end
+    if code == 61
+        return "="
+    end
+    if code == 62
+        return ">"
+    end
+    if code == 63
+        return "?"
+    end
+    if code == 64
+        return "@"
+    end
+    if code >= 65
+        if code <= 90
+            return upper_letter(code - 65)
+        end
+    end
+    if code == 91
+        return "["
+    end
+    if code == 92
+        return "\\"
+    end
+    if code == 93
+        return "]"
+    end
+    if code == 94
+        return "^"
+    end
+    if code == 95
+        return "_"
+    end
+    if code == 96
+        return "`"
+    end
+    if code >= 97
+        if code <= 122
+            return lower_letter(code - 97)
+        end
+    end
+    if code == 123
+        return "{"
+    end
+    if code == 124
+        return "|"
+    end
+    if code == 125
+        return "}"
+    end
+    if code == 126
+        return "~"
+    end
+    return "."
+end
+
+upper_letter(idx: int) -> string
+    if idx == 0
+        return "A"
+    end
+    if idx == 1
+        return "B"
+    end
+    if idx == 2
+        return "C"
+    end
+    if idx == 3
+        return "D"
+    end
+    if idx == 4
+        return "E"
+    end
+    if idx == 5
+        return "F"
+    end
+    if idx == 6
+        return "G"
+    end
+    if idx == 7
+        return "H"
+    end
+    if idx == 8
+        return "I"
+    end
+    if idx == 9
+        return "J"
+    end
+    if idx == 10
+        return "K"
+    end
+    if idx == 11
+        return "L"
+    end
+    if idx == 12
+        return "M"
+    end
+    if idx == 13
+        return "N"
+    end
+    if idx == 14
+        return "O"
+    end
+    if idx == 15
+        return "P"
+    end
+    if idx == 16
+        return "Q"
+    end
+    if idx == 17
+        return "R"
+    end
+    if idx == 18
+        return "S"
+    end
+    if idx == 19
+        return "T"
+    end
+    if idx == 20
+        return "U"
+    end
+    if idx == 21
+        return "V"
+    end
+    if idx == 22
+        return "W"
+    end
+    if idx == 23
+        return "X"
+    end
+    if idx == 24
+        return "Y"
+    end
+    return "Z"
+end
+
+lower_letter(idx: int) -> string
+    if idx == 0
+        return "a"
+    end
+    if idx == 1
+        return "b"
+    end
+    if idx == 2
+        return "c"
+    end
+    if idx == 3
+        return "d"
+    end
+    if idx == 4
+        return "e"
+    end
+    if idx == 5
+        return "f"
+    end
+    if idx == 6
+        return "g"
+    end
+    if idx == 7
+        return "h"
+    end
+    if idx == 8
+        return "i"
+    end
+    if idx == 9
+        return "j"
+    end
+    if idx == 10
+        return "k"
+    end
+    if idx == 11
+        return "l"
+    end
+    if idx == 12
+        return "m"
+    end
+    if idx == 13
+        return "n"
+    end
+    if idx == 14
+        return "o"
+    end
+    if idx == 15
+        return "p"
+    end
+    if idx == 16
+        return "q"
+    end
+    if idx == 17
+        return "r"
+    end
+    if idx == 18
+        return "s"
+    end
+    if idx == 19
+        return "t"
+    end
+    if idx == 20
+        return "u"
+    end
+    if idx == 21
+        return "v"
+    end
+    if idx == 22
+        return "w"
+    end
+    if idx == 23
+        return "x"
+    end
+    if idx == 24
+        return "y"
+    end
+    return "z"
+end
+
+-- ASCII preview for one row (printable or '.').
+public format_row_ascii(e: buf.Editor, row: int) -> string
+    const start: int = row_offset(e, row)
+    const count: int = row_nbytes(e, row)
+    if count == 0
+        return ""
+    end
+    var out: string = ""
+    var i: int = 0
+    while i < count
+        out = str.concat(out, ascii_char(buf.read_cell(e, start + i)))
+        i = i + 1
+    end
+    return out
+end
+
+-- Classic dump line: "AAAAAAAA  HH HH …  |ascii|"
+public format_row_line(e: buf.Editor, row: int) -> string
+    const count: int = row_nbytes(e, row)
+    if count == 0
+        return ""
+    end
+    const start: int = row_offset(e, row)
+    const addr: string = address_hex(display_address(e, start), 8)
+    const hex_part: string = format_row_hex(e, row)
+    const ascii_part: string = format_row_ascii(e, row)
+    var line: string = str.concat(addr, "  ")
+    line = str.concat(line, hex_part)
+    line = str.concat(line, "  |")
+    line = str.concat(line, ascii_part)
+    line = str.concat(line, "|")
+    return line
+end
+
+-- All dump lines as a list of strings.
+public format_all_lines(e: buf.Editor) -> list[string]
+    var out: list[string] = []
+    const rows: int = row_count(e)
+    var r: int = 0
+    while r < rows
+        lists.push(out, format_row_line(e, r))
+        r = r + 1
+    end
+    return out
+end

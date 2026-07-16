@@ -1,0 +1,154 @@
+module game.engine
+
+import ori.list = lists
+import ori.math.vec2 = vec2
+
+-- Entity store + builtin gravity/movement (return-style mutation).
+
+public struct Entity
+    id: int
+    pos: vec2.Vec2
+    vel: vec2.Vec2
+    alive: bool
+    has_gravity: bool
+    has_collision: bool
+    tag: string
+end
+
+public struct Engine
+    entities: list[Entity]
+    next_id: int
+    gravity: float
+    gravity_enabled: bool
+    movement_enabled: bool
+end
+
+public create_engine() -> Engine
+    var ents: list[Entity] = []
+    return Engine {
+        entities: ents,
+        next_id: 1,
+        gravity: 980.0,
+        gravity_enabled: false,
+        movement_enabled: true
+    }
+end
+
+public with_builtins(eng: Engine) -> Engine
+    var out: Engine = eng
+    out.gravity_enabled = true
+    out.movement_enabled = true
+    return out
+end
+
+public set_gravity(eng: Engine, gravity: float) -> Engine
+    var out: Engine = eng
+    out.gravity = gravity
+    return out
+end
+
+public enable_gravity(eng: Engine, enabled: bool) -> Engine
+    var out: Engine = eng
+    out.gravity_enabled = enabled
+    return out
+end
+
+public enable_movement(eng: Engine, enabled: bool) -> Engine
+    var out: Engine = eng
+    out.movement_enabled = enabled
+    return out
+end
+
+public spawn_entity(eng: Engine, pos: vec2.Vec2) -> Engine
+    var out: Engine = eng
+    const e: Entity = Entity {
+        id: out.next_id,
+        pos: pos,
+        vel: vec2.Vec2 { x: 0.0, y: 0.0 },
+        alive: true,
+        has_gravity: false,
+        has_collision: false,
+        tag: ""
+    }
+    out.next_id = out.next_id + 1
+    lists.push(out.entities, e)
+    return out
+end
+
+public spawn_tagged(eng: Engine, pos: vec2.Vec2, tag: string) -> Engine
+    var out: Engine = eng
+    const e: Entity = Entity {
+        id: out.next_id,
+        pos: pos,
+        vel: vec2.Vec2 { x: 0.0, y: 0.0 },
+        alive: true,
+        has_gravity: false,
+        has_collision: false,
+        tag: tag
+    }
+    out.next_id = out.next_id + 1
+    lists.push(out.entities, e)
+    return out
+end
+
+public entity_count(eng: Engine) -> int
+    return lists.len(eng.entities)
+end
+
+public get_entity(eng: Engine, index: int) -> Entity
+    return eng.entities[index]
+end
+
+public set_entity(eng: Engine, index: int, e: Entity) -> Engine
+    if index < 0 or index >= lists.len(eng.entities)
+        return eng
+    end
+    var out: Engine = eng
+    lists.set(out.entities, index, e)
+    return out
+end
+
+public destroy_entity(eng: Engine, index: int) -> Engine
+    if index < 0 or index >= lists.len(eng.entities)
+        return eng
+    end
+    var e: Entity = eng.entities[index]
+    e.alive = false
+    return set_entity(eng, index, e)
+end
+
+public cleanup_dead(eng: Engine) -> Engine
+    var out: Engine = eng
+    var kept: list[Entity] = []
+    const n: int = lists.len(out.entities)
+    var i: int = 0
+    while i < n
+        const e: Entity = out.entities[i]
+        if e.alive
+            lists.push(kept, e)
+        end
+        i = i + 1
+    end
+    out.entities = kept
+    return out
+end
+
+public tick(eng: Engine, dt: float) -> Engine
+    var out: Engine = eng
+    const n: int = lists.len(out.entities)
+    var i: int = 0
+    while i < n
+        var e: Entity = out.entities[i]
+        if e.alive
+            if out.gravity_enabled and e.has_gravity
+                e.vel = vec2.Vec2 { x: e.vel.x, y: e.vel.y + out.gravity * dt }
+            end
+            if out.movement_enabled
+                e.pos = vec2.Vec2 { x: e.pos.x + e.vel.x * dt, y: e.pos.y + e.vel.y * dt }
+            end
+            lists.set(out.entities, i, e)
+        end
+        i = i + 1
+    end
+    return out
+end

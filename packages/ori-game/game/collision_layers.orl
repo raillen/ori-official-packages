@@ -1,0 +1,109 @@
+module game.collision_layers
+
+-- R3.1: named layers (int ids) + simple mask lists.
+-- Avoids bitwise ops for Ori portability.
+
+import ori.list = lists
+
+public const LAYER_WORLD: int = 1
+public const LAYER_PLAYER: int = 2
+public const LAYER_ENEMY: int = 3
+public const LAYER_TRIGGER: int = 4
+public const LAYER_PROJECTILE: int = 5
+
+public struct LayerName
+    id: int
+    name: string
+end
+
+public default_names() -> list[LayerName]
+    var out: list[LayerName] = []
+    lists.push(out, LayerName { id: LAYER_WORLD, name: "World" })
+    lists.push(out, LayerName { id: LAYER_PLAYER, name: "Player" })
+    lists.push(out, LayerName { id: LAYER_ENEMY, name: "Enemy" })
+    lists.push(out, LayerName { id: LAYER_TRIGGER, name: "Trigger" })
+    lists.push(out, LayerName { id: LAYER_PROJECTILE, name: "Projectile" })
+    return out
+end
+
+public name_of(id: int) -> string
+    if id == LAYER_WORLD
+        return "World"
+    end
+    if id == LAYER_PLAYER
+        return "Player"
+    end
+    if id == LAYER_ENEMY
+        return "Enemy"
+    end
+    if id == LAYER_TRIGGER
+        return "Trigger"
+    end
+    if id == LAYER_PROJECTILE
+        return "Projectile"
+    end
+    return "Layer"
+end
+
+public id_of_name(name: string) -> int
+    if name == "World" or name == "world"
+        return LAYER_WORLD
+    end
+    if name == "Player" or name == "player"
+        return LAYER_PLAYER
+    end
+    if name == "Enemy" or name == "enemy"
+        return LAYER_ENEMY
+    end
+    if name == "Trigger" or name == "trigger"
+        return LAYER_TRIGGER
+    end
+    if name == "Projectile" or name == "projectile"
+        return LAYER_PROJECTILE
+    end
+    return LAYER_WORLD
+end
+
+public mask_contains(mask: list[int], layer: int) -> bool
+    const n: int = lists.len(mask)
+    var i: int = 0
+    while i < n
+        if mask[i] == layer
+            return true
+        end
+        i = i + 1
+    end
+    return false
+end
+
+public mask_player_hits() -> list[int]
+    var m: list[int] = []
+    lists.push(m, LAYER_WORLD)
+    lists.push(m, LAYER_ENEMY)
+    lists.push(m, LAYER_TRIGGER)
+    return m
+end
+
+public mask_enemy_hits() -> list[int]
+    var m: list[int] = []
+    lists.push(m, LAYER_WORLD)
+    lists.push(m, LAYER_PLAYER)
+    return m
+end
+
+public layers_interact(a: int, b: int) -> bool
+    -- Default: everything collides with World; player↔enemy interact.
+    if a == LAYER_WORLD or b == LAYER_WORLD
+        return true
+    end
+    if a == LAYER_PLAYER and b == LAYER_ENEMY
+        return true
+    end
+    if a == LAYER_ENEMY and b == LAYER_PLAYER
+        return true
+    end
+    if a == LAYER_TRIGGER or b == LAYER_TRIGGER
+        return true
+    end
+    return a == b
+end

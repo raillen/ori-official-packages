@@ -1,0 +1,50 @@
+module game.mechanics.jumps
+
+public struct JumpState
+    grounded: bool
+    coyote: float
+    buffer: float
+    jump_speed: float
+end
+
+public create(jump_speed: float) -> JumpState
+    return JumpState { grounded: false, coyote: 0.0, buffer: 0.0, jump_speed: jump_speed }
+end
+
+public set_grounded(js: JumpState, grounded: bool) -> JumpState
+    var out: JumpState = js
+    out.grounded = grounded
+    if grounded
+        out.coyote = 0.12
+    end
+    return out
+end
+
+public tick(js: JumpState, dt: float) -> JumpState
+    var out: JumpState = js
+    if out.coyote > 0.0
+        out.coyote = out.coyote - dt
+    end
+    if out.buffer > 0.0
+        out.buffer = out.buffer - dt
+    end
+    return out
+end
+
+public press_jump(js: JumpState) -> JumpState
+    var out: JumpState = js
+    out.buffer = 0.12
+    return out
+end
+
+public try_consume(js: JumpState) -> bool
+    return (js.grounded or js.coyote > 0.0) and js.buffer > 0.0
+end
+
+public after_jump(js: JumpState) -> JumpState
+    var out: JumpState = js
+    out.grounded = false
+    out.coyote = 0.0
+    out.buffer = 0.0
+    return out
+end

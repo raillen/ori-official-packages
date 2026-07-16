@@ -1,0 +1,71 @@
+module app.smoke_clay
+
+imports
+    clay.layout = layout
+    ori.io = io
+end
+
+main()
+    if not layout.init(800, 600)
+        io.println("init_fail")
+        return
+    end
+
+    -- Nested multi-box + padding/gap + command export
+    const n: int = layout.layout_nested()
+    if n < 4
+        io.println("layout_fail")
+        layout.shutdown()
+        return
+    end
+
+    -- Header pad=20 → (20,20); Left inside body pad → (32,82)
+    if layout.box_x_m(layout.BOX_HEADER) != 20000 or layout.box_y_m(layout.BOX_HEADER) != 20000
+        io.println("header_bounds_fail")
+        layout.shutdown()
+        return
+    end
+    if layout.box_x_m(layout.BOX_LEFT) != 32000 or layout.box_y_m(layout.BOX_LEFT) != 82000
+        io.println("left_bounds_fail")
+        layout.shutdown()
+        return
+    end
+    if layout.box_x_m(layout.BOX_RIGHT) != 120000
+        io.println("right_gap_fail")
+        layout.shutdown()
+        return
+    end
+
+    -- Drawer surface: at least 5 rectangle commands
+    if layout.rect_cmd_count() < 5
+        io.println("cmd_fail")
+        layout.shutdown()
+        return
+    end
+    if layout.cmd_type(0) != layout.CMD_RECTANGLE
+        io.println("cmd_type_fail")
+        layout.shutdown()
+        return
+    end
+    if layout.cmd_w_m(0) != 800000 or layout.cmd_h_m(0) != 600000
+        io.println("root_cmd_fail")
+        layout.shutdown()
+        return
+    end
+
+    -- Two-box path still works after nested
+    const n2: int = layout.layout_two_boxes()
+    if n2 < 2
+        io.println("two_boxes_fail")
+        layout.shutdown()
+        return
+    end
+    if layout.box_w_m(0) <= 0 or layout.box_w_m(1) <= 0
+        io.println("bounds_fail")
+        layout.shutdown()
+        return
+    end
+
+    layout.shutdown()
+    io.println("ok")
+end

@@ -1,0 +1,52 @@
+{
+  "frames": [
+    {
+      "filename": "hero 0.ase",
+      "frame": { "x": 0, "y": 0, "w": 16, "h": 16 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+      "sourceSize": { "w": 16, "h": 16 },
+      "duration": 120
+    },
+    {
+      "filename": "hero 1.ase",
+      "frame": { "x": 16, "y": 0, "w": 16, "h": 16 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+      "sourceSize": { "w": 16, "h": 16 },
+      "duration": 120
+    },
+    {
+      "filename": "hero 2.ase",
+      "frame": { "x": 32, "y": 0, "w": 16, "h": 16 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+      "sourceSize": { "w": 16, "h": 16 },
+      "duration": 120
+    },
+    {
+      "filename": "hero 3.ase",
+      "frame": { "x": 48, "y": 0, "w": 16, "h": 16 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+      "sourceSize": { "w": 16, "h": 16 },
+      "duration": 120
+    }
+  ],
+  "meta": {
+    "app": "https://www.aseprite.org/",
+    "version": "1.3",
+    "image": "hero.png",
+    "format": "RGBA8888",
+    "size": { "w": 64, "h": 16 },
+    "scale": "1",
+    "frameTags": [
+      { "name": "idle", "from": 0, "to": 1, "direction": "forward" },
+      { "name": "walk", "from": 2, "to": 3, "direction": "forward" }
+    ]
+  }
+}

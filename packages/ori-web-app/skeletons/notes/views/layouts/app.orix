@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>@{ title }</title>
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="bar">
+      <h1>@{ title }</h1>
+      <span class="muted">@{ notes_count } notes</span>
+    </header>
+    @{ if flash_notice }
+    <div class="flash" role="status">@{ flash_notice }</div>
+    @{ end }
+    @{ if flash_error }
+    <div class="flash err" role="alert">@{ flash_error }</div>
+    @{ end }
+    <main>@{ content |> raw }</main>
+  </div>
+</body>
+</html>

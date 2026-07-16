@@ -1,0 +1,11 @@
+[package]
+name = "markdown"
+version = "0.1.0"
+entry = "markdown/parse.orl"
+ori_version = "0.3.0"
+description = "In-ImGui markdown subset for Ori (pure Ori parse + optional imgui.ui draw; IME Linux no-op stubs)"
+license = "MIT"
+# Pure Ori parse + IME stubs — no native shim. Product draw path-deps sibling ori-imgui.
+
+[dependencies]
+imgui = { path = "../ori-imgui", version = "0.5.1" }

@@ -1,0 +1,149 @@
+module game.nav_bake
+
+-- GP4 residual: bake navmesh from level SolidPiece tops (XZ quads).
+-- Uses game.navmesh staging → recast build_mesh. Milli-units for native.
+
+import ori.list = lists
+import game.navmesh = nav
+import game.nav_bake_geom = geom
+import game.ogame_level = level
+import game.path_follow = pfollow
+import game.nav_path = npath
+
+public struct BakeResult
+    ok: bool
+    solid_count: int
+    tri_count: int
+    vert_count: int
+end
+
+public empty_result() -> BakeResult
+    return BakeResult {
+        ok: false,
+        solid_count: 0,
+        tri_count: 0,
+        vert_count: 0
+    }
+end
+
+public solid_top_face_m(s: level.SolidPiece) -> geom.TopFaceM
+    return geom.solid_top_face_m(s)
+end
+
+public to_milli(v: float) -> int
+    return geom.to_milli(v)
+end
+
+-- Empilha top face no staging recast (2 tris). Retorna true se staged.
+stage_top_face(face: geom.TopFaceM) -> bool
+    if face.ok == false
+        return false
+    end
+    const i0: int = nav.mesh_add_vertex(face.c0.x, face.c0.y, face.c0.z)
+    const i1: int = nav.mesh_add_vertex(face.c1.x, face.c1.y, face.c1.z)
+    const i2: int = nav.mesh_add_vertex(face.c2.x, face.c2.y, face.c2.z)
+    const i3: int = nav.mesh_add_vertex(face.c3.x, face.c3.y, face.c3.z)
+    if i0 < 0 or i1 < 0 or i2 < 0 or i3 < 0
+        return false
+    end
+    -- Winding CCW from +Y (mesma convenção do plane em ori_recast_shim).
+    if nav.mesh_add_triangle(i0, i2, i1) == false
+        return false
+    end
+    if nav.mesh_add_triangle(i0, i3, i2) == false
+        return false
+    end
+    return true
+end
+
+-- Bake: tops dos solids colliders → build_mesh. cell/agent em milli.
+public bake_solids(
+    solids: list[level.SolidPiece],
+    cell_m: int,
+    agent_m: int
+) -> BakeResult
+    var res: BakeResult = empty_result()
+    nav.mesh_clear()
+    const n: int = lists.len(solids)
+    var i: int = 0
+    var staged: int = 0
+    while i < n
+        const face: geom.TopFaceM = geom.solid_top_face_m(solids[i])
+        if face.ok
+            if stage_top_face(face)
+                staged = staged + 1
+            end
+        end
+        i = i + 1
+    end
+    res.solid_count = staged
+    res.vert_count = nav.mesh_vertex_count()
+    res.tri_count = nav.mesh_triangle_count()
+    if staged == 0
+        -- Fallback: plano 40m×40m se cena vazia.
+        res.ok = nav.build_plane(40000, 40000, cell_m)
+        return res
+    end
+    var cell: int = cell_m
+    if cell <= 0
+        cell = 500
+    end
+    var agent: int = agent_m
+    if agent <= 0
+        agent = 300
+    end
+    res.ok = nav.build_mesh(cell, agent)
+    return res
+end
+
+-- Integra com NavHost (marca built).
+public bake_into_host(
+    host: npath.NavHost,
+    solids: list[level.SolidPiece]
+) -> npath.NavHost
+    var out: npath.NavHost = host
+    const res: BakeResult = bake_solids(solids, out.cell_m, 300)
+    out.built = res.ok
+    return out
+end
+
+-- Preenche PathFollow com até 4 waypoints do path recast (XZ).
+public path_follow_from_query(
+    sx: float,
+    sy: float,
+    sz: float,
+    ex: float,
+    ey: float,
+    ez: float,
+    speed: float
+) -> pfollow.PathFollow
+    var pf: pfollow.PathFollow = pfollow.empty()
+    const n: int = nav.find_path(
+        to_milli(sx),
+        to_milli(sy),
+        to_milli(sz),
+        to_milli(ex),
+        to_milli(ey),
+        to_milli(ez)
+    )
+    if n < 1
+        return pf
+    end
+    var i: int = 0
+    var taken: int = 0
+    while i < n and taken < 4
+        const wx: float = float(nav.waypoint_x(i)) / 1000.0
+        const wz: float = float(nav.waypoint_z(i)) / 1000.0
+        pf = pfollow.add_waypoint(pf, wx, wz)
+        taken = taken + 1
+        i = i + 1
+    end
+    if speed > 0.0
+        pf = pfollow.set_speed(pf, speed)
+    end
+    return pf
+end
+
+public destroy() -> void
+    nav.destroy()
+end

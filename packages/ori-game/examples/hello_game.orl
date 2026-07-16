@@ -1,0 +1,36 @@
+module app.hello_game
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    ori.math.vec2 = vec2
+end
+
+var px: float = 160.0
+var py: float = 120.0
+
+on_update(dt: float) -> void
+    if input.key_down(input.KEY_RIGHT)
+        px = px + 200.0 * dt
+    end
+    if input.key_down(input.KEY_LEFT)
+        px = px - 200.0 * dt
+    end
+    if input.key_down(input.KEY_DOWN)
+        py = py + 200.0 * dt
+    end
+    if input.key_down(input.KEY_UP)
+        py = py - 200.0 * dt
+    end
+end
+
+on_draw() -> void
+    draw.draw_circle(vec2.Vec2 { x: px, y: py }, 16.0, color.RED)
+    draw.draw_text("Arrow keys to move", vec2.Vec2 { x: 10.0, y: 10.0 }, 18, color.WHITE)
+end
+
+main()
+    app.run_window("Hello Ori Game", 320, 240, on_update, on_draw)
+end

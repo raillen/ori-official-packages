@@ -1,0 +1,97 @@
+module app.main
+
+-- Skeleton: notes (SSR with ori-templates). Clean-code: thin main, logic in handlers.
+
+import web = web
+import templates = tpl
+import ori.io = io
+import ori.list = lists
+import ori.map = maps
+import ori.string = str
+import ori.os = os
+import ori.convert = conv
+
+var NOTES: list[string] = []
+var VIEWS: tpl.Engine = tpl.open("views")
+
+listen_host() -> string
+    return os.env_or("ORI_HOST", "127.0.0.1")
+end
+
+listen_port() -> int
+    return conv.parse_int_or(os.env_or("PORT", "3000"), 3000)
+end
+
+page_data(req: web.Request) -> tpl.Data
+    var d: tpl.Data = tpl.empty_data()
+    tpl.set_value(d, "title", "{{AppName}}")
+    tpl.set_list(d, "notes", NOTES)
+    tpl.set_value(d, "notes_count", string(lists.len(NOTES)))
+    if lists.len(NOTES) == 0
+        tpl.set_value(d, "notes_empty", "true")
+    else
+        tpl.set_value(d, "notes_empty", "false")
+    end
+    tpl.set_value(d, "csrf_token", web.csrf_token(req))
+    tpl.set_value(d, "flash_notice", "")
+    tpl.set_value(d, "flash_error", "")
+    match web.take_flash(req, "notice")
+    case some(msg):
+        tpl.set_value(d, "flash_notice", msg)
+    case none:
+    end
+    match web.take_flash(req, "error")
+    case some(msg):
+        tpl.set_value(d, "flash_error", msg)
+    case none:
+    end
+    return d
+end
+
+render_home(req: web.Request) -> web.ActionResult
+    match tpl.render(VIEWS, "home", page_data(req))
+    case ok(html):
+        return ok(web.html(200, html))
+    case err(e):
+        return ok(web.text(500, tpl.error_message(e)))
+    end
+    return ok(web.not_found())
+end
+
+create_note(req: web.Request) -> web.ActionResult
+    const form: map[string, string] = web.form_body(req)
+    var text: string = ""
+    if some(t) = maps.try_get(form, "text")
+        text = str.trim(t)
+    end
+    if str.len(text) == 0
+        web.flash(req, "error", "Text is required.")
+        return ok(web.redirect(303, "/"))
+    end
+    lists.push(NOTES, text)
+    web.flash(req, "notice", "Note saved.")
+    return ok(web.redirect(303, "/"))
+end
+
+health(_req: web.Request) -> web.ActionResult
+    return ok(web.text(200, "ok"))
+end
+
+main()
+    web.use_memory_sessions()
+    var a: web.App = web.app()
+    a = web.set_rate_limit(a, 120)
+    a = web.set_csp(a, "default-src 'self'; style-src 'self' 'unsafe-inline'; frame-ancestors 'self'")
+    web.static(a, "/assets", "public")
+    web.get(a, "/healthz", health)
+    web.get(a, "/", render_home)
+    web.post(a, "/notes", create_note)
+    const host: string = listen_host()
+    const port: int = listen_port()
+    io.println(str.concat("{{APP_NAME}} on http://", str.concat(host, str.concat(":", string(port)))))
+    match web.serve(host, port, a)
+    case ok(_):
+    case err(msg):
+        io.println(msg)
+    end
+end

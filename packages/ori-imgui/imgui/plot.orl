@@ -1,0 +1,30 @@
+module imgui.plot
+
+-- Tier 1 plotting helpers over imgui.ui plot buffer (milli-int samples).
+
+import imgui.ui = ui
+import ori.math = math
+
+public clear() -> void
+    ui.plot_clear()
+end
+
+public push(value_milli: int) -> void
+    ui.plot_push_milli(value_milli)
+end
+
+public push_f(value: float) -> void
+    ui.plot_push_milli(math.floor(value * 1000.0 + 0.5))
+end
+
+public lines(label: string, scale_min_milli: int, scale_max_milli: int) -> void
+    ui.plot_lines(label, scale_min_milli, scale_max_milli, 0, 80)
+end
+
+public lines_size(label: string, scale_min_milli: int, scale_max_milli: int, w: int, h: int) -> void
+    ui.plot_lines(label, scale_min_milli, scale_max_milli, w, h)
+end
+
+public count() -> int
+    return ui.plot_count()
+end

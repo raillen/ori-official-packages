@@ -1,0 +1,286 @@
+module game.camera_stack
+
+-- R5.1: multi-cam stack for Play/runtime.
+-- Named slots (follow presets or fixed pose); one active.
+-- Pure data — no raylib. Host applies pose via game.camera3d.
+
+import ori.list = lists
+import ori.math.vec3 = vec3
+import ori.format = fmt
+
+public const KIND_FOLLOW: int = 0
+public const KIND_FIXED: int = 1
+
+public struct CamSlot
+    id: string
+    name: string
+    kind: int
+    off_x: float
+    off_y: float
+    off_z: float
+    look_height: float
+    fovy: float
+    fix_x: float
+    fix_y: float
+    fix_z: float
+    look_x: float
+    look_y: float
+    look_z: float
+end
+
+public struct CamStack
+    slots: list[CamSlot]
+    active: int
+end
+
+-- Resolved world pose for the active slot (host feeds Camera3D).
+public struct CamPose
+    position: vec3.Vec3
+    target: vec3.Vec3
+    fovy: float
+end
+
+public empty_stack() -> CamStack
+    var slots: list[CamSlot] = []
+    return CamStack { slots: slots, active: 0 }
+end
+
+public make_follow(
+    id: string,
+    name: string,
+    off_x: float,
+    off_y: float,
+    off_z: float,
+    look_height: float,
+    fovy: float
+) -> CamSlot
+    return CamSlot {
+        id: id,
+        name: name,
+        kind: KIND_FOLLOW,
+        off_x: off_x,
+        off_y: off_y,
+        off_z: off_z,
+        look_height: look_height,
+        fovy: fovy,
+        fix_x: 0.0,
+        fix_y: 0.0,
+        fix_z: 0.0,
+        look_x: 0.0,
+        look_y: 0.0,
+        look_z: 0.0
+    }
+end
+
+public make_fixed(
+    id: string,
+    name: string,
+    px: float,
+    py: float,
+    pz: float,
+    lx: float,
+    ly: float,
+    lz: float,
+    fovy: float
+) -> CamSlot
+    return CamSlot {
+        id: id,
+        name: name,
+        kind: KIND_FIXED,
+        off_x: 0.0,
+        off_y: 0.0,
+        off_z: 0.0,
+        look_height: 0.0,
+        fovy: fovy,
+        fix_x: px,
+        fix_y: py,
+        fix_z: pz,
+        look_x: lx,
+        look_y: ly,
+        look_z: lz
+    }
+end
+
+-- Default G1 play set: chase · high · side · fixed overview.
+public default_play_stack() -> CamStack
+    var s: CamStack = empty_stack()
+    s = push(s, make_follow("chase", "Chase", 40.0, 35.0, 64.0, 8.0, 45.0))
+    s = push(s, make_follow("high", "High", 8.0, 90.0, 8.0, 0.0, 50.0))
+    s = push(s, make_follow("side", "Side", 80.0, 20.0, 0.0, 6.0, 40.0))
+    s = push(s, make_fixed("overview", "Overview", 0.0, 120.0, 160.0, 0.0, 0.0, 24.0, 50.0))
+    s.active = 0
+    return s
+end
+
+public push(stack: CamStack, slot: CamSlot) -> CamStack
+    var out: CamStack = stack
+    lists.push(out.slots, slot)
+    return out
+end
+
+public count(stack: CamStack) -> int
+    return lists.len(stack.slots)
+end
+
+public clamp_active(stack: CamStack) -> CamStack
+    var out: CamStack = stack
+    const n: int = lists.len(out.slots)
+    if n == 0
+        out.active = 0
+        return out
+    end
+    if out.active < 0
+        out.active = 0
+    end
+    if out.active >= n
+        out.active = n - 1
+    end
+    return out
+end
+
+public set_active(stack: CamStack, index: int) -> CamStack
+    var out: CamStack = stack
+    out.active = index
+    return clamp_active(out)
+end
+
+public set_active_by_name(stack: CamStack, name: string) -> CamStack
+    const n: int = lists.len(stack.slots)
+    var i: int = 0
+    while i < n
+        if stack.slots[i].name == name or stack.slots[i].id == name
+            return set_active(stack, i)
+        end
+        i = i + 1
+    end
+    return stack
+end
+
+public set_active_by_id(stack: CamStack, id: string) -> CamStack
+    return set_active_by_name(stack, id)
+end
+
+public next_cam(stack: CamStack) -> CamStack
+    const n: int = lists.len(stack.slots)
+    if n == 0
+        return stack
+    end
+    return set_active(stack, (stack.active + 1) - ((stack.active + 1) / n) * n)
+end
+
+public prev_cam(stack: CamStack) -> CamStack
+    const n: int = lists.len(stack.slots)
+    if n == 0
+        return stack
+    end
+    if stack.active <= 0
+        return set_active(stack, n - 1)
+    end
+    return set_active(stack, stack.active - 1)
+end
+
+public active_slot(stack: CamStack) -> CamSlot
+    const n: int = lists.len(stack.slots)
+    if n == 0
+        return make_follow("empty", "Empty", 40.0, 35.0, 64.0, 8.0, 45.0)
+    end
+    const s: CamStack = clamp_active(stack)
+    return s.slots[s.active]
+end
+
+public active_name(stack: CamStack) -> string
+    return active_slot(stack).name
+end
+
+public active_id(stack: CamStack) -> string
+    return active_slot(stack).id
+end
+
+public active_index(stack: CamStack) -> int
+    return clamp_active(stack).active
+end
+
+public offset_of(slot: CamSlot) -> vec3.Vec3
+    return vec3.Vec3 { x: slot.off_x, y: slot.off_y, z: slot.off_z }
+end
+
+public offset_of_active(stack: CamStack) -> vec3.Vec3
+    return offset_of(active_slot(stack))
+end
+
+public set_active_offset(
+    stack: CamStack,
+    off_x: float,
+    off_y: float,
+    off_z: float
+) -> CamStack
+    var out: CamStack = clamp_active(stack)
+    const n: int = lists.len(out.slots)
+    if n == 0
+        return out
+    end
+    var slot: CamSlot = out.slots[out.active]
+    if slot.kind != KIND_FOLLOW
+        return out
+    end
+    slot.off_x = off_x
+    slot.off_y = off_y
+    slot.off_z = off_z
+    lists.set(out.slots, out.active, slot)
+    return out
+end
+
+public nudge_active_offset(
+    stack: CamStack,
+    dx: float,
+    dy: float,
+    dz: float
+) -> CamStack
+    const s: CamSlot = active_slot(stack)
+    if s.kind != KIND_FOLLOW
+        return stack
+    end
+    return set_active_offset(stack, s.off_x + dx, s.off_y + dy, s.off_z + dz)
+end
+
+-- Resolve active slot to world pose (pure; no raylib).
+public resolve_pose(stack: CamStack, follow_target: vec3.Vec3) -> CamPose
+    const slot: CamSlot = active_slot(stack)
+    if slot.kind == KIND_FIXED
+        return CamPose {
+            position: vec3.Vec3 { x: slot.fix_x, y: slot.fix_y, z: slot.fix_z },
+            target: vec3.Vec3 { x: slot.look_x, y: slot.look_y, z: slot.look_z },
+            fovy: slot.fovy
+        }
+    end
+    return CamPose {
+        position: vec3.Vec3 {
+            x: follow_target.x + slot.off_x,
+            y: follow_target.y + slot.off_y,
+            z: follow_target.z + slot.off_z
+        },
+        target: vec3.Vec3 {
+            x: follow_target.x,
+            y: follow_target.y + slot.look_height,
+            z: follow_target.z
+        },
+        fovy: slot.fovy
+    }
+end
+
+public kind_label(kind: int) -> string
+    if kind == KIND_FIXED
+        return "fixed"
+    end
+    return "follow"
+end
+
+public hud_line(stack: CamStack) -> string
+    const n: int = count(stack)
+    if n == 0
+        return "cam: none"
+    end
+    const s: CamSlot = active_slot(stack)
+    return "cam " + s.name + " (" + kind_label(s.kind) + ") "
+        + fmt.number_int(active_index(stack) + 1) + "/" + fmt.number_int(n)
+end

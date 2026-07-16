@@ -1,0 +1,115 @@
+module game.navmesh
+
+-- Thin glue: Recast Navigation via package `recast` (`recast.nav`).
+-- Path-dep `recast` on ori_game; links `ori_recast_shim`.
+-- Positions and sizes use milli-units (meters × 1000).
+
+import recast.nav = nav
+
+-- Staging triangle soup -------------------------------------------------------
+
+public mesh_clear() -> void
+    nav.mesh_clear()
+end
+
+public mesh_add_vertex(x_m: int, y_m: int, z_m: int) -> int
+    return nav.mesh_add_vertex(x_m, y_m, z_m)
+end
+
+public mesh_add_triangle(i0: int, i1: int, i2: int) -> bool
+    return nav.mesh_add_triangle(i0, i1, i2)
+end
+
+public mesh_vertex_count() -> int
+    return nav.mesh_vertex_count()
+end
+
+public mesh_triangle_count() -> int
+    return nav.mesh_triangle_count()
+end
+
+public build_mesh(cell_size_m: int, agent_radius_m: int) -> bool
+    return nav.build_mesh(cell_size_m, agent_radius_m)
+end
+
+-- Flat plane helpers ----------------------------------------------------------
+
+public build_plane(width_m: int, depth_m: int, cell_size_m: int) -> bool
+    return nav.build_plane(width_m, depth_m, cell_size_m)
+end
+
+public build_plane_ex(width_m: int, depth_m: int, cell_size_m: int, agent_radius_m: int) -> bool
+    return nav.build_plane_ex(width_m, depth_m, cell_size_m, agent_radius_m)
+end
+
+-- Path query ------------------------------------------------------------------
+
+public find_path(sx: int, sy: int, sz: int, ex: int, ey: int, ez: int) -> int
+    return nav.find_path(sx, sy, sz, ex, ey, ez)
+end
+
+public waypoint_count() -> int
+    return nav.waypoint_count()
+end
+
+public waypoint_x(i: int) -> int
+    return nav.waypoint_x(i)
+end
+
+public waypoint_y(i: int) -> int
+    return nav.waypoint_y(i)
+end
+
+public waypoint_z(i: int) -> int
+    return nav.waypoint_z(i)
+end
+
+-- Nearest poly ----------------------------------------------------------------
+
+public find_nearest(x: int, y: int, z: int) -> bool
+    return nav.find_nearest(x, y, z)
+end
+
+public nearest_x() -> int
+    return nav.nearest_x()
+end
+
+public nearest_y() -> int
+    return nav.nearest_y()
+end
+
+public nearest_z() -> int
+    return nav.nearest_z()
+end
+
+-- Raycast ---------------------------------------------------------------------
+
+public raycast(sx: int, sy: int, sz: int, ex: int, ey: int, ez: int) -> int
+    return nav.raycast(sx, sy, sz, ex, ey, ez)
+end
+
+public raycast_t_m() -> int
+    return nav.raycast_t_m()
+end
+
+public raycast_hit_x() -> int
+    return nav.raycast_hit_x()
+end
+
+public raycast_hit_y() -> int
+    return nav.raycast_hit_y()
+end
+
+public raycast_hit_z() -> int
+    return nav.raycast_hit_z()
+end
+
+-- Lifetime --------------------------------------------------------------------
+
+public is_ready() -> bool
+    return nav.is_ready()
+end
+
+public destroy() -> void
+    nav.destroy()
+end

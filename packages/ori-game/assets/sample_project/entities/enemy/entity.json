@@ -1,0 +1,12 @@
+{
+  "format_version": 1,
+  "id": "enemy",
+  "name": "Enemy",
+  "script": "enemy.orl",
+  "tags": ["enemy"],
+  "events": ["create", "step", "destroy"],
+  "vars": [
+    { "name": "hp", "type": "float", "default": 3.0 }
+  ],
+  "parent": null
+}

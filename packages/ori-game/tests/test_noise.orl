@@ -1,0 +1,59 @@
+module test.noise
+
+imports
+    game.noise = n
+    ori.test = test
+end
+
+@test
+deterministic_seed()
+    n.init()
+    n.set_seed(7)
+    n.set_frequency_m(100)
+    n.use_perlin()
+    n.use_fractal_none()
+    const a: int = n.get2_m(3000, 4000)
+    n.init()
+    n.set_seed(7)
+    n.set_frequency_m(100)
+    n.use_perlin()
+    n.use_fractal_none()
+    const b: int = n.get2_m(3000, 4000)
+    test.equal_int(a, b)
+end
+
+@test
+get3_range()
+    n.init()
+    n.set_seed(1)
+    n.use_open_simplex()
+    n.use_fractal_none()
+    const v: int = n.get3_m(100, 200, 300)
+    test.assert(v >= -2000 and v <= 2000, "range")
+end
+
+@test
+types_differ_at_point()
+    n.init()
+    n.set_seed(42)
+    n.set_frequency_m(50)
+    n.use_fractal_none()
+    n.use_perlin()
+    const perlin_v: int = n.get2_m(1500, 2500)
+    n.use_open_simplex()
+    const simplex_v: int = n.get2_m(1500, 2500)
+    test.assert(perlin_v != simplex_v, "perlin vs open_simplex")
+end
+
+@test
+seed_changes_sample()
+    n.init()
+    n.set_frequency_m(80)
+    n.use_perlin()
+    n.use_fractal_none()
+    n.set_seed(1)
+    const a: int = n.get2_m(1000, 1000)
+    n.set_seed(999)
+    const b: int = n.get2_m(1000, 1000)
+    test.assert(a != b, "seed must change field")
+end

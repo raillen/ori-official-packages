@@ -1,0 +1,104 @@
+module game.asset_paths
+
+-- DT1 / X1: resolve asset paths relative to project/sample roots (cwd-independent).
+
+import ori.list = lists
+import ori.fs = fs
+import ori.string = str
+
+public struct PathRoots
+    project_root: string
+    fallback_roots: list[string]
+end
+
+public empty_roots() -> PathRoots
+    var fb: list[string] = []
+    return PathRoots { project_root: "", fallback_roots: fb }
+end
+
+public with_project(project_root: string) -> PathRoots
+    var r: PathRoots = empty_roots()
+    r.project_root = normalize_dir(project_root)
+    return r
+end
+
+public add_fallback(roots: PathRoots, path: string) -> PathRoots
+    var out: PathRoots = roots
+    lists.push(out.fallback_roots, normalize_dir(path))
+    return out
+end
+
+normalize_dir(path: string) -> string
+    if path == ""
+        return ""
+    end
+    const n: int = str.len(path)
+    if n == 0
+        return ""
+    end
+    const last: string = str.slice(path, n - 1, n)
+    if last == "/"
+        return path
+    end
+    return path + "/"
+end
+
+path_exists(path: string) -> bool
+    match fs.exists(path)
+        case ok(v):
+            return v
+        case err(_):
+            return false
+    end
+    return false
+end
+
+-- Join root + relative (strip leading ./).
+public join(root: string, rel: string) -> string
+    var r: string = rel
+    if str.len(r) >= 2
+        if str.slice(r, 0, 2) == "./"
+            r = str.slice(r, 2, str.len(r))
+        end
+    end
+    if r == ""
+        return root
+    end
+    return root + r
+end
+
+-- Prefer absolute/existing; then project_root; then fallbacks; else project+rel.
+public resolve(roots: PathRoots, rel_or_abs: string) -> string
+    if rel_or_abs == ""
+        return ""
+    end
+    if path_exists(rel_or_abs)
+        return rel_or_abs
+    end
+    if roots.project_root != ""
+        const p: string = join(roots.project_root, rel_or_abs)
+        if path_exists(p)
+            return p
+        end
+    end
+    const n: int = lists.len(roots.fallback_roots)
+    var i: int = 0
+    while i < n
+        const p2: string = join(roots.fallback_roots[i], rel_or_abs)
+        if path_exists(p2)
+            return p2
+        end
+        i = i + 1
+    end
+    if roots.project_root != ""
+        return join(roots.project_root, rel_or_abs)
+    end
+    return rel_or_abs
+end
+
+public resolve_shader(roots: PathRoots, vs_rel: string, fs_rel: string) -> list[string]
+    var out: list[string] = []
+    lists.push(out, resolve(roots, vs_rel))
+    lists.push(out, resolve(roots, fs_rel))
+    return out
+end

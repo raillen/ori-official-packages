@@ -1,0 +1,16 @@
+@{ layout "layouts/app" }
+@{ assign title = "Posts" }
+
+<section class="card">
+  <h1>Posts</h1>
+  <ul>
+  @{ for i, t in titles }
+    <li><a href="/posts/@{ i }">@{ t }</a></li>
+  @{ end }
+  @{ if empty }
+    <li class="muted">No posts.</li>
+  @{ end }
+  </ul>
+</section>
+
+@{ end }

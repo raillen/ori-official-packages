@@ -1,0 +1,140 @@
+module game.actions
+
+-- Named input actions → key rebinding (pure Ori over game.input).
+
+import game.input = input
+import ori.list = lists
+import ori.fs = fs
+
+public struct Binding
+    action: string
+    key: int
+end
+
+public struct ActionMap
+    bindings: list[Binding]
+end
+
+public create() -> ActionMap
+    return ActionMap { bindings: [] }
+end
+
+public bind_key(amap: ActionMap, action: string, key: int) -> ActionMap
+    var out: ActionMap = amap
+    var bi: int = 0
+    while bi < lists.len(out.bindings)
+        if out.bindings[bi].action == action
+            lists.set(out.bindings, bi, Binding { action: action, key: key })
+            return out
+        end
+        bi = bi + 1
+    end
+    lists.push(out.bindings, Binding { action: action, key: key })
+    return out
+end
+
+public key_of(amap: ActionMap, action: string) -> int
+    var ki: int = 0
+    while ki < lists.len(amap.bindings)
+        if amap.bindings[ki].action == action
+            return amap.bindings[ki].key
+        end
+        ki = ki + 1
+    end
+    return -1
+end
+
+public pressed(amap: ActionMap, action: string) -> bool
+    const k: int = key_of(amap, action)
+    if k < 0
+        return false
+    end
+    return input.key_pressed(k)
+end
+
+public down(amap: ActionMap, action: string) -> bool
+    const k: int = key_of(amap, action)
+    if k < 0
+        return false
+    end
+    return input.key_down(k)
+end
+
+public released(amap: ActionMap, action: string) -> bool
+    const k: int = key_of(amap, action)
+    if k < 0
+        return false
+    end
+    return input.key_released(k)
+end
+
+public to_json(amap: ActionMap) -> string
+    var s: string = "{"
+    var ji: int = 0
+    const n: int = lists.len(amap.bindings)
+    while ji < n
+        const b: Binding = amap.bindings[ji]
+        if ji > 0
+            s = s + ","
+        end
+        s = s + "\"" + b.action + "\":" + int_to_dec(b.key)
+        ji = ji + 1
+    end
+    return s + "}"
+end
+
+public save_json(amap: ActionMap, path: string) -> bool
+    const body: string = to_json(amap)
+    match fs.write_text(path, body)
+        case ok(_):
+            return true
+        case err(_):
+            return false
+    end
+    return false
+end
+
+int_to_dec(n: int) -> string
+    if n == 0
+        return "0"
+    end
+    var neg: bool = false
+    var v: int = n
+    if v < 0
+        neg = true
+        v = 0 - v
+    end
+    var s: string = ""
+    while v > 0
+        const d: int = v - (v / 10) * 10
+        s = one_digit(d) + s
+        v = v / 10
+    end
+    if neg
+        return "-" + s
+    end
+    return s
+end
+
+one_digit(d: int) -> string
+    if d == 0
+        return "0"
+    elif d == 1
+        return "1"
+    elif d == 2
+        return "2"
+    elif d == 3
+        return "3"
+    elif d == 4
+        return "4"
+    elif d == 5
+        return "5"
+    elif d == 6
+        return "6"
+    elif d == 7
+        return "7"
+    elif d == 8
+        return "8"
+    end
+    return "9"
+end

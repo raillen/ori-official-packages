@@ -1,0 +1,411 @@
+module app.cangaceiro_demo
+
+-- Cangaceiro viewer.
+-- Prefer GLB one level above assets/cangaceiro/ (skeletal + embedded texture).
+-- Fallback: OBJ folder + procedural clips. Checkbox "In place" locks root XZ.
+-- Controls: A/D orbit · W/S zoom · Q/E pitch · R reset camera
+--           1-4 clips · Space play/pause · mouse on UI panel
+
+imports
+    game.app = app
+    game.draw = draw
+    game.draw3d = draw3d
+    game.camera3d = cam3
+    game.color = color
+    game.input = input
+    game.anim_player = anim
+    game.shape = shape
+    game.shader = shader
+    ori.math = math
+    ori.math.vec2 = vec2
+    ori.math.vec3 = vec3
+end
+
+-- Parent of assets/cangaceiro/ (same level as game-assets-3d/cangaceiro+glb.glb).
+const GLB_PATH: string = "assets/cangaceiro.glb"
+const OBJ_PATH: string = "assets/cangaceiro/cangaceiro.obj"
+const TEXTURE_PATH: string = "assets/cangaceiro/cangaceiro_basecolor_1k.jpg"
+const SKIN_VS: string = "assets/shaders/skinning.vs"
+const SKIN_FS: string = "assets/shaders/skinning.fs"
+
+const TARGET_Y: float = 0.55
+const DEFAULT_YAW: float = 0.6
+const DEFAULT_PITCH: float = 0.35
+const DEFAULT_DIST: float = 2.4
+
+const UI_X: float = 720.0
+const UI_Y: float = 56.0
+const UI_W: float = 220.0
+
+var cam: cam3.Camera3D = cam3.create_perspective(
+    vec3.Vec3 { x: 2.0, y: 1.2, z: 2.0 },
+    vec3.Vec3 { x: 0.0, y: TARGET_Y, z: 0.0 },
+    45.0
+)
+
+var model: draw3d.ModelId = 0
+var texture: draw.TextureId = 0
+var anims: draw3d.AnimSetId = 0
+var skin_shader: shader.ShaderId = 0
+var player: anim.ClipPlayer = anim.create(0, 0, 0)
+var model_loaded: bool = false
+var texture_loaded: bool = false
+var anims_loaded: bool = false
+var skin_shader_loaded: bool = false
+var status_line: string = "loading..."
+
+var yaw: float = DEFAULT_YAW
+var pitch: float = DEFAULT_PITCH
+var dist: float = DEFAULT_DIST
+
+orbit_camera() -> void
+    var p: float = pitch
+    if p > 1.2
+        p = 1.2
+    end
+    if p < 0.05
+        p = 0.05
+    end
+    pitch = p
+    var d: float = dist
+    if d < 0.8
+        d = 0.8
+    end
+    if d > 8.0
+        d = 8.0
+    end
+    dist = d
+    const horizontal: float = dist * math.cos(pitch)
+    const pos: vec3.Vec3 = vec3.Vec3 {
+        x: horizontal * math.sin(yaw),
+        y: TARGET_Y + dist * math.sin(pitch),
+        z: horizontal * math.cos(yaw)
+    }
+    cam = cam3.set_position(cam, pos)
+    cam = cam3.look_at(cam, vec3.Vec3 { x: 0.0, y: TARGET_Y, z: 0.0 })
+end
+
+point_in_rect(px: float, py: float, x: float, y: float, w: float, h: float) -> bool
+    if px < x
+        return false
+    end
+    if py < y
+        return false
+    end
+    if px > x + w
+        return false
+    end
+    if py > y + h
+        return false
+    end
+    return true
+end
+
+-- Immediate checkbox: returns new checked state.
+ui_checkbox(x: float, y: float, label: string, checked: bool) -> bool
+    const box: float = 22.0
+    draw.draw_rect(shape.rect(x, y, box, box), color.WHITE)
+    draw.draw_rect_lines(shape.rect(x, y, box, box), 2, color.DARKGRAY)
+    if checked
+        draw.draw_rect(shape.rect(x + 4.0, y + 4.0, box - 8.0, box - 8.0), color.DARKGREEN)
+    end
+    draw.draw_text(label, vec2.Vec2 { x: x + box + 8.0, y: y + 2.0 }, 16, color.BLACK)
+    var out: bool = checked
+    if input.mouse_pressed(input.MOUSE_LEFT)
+        const mx: float = input.mouse_x()
+        const my: float = input.mouse_y()
+        if point_in_rect(mx, my, x, y, box + 120.0, box)
+            out = not checked
+        end
+    end
+    return out
+end
+
+ui_clip_button(x: float, y: float, w: float, h: float, label: string, selected: bool) -> bool
+    var bg: color.Color = color.LIGHTGRAY
+    if selected
+        bg = color.ORANGE
+    end
+    draw.draw_rect(shape.rect(x, y, w, h), bg)
+    draw.draw_rect_lines(shape.rect(x, y, w, h), 1, color.DARKGRAY)
+    draw.draw_text(label, vec2.Vec2 { x: x + 10.0, y: y + 6.0 }, 16, color.BLACK)
+    if input.mouse_pressed(input.MOUSE_LEFT)
+        const mx: float = input.mouse_x()
+        const my: float = input.mouse_y()
+        if point_in_rect(mx, my, x, y, w, h)
+            return true
+        end
+    end
+    return false
+end
+
+handle_camera(dt: float) -> void
+    const turn: float = 1.4 * dt
+    const zoom: float = 1.8 * dt
+    if input.key_down(input.KEY_LEFT) or input.key_down(input.KEY_A)
+        yaw = yaw - turn
+    end
+    if input.key_down(input.KEY_RIGHT) or input.key_down(input.KEY_D)
+        yaw = yaw + turn
+    end
+    if input.key_down(input.KEY_UP) or input.key_down(input.KEY_W)
+        dist = dist - zoom
+    end
+    if input.key_down(input.KEY_DOWN) or input.key_down(input.KEY_S)
+        dist = dist + zoom
+    end
+    if input.key_down(input.KEY_Q)
+        pitch = pitch + turn
+    end
+    if input.key_down(input.KEY_E)
+        pitch = pitch - turn
+    end
+    if input.key_pressed(input.KEY_R)
+        yaw = DEFAULT_YAW
+        pitch = DEFAULT_PITCH
+        dist = DEFAULT_DIST
+    end
+    orbit_camera()
+end
+
+handle_anim_hotkeys() -> void
+    if input.key_pressed(input.KEY_1)
+        player = anim.set_clip(player, anim.CLIP_IDLE)
+    end
+    if input.key_pressed(input.KEY_2)
+        player = anim.set_clip(player, anim.CLIP_WALK)
+    end
+    if input.key_pressed(input.KEY_3)
+        player = anim.set_clip(player, anim.CLIP_SPIN)
+    end
+    if input.key_pressed(input.KEY_4)
+        player = anim.set_clip(player, anim.CLIP_BOW)
+    end
+    if input.key_pressed(input.KEY_SPACE)
+        if anim.is_playing(player)
+            player = anim.stop(player)
+        else
+            player = anim.play(player)
+        end
+    end
+end
+
+draw_ui_panel() -> void
+    draw.draw_rect(shape.rect(UI_X - 12.0, UI_Y - 40.0, UI_W + 24.0, 280.0), color.Color {
+        r: 245, g: 245, b: 240, a: 230
+    })
+    draw.draw_rect_lines(shape.rect(UI_X - 12.0, UI_Y - 40.0, UI_W + 24.0, 280.0), 2, color.DARKGRAY)
+    draw.draw_text("Animation", vec2.Vec2 { x: UI_X, y: UI_Y - 32.0 }, 18, color.BLACK)
+
+    const in_place: bool = anim.is_in_place(player)
+    const next_in_place: bool = ui_checkbox(UI_X, UI_Y, "In place", in_place)
+    if next_in_place != in_place
+        player = anim.set_in_place(player, next_in_place)
+    end
+
+    var mode_line: string = "Procedural clips"
+    if anim.is_skeletal(player)
+        if anim.is_gpu_skinning(player)
+            mode_line = "Skeletal GPU (glb)"
+        else
+            mode_line = "Skeletal CPU (glb)"
+        end
+    end
+    draw.draw_text(mode_line, vec2.Vec2 { x: UI_X, y: UI_Y + 32.0 }, 14, color.DARKGRAY)
+
+    const clip: int = anim.clip_of(player)
+    const nclips: int = anim.clip_count(player)
+    const row0: float = UI_Y + 56.0
+    if anim.is_skeletal(player)
+        -- GLB currently ships one clip (NlaTrack); button still allows reselect.
+        if ui_clip_button(UI_X, row0, UI_W, 28.0, "0  NlaTrack", clip == 0)
+            player = anim.set_clip(player, 0)
+        end
+        if nclips > 1
+            if ui_clip_button(UI_X, row0 + 34.0, UI_W, 28.0, "1  clip", clip == 1)
+                player = anim.set_clip(player, 1)
+            end
+        end
+    end
+    if not anim.is_skeletal(player)
+        if ui_clip_button(UI_X, row0, UI_W, 28.0, "1  Idle", clip == anim.CLIP_IDLE)
+            player = anim.set_clip(player, anim.CLIP_IDLE)
+        end
+        if ui_clip_button(UI_X, row0 + 34.0, UI_W, 28.0, "2  Walk", clip == anim.CLIP_WALK)
+            player = anim.set_clip(player, anim.CLIP_WALK)
+        end
+        if ui_clip_button(UI_X, row0 + 68.0, UI_W, 28.0, "3  Spin", clip == anim.CLIP_SPIN)
+            player = anim.set_clip(player, anim.CLIP_SPIN)
+        end
+        if ui_clip_button(UI_X, row0 + 102.0, UI_W, 28.0, "4  Bow", clip == anim.CLIP_BOW)
+            player = anim.set_clip(player, anim.CLIP_BOW)
+        end
+    end
+
+    const play_y: float = row0 + 148.0
+    var play_label: string = "Space  Play"
+    if anim.is_playing(player)
+        play_label = "Space  Pause"
+    end
+    if ui_clip_button(UI_X, play_y, UI_W, 28.0, play_label, false)
+        if anim.is_playing(player)
+            player = anim.stop(player)
+        else
+            player = anim.play(player)
+        end
+    end
+
+    var ip_hint: string = "Root locked (in place)"
+    if not anim.is_in_place(player)
+        ip_hint = "Root motion enabled"
+    end
+    draw.draw_text(ip_hint, vec2.Vec2 { x: UI_X, y: play_y + 38.0 }, 13, color.DARKGRAY)
+end
+
+on_update(dt: float) -> void
+    handle_camera(dt)
+    handle_anim_hotkeys()
+    player = anim.tick(player, dt)
+end
+
+on_draw() -> void
+    cam3.begin_mode(cam)
+    draw3d.draw_grid(12, 0.5)
+    draw3d.draw_plane(
+        vec3.Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+        8.0,
+        8.0,
+        color.Color { r: 40, g: 48, b: 40, a: 255 }
+    )
+    if model_loaded
+        const pose: anim.ModelPose = anim.pose_of(player)
+        anim.draw_posed(model, pose, color.WHITE)
+    else
+        draw3d.draw_cube(
+            vec3.Vec3 { x: 0.0, y: 0.5, z: 0.0 },
+            0.5, 1.0, 0.4,
+            color.ORANGE
+        )
+    end
+    cam3.end_mode()
+    draw.draw_text(
+        "cangaceiro — A/D orbit · W/S zoom · 1-4 clips · Space play",
+        vec2.Vec2 { x: 12.0, y: 12.0 },
+        16,
+        color.BLACK
+    )
+    draw.draw_text(status_line, vec2.Vec2 { x: 12.0, y: 34.0 }, 14, color.DARKGRAY)
+    -- Render FPS: if this is low (HD 4000 + 4K texture), the old 1-frame-per-draw
+    -- path felt slow; playback is now dt-based so wall-clock speed stays correct.
+    const fps: int = app.fps()
+    draw.draw_text("render fps (GPU)", vec2.Vec2 { x: 12.0, y: 54.0 }, 14, color.DARKGRAY)
+    draw.draw_text(fps_label(fps), vec2.Vec2 { x: 140.0, y: 54.0 }, 14, color.BLACK)
+    draw_ui_panel()
+end
+
+-- Tiny int→string for HUD without full format deps.
+fps_label(fps: int) -> string
+    if fps < 1
+        return "0"
+    end
+    if fps < 10
+        return "low (<10)"
+    end
+    if fps < 20
+        return "low (10-19)"
+    end
+    if fps < 30
+        return "ok (20-29)"
+    end
+    if fps < 50
+        return "good (30-49)"
+    end
+    return "smooth (50+)"
+end
+
+enable_gpu_skinning_if_possible() -> void
+    if not draw3d.model_supports_gpu_skinning(model)
+        return
+    end
+    skin_shader = shader.load(SKIN_VS, SKIN_FS)
+    if skin_shader == 0
+        status_line = "WARN: skinning shader failed — CPU skinning"
+        return
+    end
+    skin_shader_loaded = true
+    draw3d.model_set_all_materials_shader(model, skin_shader)
+    player = anim.set_gpu_skinning(player, true)
+end
+
+load_assets() -> void
+    -- 1) Prefer GLB (mesh + materials + NlaTrack skeletal clip).
+    model = draw3d.load_model(GLB_PATH)
+    if model != 0
+        model_loaded = true
+        anims = draw3d.load_model_animations(GLB_PATH)
+        if anims != 0 and draw3d.model_animation_count(anims) > 0
+            anims_loaded = true
+        else
+            anims = 0
+        end
+        player = anim.create(model, anims, 0)
+        player = anim.set_in_place(player, true)
+        player = anim.play(player)
+        if anim.is_skeletal(player)
+            enable_gpu_skinning_if_possible()
+            if anim.is_gpu_skinning(player)
+                status_line = "OK: GLB + GPU skinning (NlaTrack) — In place = root XZ lock"
+            else
+                status_line = "OK: GLB + CPU skinning (NlaTrack)"
+            end
+        else
+            status_line = "OK: cangaceiro.glb mesh (no clips in file)"
+        end
+        return
+    end
+
+    -- 2) Fallback OBJ + optional external diffuse + procedural clips.
+    model = draw3d.load_model(OBJ_PATH)
+    if model == 0
+        status_line = "FAIL: load_model (glb and obj)"
+        return
+    end
+    model_loaded = true
+    texture = draw.load_texture(TEXTURE_PATH)
+    if texture != 0
+        texture_loaded = true
+        draw3d.set_model_diffuse_texture(model, texture)
+    end
+    player = anim.create(model, 0, anim.CLIP_IDLE)
+    player = anim.set_in_place(player, true)
+    player = anim.play(player)
+    status_line = "OK: OBJ fallback + procedural clips (place assets/cangaceiro.glb for skeletal)"
+end
+
+main()
+    app.init_window("Ori 3D — Cangaceiro", 960, 600)
+    app.set_target_fps(60)
+    load_assets()
+    orbit_camera()
+    while not app.window_should_close()
+        const dt: float = app.frame_time()
+        on_update(dt)
+        app.begin_drawing()
+        draw.clear(color.Color { r: 135, g: 206, b: 235, a: 255 })
+        on_draw()
+        app.end_drawing()
+    end
+    if anims_loaded
+        draw3d.unload_model_animations(anims)
+    end
+    if texture_loaded
+        draw.unload_texture(texture)
+    end
+    if model_loaded
+        draw3d.unload_model(model)
+    end
+    if skin_shader_loaded
+        shader.unload(skin_shader)
+    end
+    app.close_window()
+end

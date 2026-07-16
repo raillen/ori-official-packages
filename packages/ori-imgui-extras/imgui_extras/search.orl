@@ -1,0 +1,91 @@
+module imgui_extras.search
+
+-- Filterable string list (headless-safe).
+-- Query is a case-optional substring match over registered items.
+
+import ori.list = lists
+import ori.string = str
+
+public struct FilterList
+    items: list[string]
+    query: string
+    case_sensitive: bool
+end
+
+public create() -> FilterList
+    return FilterList {
+        items: [],
+        query: "",
+        case_sensitive: false
+    }
+end
+
+public set_items(f: FilterList, items: list[string]) -> FilterList
+    var out: FilterList = f
+    out.items = items
+    return out
+end
+
+public add_item(f: FilterList, item: string) -> FilterList
+    var out: FilterList = f
+    lists.push(out.items, item)
+    return out
+end
+
+public set_query(f: FilterList, query: string) -> FilterList
+    var out: FilterList = f
+    out.query = query
+    return out
+end
+
+public set_case_sensitive(f: FilterList, case_sensitive: bool) -> FilterList
+    var out: FilterList = f
+    out.case_sensitive = case_sensitive
+    return out
+end
+
+public query_of(f: FilterList) -> string
+    return f.query
+end
+
+public item_count(f: FilterList) -> int
+    return lists.len(f.items)
+end
+
+-- True when haystack contains needle (empty needle matches all).
+public matches_query(haystack: string, needle: string, case_sensitive: bool) -> bool
+    const n: string = str.trim(needle)
+    if n == ""
+        return true
+    end
+    if case_sensitive
+        return str.contains(haystack, n)
+    end
+    return str.contains(str.to_lower(haystack), str.to_lower(n))
+end
+
+public filtered(f: FilterList) -> list[string]
+    var out: list[string] = []
+    const n: int = lists.len(f.items)
+    var i: int = 0
+    while i < n
+        const item: string = f.items[i]
+        if matches_query(item, f.query, f.case_sensitive)
+            lists.push(out, item)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+public filtered_count(f: FilterList) -> int
+    return lists.len(filtered(f))
+end
+
+public filtered_at(f: FilterList, index: int) -> string
+    const rows: list[string] = filtered(f)
+    if index < 0 or index >= lists.len(rows)
+        return ""
+    end
+    return rows[index]
+end

@@ -1,0 +1,63 @@
+module game.scene
+
+import ori.list = lists
+
+-- Screen stack by name (no capturing closures). Game code switches on current().
+
+public struct SceneStack
+    stack: list[string]
+end
+
+public create(initial: string) -> SceneStack
+    var stack: list[string] = []
+    lists.push(stack, initial)
+    return SceneStack { stack: stack }
+end
+
+public current(ss: SceneStack) -> string
+    const n: int = lists.len(ss.stack)
+    if n == 0
+        return ""
+    end
+    return ss.stack[n - 1]
+end
+
+public depth(ss: SceneStack) -> int
+    return lists.len(ss.stack)
+end
+
+public push(ss: SceneStack, name: string) -> SceneStack
+    var out: SceneStack = ss
+    lists.push(out.stack, name)
+    return out
+end
+
+public pop(ss: SceneStack) -> SceneStack
+    const n: int = lists.len(ss.stack)
+    if n <= 1
+        return ss
+    end
+    var out: SceneStack = ss
+    var next: list[string] = []
+    var i: int = 0
+    while i < n - 1
+        lists.push(next, out.stack[i])
+        i = i + 1
+    end
+    out.stack = next
+    return out
+end
+
+public replace(ss: SceneStack, name: string) -> SceneStack
+    const n: int = lists.len(ss.stack)
+    if n == 0
+        return create(name)
+    end
+    var out: SceneStack = ss
+    lists.set(out.stack, n - 1, name)
+    return out
+end
+
+public is_current(ss: SceneStack, name: string) -> bool
+    return current(ss) == name
+end

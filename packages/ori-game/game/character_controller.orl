@@ -1,0 +1,102 @@
+module game.character_controller
+
+-- R1: sphere character controller (grounded + horizontal move + simple step).
+-- Pure data + step; host applies result to World transform/velocity.
+
+import game.ogame_level = level
+
+public struct Controller
+    radius: float
+    height: float
+    grounded: bool
+    max_speed: float
+    gravity: float
+    vertical_vel: float
+end
+
+public create(radius: float, max_speed: float) -> Controller
+    return Controller {
+        radius: radius,
+        height: radius * 2.0,
+        grounded: false,
+        max_speed: max_speed,
+        gravity: -280.0,
+        vertical_vel: 0.0
+    }
+end
+
+public empty() -> Controller
+    return create(8.0, 48.0)
+end
+
+-- Integrate wish direction (xz) + gravity; resolve sphere on solids.
+public step(
+    c: Controller,
+    x: float,
+    y: float,
+    z: float,
+    wish_x: float,
+    wish_z: float,
+    solids: list[level.SolidPiece],
+    layer: int,
+    dt: float
+) -> Controller
+    var out: Controller = c
+    var nx: float = x + wish_x * out.max_speed * dt
+    var ny: float = y + out.vertical_vel * dt
+    var nz: float = z + wish_z * out.max_speed * dt
+    out.vertical_vel = out.vertical_vel + out.gravity * dt
+    if out.vertical_vel < -400.0
+        out.vertical_vel = -400.0
+    end
+    const resolved: level.Vec3Pos = level.resolve_sphere_on_layer(
+        nx,
+        ny,
+        nz,
+        out.radius,
+        solids,
+        layer
+    )
+    -- Heurística: se Y não caiu com gravity, considera grounded.
+    if resolved.y >= ny - 0.01 and out.vertical_vel <= 0.0
+        out.grounded = true
+        out.vertical_vel = 0.0
+    else
+        out.grounded = false
+    end
+    return out
+end
+
+public apply_position(
+    c: Controller,
+    x: float,
+    y: float,
+    z: float,
+    wish_x: float,
+    wish_z: float,
+    solids: list[level.SolidPiece],
+    layer: int,
+    dt: float
+) -> level.Vec3Pos
+    var vertical: float = c.vertical_vel + c.gravity * dt
+    if vertical < -400.0
+        vertical = -400.0
+    end
+    const nx: float = x + wish_x * c.max_speed * dt
+    const ny: float = y + vertical * dt
+    const nz: float = z + wish_z * c.max_speed * dt
+    return level.resolve_sphere_on_layer(nx, ny, nz, c.radius, solids, layer)
+end
+
+public is_grounded(c: Controller) -> bool
+    return c.grounded
+end
+
+public set_jump(c: Controller, impulse: float) -> Controller
+    var out: Controller = c
+    if out.grounded
+        out.vertical_vel = impulse
+        out.grounded = false
+    end
+    return out
+end

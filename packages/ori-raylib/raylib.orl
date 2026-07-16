@@ -1,0 +1,248 @@
+module raylib
+
+-- L0: scalarized C ABI via ori_rl_* shim (never call raw raylib struct ABI).
+-- Real desktop: libori_raylib_shim.a + libraylib.a
+-- Headless CI: libori_raylib_shim.a (stub) + dummy libraylib.a
+-- L1: game.* (snake_case, Ori types).
+
+extern c
+    public ori_rl_InitWindow(width: int, height: int, title: int) -> void
+    public ori_rl_CloseWindow() -> void
+    public ori_rl_WindowShouldClose() -> bool
+    public ori_rl_SetTargetFPS(fps: int) -> void
+    public ori_rl_GetFPS() -> int
+    public ori_rl_GetFrameTime() -> float
+    public ori_rl_GetTime() -> float
+    public ori_rl_SetConfigFlags(flags: int) -> void
+    public ori_rl_ToggleFullscreen() -> void
+    public ori_rl_GetScreenWidth() -> int
+    public ori_rl_GetScreenHeight() -> int
+    public ori_rl_SetExitKey(key: int) -> void
+
+    public ori_rl_BeginDrawing() -> void
+    public ori_rl_EndDrawing() -> void
+    public ori_rl_TakeScreenshot(fileName: int) -> void
+    public ori_rl_ClearBackground(r: int, g: int, b: int, a: int) -> void
+    public ori_rl_BeginMode2D(
+        camera_offset_x: float, camera_offset_y: float,
+        camera_target_x: float, camera_target_y: float,
+        camera_rotation: float, camera_zoom: float
+    ) -> void
+    public ori_rl_EndMode2D() -> void
+
+    public ori_rl_BeginMode3D(
+        pos_x: float, pos_y: float, pos_z: float,
+        target_x: float, target_y: float, target_z: float,
+        up_x: float, up_y: float, up_z: float,
+        fovy: float, projection: int
+    ) -> void
+    public ori_rl_EndMode3D() -> void
+
+    public ori_rl_DrawLineV(startX: float, startY: float, endX: float, endY: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawLineEx(startX: float, startY: float, endX: float, endY: float, thick: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawCircleV(centerX: float, centerY: float, radius: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawCircleLinesV(centerX: float, centerY: float, radius: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawRectangleRec(x: float, y: float, width: float, height: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawRectangleLinesEx(x: float, y: float, width: float, height: float, lineThick: int, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawTriangle(v1x: float, v1y: float, v2x: float, v2y: float, v3x: float, v3y: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawPoly(centerX: float, centerY: float, sides: int, radius: float, rotation: float, r: int, g: int, b: int, a: int) -> void
+
+    public ori_rl_DrawCube(x: float, y: float, z: float, width: float, height: float, length: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawCubeWires(x: float, y: float, z: float, width: float, height: float, length: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawSphere(x: float, y: float, z: float, radius: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawSphereWires(x: float, y: float, z: float, radius: float, rings: int, slices: int, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawPlane(x: float, y: float, z: float, size_x: float, size_y: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawGrid(slices: int, spacing: float) -> void
+    public ori_rl_DrawRay(ox: float, oy: float, oz: float, dx: float, dy: float, dz: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawLine3D(
+        start_x: float, start_y: float, start_z: float,
+        end_x: float, end_y: float, end_z: float,
+        r: int, g: int, b: int, a: int
+    ) -> void
+    public ori_rl_DrawTriangle3D(
+        v1x: float, v1y: float, v1z: float,
+        v2x: float, v2y: float, v2z: float,
+        v3x: float, v3y: float, v3z: float,
+        r: int, g: int, b: int, a: int
+    ) -> void
+
+    public ori_rl_DrawText(text: int, posX: int, posY: int, fontSize: int, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawTextEx(font: int, text: int, posX: float, posY: float, fontSize: float, spacing: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_MeasureText(text: int, fontSize: int) -> int
+    public ori_rl_GetFontDefault() -> int
+
+    public ori_rl_LoadTexture(fileName: int) -> int
+    public ori_rl_UnloadTexture(texture: int) -> void
+    public ori_rl_DrawTexture(texture: int, posX: int, posY: int, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawTextureV(texture: int, posX: float, posY: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawTextureRec(texture: int, sourceX: float, sourceY: float, sourceW: float, sourceH: float, posX: float, posY: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_GetTextureWidth(texture: int) -> int
+    public ori_rl_GetTextureHeight(texture: int) -> int
+    public ori_rl_GetTextureGlId(texture: int) -> int
+    public ori_rl_LoadTextureFromGray8(data_ptr: int, width: int, height: int, pitch: int) -> int
+
+    public ori_rl_LoadModel(fileName: int) -> int
+    public ori_rl_UnloadModel(model: int) -> void
+    public ori_rl_DrawModel(model: int, x: float, y: float, z: float, scale: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawModelEx(
+        model: int,
+        x: float, y: float, z: float,
+        axis_x: float, axis_y: float, axis_z: float,
+        angle: float,
+        scale_x: float, scale_y: float, scale_z: float,
+        r: int, g: int, b: int, a: int
+    ) -> void
+    public ori_rl_SetModelDiffuseTexture(model: int, texture: int) -> void
+    public ori_rl_LoadModelAnimations(fileName: int) -> int
+    public ori_rl_ModelAnimationCount(anim_set: int) -> int
+    public ori_rl_UpdateModelAnimation(model: int, anim_set: int, anim_index: int, frame: int) -> void
+    public ori_rl_UpdateModelAnimationInPlace(model: int, anim_set: int, anim_index: int, frame: int) -> void
+    public ori_rl_UpdateModelAnimationBones(model: int, anim_set: int, anim_index: int, frame: int) -> void
+    public ori_rl_UpdateModelAnimationBonesInPlace(model: int, anim_set: int, anim_index: int, frame: int) -> void
+    public ori_rl_ModelSupportsGpuSkinning(model: int) -> int
+    public ori_rl_ModelSetAllMaterialsShader(model: int, shader: int) -> void
+    public ori_rl_UnloadModelAnimations(anim_set: int) -> void
+    public ori_rl_DrawBoundingBox(
+        min_x: float, min_y: float, min_z: float,
+        max_x: float, max_y: float, max_z: float,
+        r: int, g: int, b: int, a: int
+    ) -> void
+
+    -- Raycast / picking (R3): results via last-hit getters after a hit call.
+    public ori_rl_GetMouseRay(
+        mouse_x: float, mouse_y: float,
+        pos_x: float, pos_y: float, pos_z: float,
+        target_x: float, target_y: float, target_z: float,
+        up_x: float, up_y: float, up_z: float,
+        fovy: float, projection: int
+    ) -> void
+    public ori_rl_RayHitSphere(
+        ox: float, oy: float, oz: float,
+        dx: float, dy: float, dz: float,
+        cx: float, cy: float, cz: float,
+        radius: float
+    ) -> bool
+    public ori_rl_RayHitBox(
+        ox: float, oy: float, oz: float,
+        dx: float, dy: float, dz: float,
+        min_x: float, min_y: float, min_z: float,
+        max_x: float, max_y: float, max_z: float
+    ) -> bool
+    public ori_rl_RayHitGround(
+        ox: float, oy: float, oz: float,
+        dx: float, dy: float, dz: float,
+        ground_y: float
+    ) -> bool
+    public ori_rl_LastRayOx() -> float
+    public ori_rl_LastRayOy() -> float
+    public ori_rl_LastRayOz() -> float
+    public ori_rl_LastRayDx() -> float
+    public ori_rl_LastRayDy() -> float
+    public ori_rl_LastRayDz() -> float
+    public ori_rl_LastHitX() -> float
+    public ori_rl_LastHitY() -> float
+    public ori_rl_LastHitZ() -> float
+    public ori_rl_LastHitDist() -> float
+    public ori_rl_LastHitNx() -> float
+    public ori_rl_LastHitNy() -> float
+    public ori_rl_LastHitNz() -> float
+
+    public ori_rl_IsKeyPressed(key: int) -> bool
+    public ori_rl_IsKeyDown(key: int) -> bool
+    public ori_rl_IsKeyReleased(key: int) -> bool
+    public ori_rl_IsKeyUp(key: int) -> bool
+    public ori_rl_GetKeyPressed() -> int
+    public ori_rl_GetMouseX() -> float
+    public ori_rl_GetMouseY() -> float
+    public ori_rl_GetMouseDeltaX() -> float
+    public ori_rl_GetMouseDeltaY() -> float
+    public ori_rl_IsMouseButtonPressed(button: int) -> bool
+    public ori_rl_IsMouseButtonDown(button: int) -> bool
+    public ori_rl_IsMouseButtonReleased(button: int) -> bool
+    public ori_rl_GetMouseWheelMove() -> float
+
+    public ori_rl_InitAudioDevice() -> void
+    public ori_rl_CloseAudioDevice() -> void
+    public ori_rl_LoadSound(fileName: int) -> int
+    public ori_rl_UnloadSound(sound: int) -> void
+    public ori_rl_PlaySound(sound: int) -> void
+    public ori_rl_StopSound(sound: int) -> void
+    public ori_rl_SetSoundVolume(sound: int, volume: float) -> void
+    public ori_rl_LoadMusicStream(fileName: int) -> int
+    public ori_rl_UnloadMusicStream(music: int) -> void
+    public ori_rl_PlayMusicStream(music: int) -> void
+    public ori_rl_StopMusicStream(music: int) -> void
+    public ori_rl_UpdateMusicStream(music: int) -> void
+    public ori_rl_SetMusicVolume(music: int, volume: float) -> void
+    public ori_rl_IsMusicStreamPlaying(music: int) -> bool
+
+    -- Shaders / lights / skeletal (product expansion)
+    public ori_rl_LoadShader(vsPath: int, fsPath: int) -> int
+    public ori_rl_UnloadShader(shader: int) -> void
+    public ori_rl_BeginShaderMode(shader: int) -> void
+    public ori_rl_EndShaderMode() -> void
+    public ori_rl_GetShaderLocation(shader: int, name: int) -> int
+    public ori_rl_SetShaderValueFloat(shader: int, loc: int, value: float) -> void
+    public ori_rl_SetShaderValueVec3(shader: int, loc: int, x: float, y: float, z: float) -> void
+    public ori_rl_SetShaderValueVec4(shader: int, loc: int, x: float, y: float, z: float, w: float) -> void
+    public ori_rl_SetShaderValueInt(shader: int, loc: int, value: int) -> void
+    public ori_rl_ModelAnimationFrameCount(anim_set: int, anim_index: int) -> int
+    public ori_rl_IsGamepadAvailable(gamepad: int) -> bool
+    public ori_rl_IsGamepadButtonPressed(gamepad: int, button: int) -> bool
+    public ori_rl_IsGamepadButtonDown(gamepad: int, button: int) -> bool
+    public ori_rl_IsGamepadButtonReleased(gamepad: int, button: int) -> bool
+    public ori_rl_GetGamepadAxisMovement(gamepad: int, axis: int) -> float
+    public ori_rl_GetGamepadButtonPressed() -> int
+
+    public ori_rl_LoadRenderTexture(width: int, height: int) -> int
+    public ori_rl_UnloadRenderTexture(rt: int) -> void
+    public ori_rl_BeginTextureMode(rt: int) -> void
+    public ori_rl_EndTextureMode() -> void
+    public ori_rl_DrawRenderTexture(rt: int, posX: int, posY: int, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawRenderTextureRec(
+        rt: int,
+        srcX: float, srcY: float, srcW: float, srcH: float,
+        dstX: float, dstY: float, dstW: float, dstH: float,
+        r: int, g: int, b: int, a: int
+    ) -> void
+    public ori_rl_GetRenderTextureWidth(rt: int) -> int
+    public ori_rl_GetRenderTextureHeight(rt: int) -> int
+
+    -- P2-B audio deepen
+    public ori_rl_SetMasterVolume(volume: float) -> void
+    public ori_rl_GetMasterVolume() -> float
+    public ori_rl_PauseSound(sound: int) -> void
+    public ori_rl_ResumeSound(sound: int) -> void
+    public ori_rl_IsSoundPlaying(sound: int) -> bool
+    public ori_rl_SetSoundPitch(sound: int, pitch: float) -> void
+    public ori_rl_SetSoundPan(sound: int, pan: float) -> void
+    public ori_rl_PauseMusicStream(music: int) -> void
+    public ori_rl_ResumeMusicStream(music: int) -> void
+    public ori_rl_SetMusicPitch(music: int, pitch: float) -> void
+    public ori_rl_SeekMusicStream(music: int, position_sec: float) -> void
+    public ori_rl_UploadMeshMilli(xyz_m_ptr: int, vert_count: int, indices_ptr: int, index_count: int) -> int
+    public ori_rl_UnloadMesh(mesh: int) -> void
+    public ori_rl_DrawMesh(mesh: int, x: float, y: float, z: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_LoadModelFromMeshId(mesh: int) -> int
+    public ori_rl_GetMusicTimeLength(music: int) -> float
+    public ori_rl_GetMusicTimePlayed(music: int) -> float
+
+    -- P2-B 3D deepen
+    public ori_rl_DrawCylinder(x: float, y: float, z: float, radiusTop: float, radiusBottom: float, height: float, slices: int, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawCylinderWires(x: float, y: float, z: float, radiusTop: float, radiusBottom: float, height: float, slices: int, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawCapsule(ax: float, ay: float, az: float, bx: float, by: float, bz: float, radius: float, slices: int, rings: int, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawCapsuleWires(ax: float, ay: float, az: float, bx: float, by: float, bz: float, radius: float, slices: int, rings: int, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_DrawModelWires(model: int, x: float, y: float, z: float, scale: float, r: int, g: int, b: int, a: int) -> void
+    public ori_rl_OpenURL(url: int) -> void
+    public ori_rl_OpenPath(path: int) -> void
+    public ori_rl_DrawBillboard(
+        cpx: float, cpy: float, cpz: float,
+        ctx: float, cty: float, ctz: float,
+        cux: float, cuy: float, cuz: float,
+        fovy: float, projection: int,
+        texture: int,
+        px: float, py: float, pz: float, scale: float,
+        r: int, g: int, b: int, a: int
+    ) -> void
+
+end

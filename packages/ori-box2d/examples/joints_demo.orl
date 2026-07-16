@@ -1,0 +1,81 @@
+module app.joints_demo
+
+-- Wave 3 jam surface: joints, poly4, spin, materials, raycast, AABB, contacts.
+
+imports
+    box2d.dynamics = b2
+    box2d.units = units
+    ori.io = io
+end
+
+main()
+    var world: b2.World = b2.create_world(0, units.gravity_earth_y_m())
+    if not b2.is_valid(world)
+        io.print("world_invalid")
+        return
+    end
+
+    const ground: b2.Body = b2.create_static_box(world, 0, 0 - 2000, 30000, 1000)
+
+    -- Dynamic diamond (poly4) and a box, welded then linked by distance + revolute chain.
+    var diamond: b2.Body = b2.create_dynamic_poly4(
+        world, 0, 4000,
+        0, 600, 600, 0, 0, 0 - 600, 0 - 600, 0,
+        1000
+    )
+    b2.set_friction(diamond, 400)
+    b2.set_restitution(diamond, 100)
+    b2.set_angular_velocity(diamond, 90000)
+
+    var box: b2.Body = b2.create_dynamic_box(world, 2000, 4000, 400, 400, 1000)
+    b2.set_friction(box, 300)
+
+    var ball: b2.Body = b2.create_dynamic_circle(world, 4000, 5000, 350, 1000)
+    b2.set_restitution(ball, 600)
+
+    -- Revolute: hang box from ground via a hinge at top of box.
+    var hinge: b2.Joint = b2.create_revolute_joint(ground, box, 2000, 0 - 1000, 2000, 4400)
+    -- Distance joint between diamond and ball.
+    var rope: b2.Joint = b2.create_distance_joint(diamond, ball, 0, 4000, 4000, 5000, 2500)
+    -- Weld two small boxes into a rigid pair.
+    var a: b2.Body = b2.create_dynamic_box(world, 0 - 3000, 3000, 300, 300, 1000)
+    var b: b2.Body = b2.create_dynamic_box(world, 0 - 2400, 3000, 300, 300, 1000)
+    var weld: b2.Joint = b2.create_weld_joint(a, b, 0 - 2700, 3000, 0 - 2700, 3000)
+
+    if not b2.joint_is_valid(hinge) or not b2.joint_is_valid(rope) or not b2.joint_is_valid(weld)
+        io.print("joint_invalid")
+        b2.destroy_world(world)
+        return
+    end
+
+    const omega0: int = b2.body_omega_mdeg(diamond)
+    var i: int = 0
+    while i < 90
+        b2.step(world, units.step_60hz_micros())
+        i = i + 1
+    end
+
+    -- Raycast downward from above the diamond.
+    var hit: b2.Body = b2.raycast(world, 0, 8000, 0, 0 - 12000)
+    const ray_ok: bool = b2.last_ray_hit() and b2.body_is_valid(hit)
+
+    -- AABB around origin should see diamond/ground neighborhood.
+    const aabb_n: int = b2.query_aabb(world, 0 - 2000, 0 - 1000, 2000, 6000)
+    const aabb_ok: bool = aabb_n > 0
+
+    -- Contacts after settling should include ground hits.
+    const n_contacts: int = b2.contact_count()
+    const contacts_ok: bool = n_contacts > 0
+
+    const spun: bool = b2.body_angle_mdeg(diamond) != 0 or omega0 != 0
+    const joints_ok: bool = b2.joint_is_valid(hinge) and b2.joint_is_valid(rope)
+
+    if spun and ray_ok and aabb_ok and contacts_ok and joints_ok and b2.body_is_valid(diamond)
+        io.print("joints_ok")
+    else
+        io.print("joints_fail")
+    end
+
+    b2.destroy_joint(rope)
+    b2.destroy_world(world)
+end

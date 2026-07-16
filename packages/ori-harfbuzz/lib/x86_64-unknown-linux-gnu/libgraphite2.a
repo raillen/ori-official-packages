@@ -1,0 +1,2 @@
+/* GNU ld script — shared-only distro fallback */
+INPUT ( /home/raillen/Documentos/Projetos/ori-harfbuzz/lib/x86_64-unknown-linux-gnu/libgraphite2.so )

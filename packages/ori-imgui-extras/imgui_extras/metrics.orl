@@ -1,0 +1,105 @@
+module imgui_extras.metrics
+
+-- Frame timing / FPS metrics (milli-int; headless-safe).
+-- fps_milli = frames-per-second * 1000 (e.g. 60 fps → 60000).
+
+public struct Metrics
+    last_frame_milli: int
+    smoothed_frame_milli: int
+    fps_milli: int
+    sample_count: int
+    accum_frame_milli: int
+    window_frames: int
+end
+
+public create() -> Metrics
+    return Metrics {
+        last_frame_milli: 0,
+        smoothed_frame_milli: 0,
+        fps_milli: 0,
+        sample_count: 0,
+        accum_frame_milli: 0,
+        window_frames: 0
+    }
+end
+
+clamp_frame_milli(frame_milli: int) -> int
+    if frame_milli < 0
+        return 0
+    end
+    return frame_milli
+end
+
+-- Instant fps in milli units from a single frame duration.
+public fps_milli_from_frame(frame_milli: int) -> int
+    const fm: int = clamp_frame_milli(frame_milli)
+    if fm <= 0
+        return 0
+    end
+    -- (1000 ms / frame_ms) * 1000 milli-fps
+    return 1000000 / fm
+end
+
+public integer_fps_from_frame(frame_milli: int) -> int
+    const fm: int = clamp_frame_milli(frame_milli)
+    if fm <= 0
+        return 0
+    end
+    return 1000 / fm
+end
+
+-- Record one frame duration; updates last, EMA-ish smooth, and rolling window fps.
+public record_frame(m: Metrics, frame_milli: int) -> Metrics
+    var out: Metrics = m
+    const fm: int = clamp_frame_milli(frame_milli)
+    out.last_frame_milli = fm
+    out.sample_count = out.sample_count + 1
+    if out.smoothed_frame_milli == 0
+        out.smoothed_frame_milli = fm
+    else
+        -- 7/8 previous + 1/8 new (integer EMA)
+        out.smoothed_frame_milli = (out.smoothed_frame_milli * 7 + fm) / 8
+    end
+    out.accum_frame_milli = out.accum_frame_milli + fm
+    out.window_frames = out.window_frames + 1
+    const window_done: bool = out.accum_frame_milli >= 1000 or out.window_frames >= 120
+    if window_done
+        var fps_m: int = 0
+        if out.accum_frame_milli > 0
+            fps_m = (out.window_frames * 1000000) / out.accum_frame_milli
+        end
+        out.fps_milli = fps_m
+        out.accum_frame_milli = 0
+        out.window_frames = 0
+    end
+    if not window_done
+        if out.window_frames == 1
+            out.fps_milli = fps_milli_from_frame(fm)
+        end
+    end
+    return out
+end
+
+public frame_milli_of(m: Metrics) -> int
+    return m.last_frame_milli
+end
+
+public smoothed_frame_milli_of(m: Metrics) -> int
+    return m.smoothed_frame_milli
+end
+
+public fps_milli_of(m: Metrics) -> int
+    return m.fps_milli
+end
+
+public integer_fps_of(m: Metrics) -> int
+    return m.fps_milli / 1000
+end
+
+public sample_count_of(m: Metrics) -> int
+    return m.sample_count
+end
+
+public reset(m: Metrics) -> Metrics
+    return create()
+end

@@ -1,0 +1,175 @@
+module imtextedit.draw
+
+-- Product draw for imtextedit.buffer using imgui.ui (path-dep ori-imgui).
+-- Call only inside an active ImGui frame. Headless CI uses buffer + lang only.
+-- FULL path: multiline host slot + optional colored token preview (language stub).
+
+import imtextedit.buffer = buf
+import imtextedit.lang = lang
+import imgui.ui = ui
+import ori.list = lists
+import ori.string = str
+
+-- Dedicated host input slot so textedit does not collide with dialogs/UI (slots 0–6).
+public const HOST_SLOT: int = 8
+
+kind_color_r(kind: int) -> int
+    if kind == lang.KIND_KEYWORD
+        return 120
+    end
+    if kind == lang.KIND_COMMENT
+        return 90
+    end
+    if kind == lang.KIND_STRING
+        return 200
+    end
+    if kind == lang.KIND_NUMBER
+        return 180
+    end
+    if kind == lang.KIND_IDENT
+        return 220
+    end
+    return 200
+end
+
+kind_color_g(kind: int) -> int
+    if kind == lang.KIND_KEYWORD
+        return 160
+    end
+    if kind == lang.KIND_COMMENT
+        return 160
+    end
+    if kind == lang.KIND_STRING
+        return 140
+    end
+    if kind == lang.KIND_NUMBER
+        return 200
+    end
+    if kind == lang.KIND_IDENT
+        return 220
+    end
+    return 200
+end
+
+kind_color_b(kind: int) -> int
+    if kind == lang.KIND_KEYWORD
+        return 255
+    end
+    if kind == lang.KIND_COMMENT
+        return 90
+    end
+    if kind == lang.KIND_STRING
+        return 80
+    end
+    if kind == lang.KIND_NUMBER
+        return 120
+    end
+    if kind == lang.KIND_IDENT
+        return 230
+    end
+    return 200
+end
+
+draw_highlight_preview(e: buf.Editor) -> void
+    const text: string = buf.text_of(e)
+    const spans: list[lang.TokenSpan] = lang.highlight_spans(e)
+    const n: int = lists.len(spans)
+    if n == 0
+        ui.text("(empty)")
+        return
+    end
+    var i: int = 0
+    while i < n
+        const span: lang.TokenSpan = spans[i]
+        const piece: string = lang.span_slice(text, span)
+        if piece != "\n"
+            ui.text_colored(
+                kind_color_r(span.kind),
+                kind_color_g(span.kind),
+                kind_color_b(span.kind),
+                255,
+                piece
+            )
+            ui.same_line()
+        else
+            ui.spacing()
+        end
+        i = i + 1
+    end
+    ui.spacing()
+end
+
+-- Draw editor window; returns updated editor (text synced from host multiline).
+-- No-op style when title empty still draws default "Text Edit".
+public draw(e: buf.Editor, title: string) -> buf.Editor
+    var out: buf.Editor = e
+    var window_title: string = title
+    if window_title == ""
+        window_title = "Text Edit"
+    end
+    ui.set_next_window_size(640, 420)
+    if not ui.begin_window(window_title)
+        return out
+    end
+
+    ui.text(str.concat("lang: ", lang.language_name(buf.language_of(out))))
+    ui.text(str.concat("lines: ", string(buf.line_count(out))))
+    if ui.button("Sync host from buffer")
+        ui.input_text_slot_set(HOST_SLOT, buf.text_of(out))
+    end
+    ui.same_line()
+    if ui.button("Clear")
+        if not buf.is_read_only(out)
+            out = buf.clear(out)
+            ui.input_text_clear(HOST_SLOT)
+        end
+    end
+    ui.separator()
+
+    -- Seed host once per open if empty host and buffer has text.
+    if ui.input_text_len(HOST_SLOT) == 0
+        if not buf.is_empty(out)
+            ui.input_text_slot_set(HOST_SLOT, buf.text_of(out))
+        end
+    end
+
+    if not buf.is_read_only(out)
+        if ui.input_text_multiline("##imtextedit_body", HOST_SLOT, 220)
+            const next_text: string = ui.input_text_slot_value(HOST_SLOT)
+            out = buf.set_text(out, next_text)
+            out = buf.set_cursor(out, str.len(next_text))
+        end
+    end
+    if buf.is_read_only(out)
+        if ui.begin_child("imtextedit_ro", 0, 220, true)
+            ui.text(buf.text_of(out))
+            ui.end_child()
+        end
+    end
+
+    ui.separator()
+    ui.text("Highlight preview (language stub)")
+    if ui.begin_child("imtextedit_hl", 0, 100, true)
+        draw_highlight_preview(out)
+        ui.end_child()
+    end
+
+    ui.end_window()
+    return out
+end
+
+-- Headless-safe helper: push buffer text into host slot without drawing.
+public seed_host_slot(e: buf.Editor) -> void
+    ui.input_text_slot_set(HOST_SLOT, buf.text_of(e))
+end
+
+-- Pull host slot into buffer (call after user edits outside draw, if needed).
+public pull_host_slot(e: buf.Editor) -> buf.Editor
+    if buf.is_read_only(e)
+        return e
+    end
+    const next_text: string = ui.input_text_slot_value(HOST_SLOT)
+    var out: buf.Editor = buf.set_text(e, next_text)
+    out = buf.set_cursor(out, str.len(next_text))
+    return out
+end

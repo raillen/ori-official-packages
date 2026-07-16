@@ -1,0 +1,107 @@
+module game.assets
+
+import ori.list = lists
+
+public struct AssetCache
+    texture_paths: list[string]
+    texture_ids: list[int]
+    sound_paths: list[string]
+    sound_ids: list[int]
+end
+
+public create() -> AssetCache
+    var tp: list[string] = []
+    var ti: list[int] = []
+    var sp: list[string] = []
+    var si: list[int] = []
+    return AssetCache {
+        texture_paths: tp,
+        texture_ids: ti,
+        sound_paths: sp,
+        sound_ids: si
+    }
+end
+
+find_index(paths: list[string], path: string) -> int
+    const n: int = lists.len(paths)
+    var i: int = 0
+    while i < n
+        if paths[i] == path
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+public remember_texture(cache: AssetCache, path: string, id: int) -> AssetCache
+    const idx: int = find_index(cache.texture_paths, path)
+    if idx >= 0
+        return cache
+    end
+    var out: AssetCache = cache
+    lists.push(out.texture_paths, path)
+    lists.push(out.texture_ids, id)
+    return out
+end
+
+public remember_sound(cache: AssetCache, path: string, id: int) -> AssetCache
+    const idx: int = find_index(cache.sound_paths, path)
+    if idx >= 0
+        return cache
+    end
+    var out: AssetCache = cache
+    lists.push(out.sound_paths, path)
+    lists.push(out.sound_ids, id)
+    return out
+end
+
+public get_texture(cache: AssetCache, path: string) -> int
+    const idx: int = find_index(cache.texture_paths, path)
+    if idx < 0
+        return 0
+    end
+    return cache.texture_ids[idx]
+end
+
+public get_sound(cache: AssetCache, path: string) -> int
+    const idx: int = find_index(cache.sound_paths, path)
+    if idx < 0
+        return 0
+    end
+    return cache.sound_ids[idx]
+end
+
+public has_texture(cache: AssetCache, path: string) -> bool
+    return find_index(cache.texture_paths, path) >= 0
+end
+
+public has_sound(cache: AssetCache, path: string) -> bool
+    return find_index(cache.sound_paths, path) >= 0
+end
+
+public texture_count(cache: AssetCache) -> int
+    return lists.len(cache.texture_paths)
+end
+
+public sound_count(cache: AssetCache) -> int
+    return lists.len(cache.sound_paths)
+end
+
+public texture_id_at(cache: AssetCache, index: int) -> int
+    if index < 0 or index >= lists.len(cache.texture_ids)
+        return 0
+    end
+    return cache.texture_ids[index]
+end
+
+public sound_id_at(cache: AssetCache, index: int) -> int
+    if index < 0 or index >= lists.len(cache.sound_ids)
+        return 0
+    end
+    return cache.sound_ids[index]
+end
+
+public clear(cache: AssetCache) -> AssetCache
+    return create()
+end

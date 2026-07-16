@@ -1,0 +1,10 @@
+[package]
+name = "implot"
+version = "0.2.0"
+entry = "implot/charts.orl"
+ori_version = "0.3.0"
+description = "ImPlot for Ori (Dear ImGui plots)"
+license = "MIT"
+native_libs = ["ori_implot_shim"]
+# Draw APIs: headless bookkeeping always. Product FULL static is libori_implot_full.a
+# (link with sibling ori-imgui ImGui context). Does not alter GLFW-only imgui build.

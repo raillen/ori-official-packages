@@ -1,0 +1,120 @@
+module app.path_follow_sample
+
+-- GP4 deep: pure path_follow along manual waypoints (no recast).
+
+imports
+    game.app = app
+    game.draw = draw
+    game.draw3d = draw3d
+    game.camera3d = cam3
+    game.color = color
+    game.world = world
+    game.world_systems = systems
+    game.path_follow = pfollow
+    ori.math.vec2 = vec2
+    ori.math.vec3 = vec3
+    ori.format = fmt
+end
+
+var cam: cam3.Camera3D = cam3.create_perspective(
+    vec3.Vec3 { x: 50.0, y: 40.0, z: 50.0 },
+    vec3.Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+    45.0
+)
+var w: world.World = world.empty_world()
+var pf: pfollow.PathFollow = pfollow.empty()
+var eid: world.EntityId = 0
+var ready: bool = false
+
+bootstrap() -> void
+    if ready
+        return
+    end
+    var t: world.Transform = world.empty_transform()
+    t.x = 0.0
+    t.y = 4.0
+    t.z = 0.0
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "walker",
+            entity_type: "enemy",
+            primary_tag: "enemy"
+        },
+        t
+    )
+    eid = world.get_entity(w, 0).id
+    pf = pfollow.add_waypoint(pf, 20.0, 0.0)
+    pf = pfollow.add_waypoint(pf, 20.0, 20.0)
+    pf = pfollow.add_waypoint(pf, 0.0, 20.0)
+    pf = pfollow.add_waypoint(pf, 0.0, 0.0)
+    pf = pfollow.set_speed(pf, 24.0)
+    ready = true
+end
+
+on_update(dt: float) -> void
+    bootstrap()
+    match world.find_by_id(w, eid)
+        case some(e):
+            const vel: pfollow.VelXZ = pfollow.desired_velocity_xz(
+                pf,
+                e.transform.x,
+                e.transform.z
+            )
+            w = world.set_velocity(
+                w,
+                eid,
+                world.Velocity { vx: vel.vx, vy: 0.0, vz: vel.vz }
+            )
+            w = systems.move_system(w, dt)
+            match world.find_by_id(w, eid)
+                case some(e2):
+                    pf = pfollow.advance_if_arrived(pf, e2.transform.x, e2.transform.z)
+                case none:
+            end
+        case none:
+    end
+end
+
+on_draw() -> void
+    bootstrap()
+    cam3.begin_mode(cam)
+    draw3d.draw_grid(30, 8.0)
+    const n: int = pfollow.waypoint_count(pf)
+    var i: int = 0
+    while i < n
+        draw3d.draw_sphere(
+            vec3.Vec3 {
+                x: pfollow.waypoint_x_at(pf, i),
+                y: 2.0,
+                z: pfollow.waypoint_z_at(pf, i)
+            },
+            2.0,
+            color.YELLOW
+        )
+        i = i + 1
+    end
+    match world.find_by_id(w, eid)
+        case some(e):
+            draw3d.draw_sphere(
+                vec3.Vec3 {
+                    x: e.transform.x,
+                    y: e.transform.y,
+                    z: e.transform.z
+                },
+                4.0,
+                color.GREEN
+            )
+        case none:
+    end
+    cam3.end_mode()
+    var st: string = "GP4 path_follow wp=" + fmt.number_int(pfollow.current_index(pf))
+    if pfollow.finished(pf)
+        st = st + " DONE"
+    end
+    draw.draw_text(st, vec2.Vec2 { x: 8.0, y: 8.0 }, 16, color.WHITE)
+end
+
+main()
+    app.run_window("path_follow_sample", 960, 540, on_update, on_draw)
+end

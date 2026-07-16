@@ -1,0 +1,122 @@
+module test.markdown
+
+imports
+    markdown.parse = md
+    markdown.ime_stub = ime
+    ori.test = test
+end
+
+@test
+parse_headings_and_paragraphs()
+    const src: string = "# Title\n\nHello world\n\n## Section\nBody line"
+    const doc: md.Document = md.parse(src)
+    test.equal_int(md.block_count(doc), 4)
+    test.equal_int(md.count_kind(doc, md.KIND_HEADING), 2)
+    test.equal_int(md.count_kind(doc, md.KIND_PARAGRAPH), 2)
+    test.equal_text(md.first_heading_text(doc), "Title")
+
+    const h1: md.Block = md.block_at(doc, 0)
+    test.equal_int(h1.kind, md.KIND_HEADING)
+    test.equal_int(h1.level, 1)
+    test.equal_text(h1.text, "Title")
+
+    const p0: md.Block = md.block_at(doc, 1)
+    test.equal_int(p0.kind, md.KIND_PARAGRAPH)
+    test.equal_text(p0.text, "Hello world")
+
+    const h2: md.Block = md.block_at(doc, 2)
+    test.equal_int(h2.kind, md.KIND_HEADING)
+    test.equal_int(h2.level, 2)
+    test.equal_text(h2.text, "Section")
+
+    const p1: md.Block = md.block_at(doc, 3)
+    test.equal_int(p1.kind, md.KIND_PARAGRAPH)
+    test.equal_text(p1.text, "Body line")
+end
+
+@test
+parse_fenced_code_with_lang()
+    const src: string = "Intro\n\n```ori\nlet x = 1\nprint(x)\n```\n\nOutro"
+    const doc: md.Document = md.parse(src)
+    test.equal_int(md.block_count(doc), 3)
+    test.equal_int(md.count_kind(doc, md.KIND_CODE_FENCE), 1)
+    test.equal_int(md.count_kind(doc, md.KIND_PARAGRAPH), 2)
+
+    const code: md.Block = md.block_at(doc, 1)
+    test.equal_int(code.kind, md.KIND_CODE_FENCE)
+    test.equal_text(code.lang, "ori")
+    test.equal_text(code.text, "let x = 1\nprint(x)")
+    test.equal_text(md.kind_name(code.kind), "code_fence")
+
+    const intro: md.Block = md.block_at(doc, 0)
+    test.equal_text(intro.text, "Intro")
+    const outro: md.Block = md.block_at(doc, 2)
+    test.equal_text(outro.text, "Outro")
+end
+
+@test
+parse_empty_and_paragraph_join()
+    const empty: md.Document = md.parse("")
+    test.assert(md.is_empty(empty), "empty")
+    test.equal_int(md.block_count(empty), 0)
+    test.equal_text(md.first_heading_text(empty), "")
+    test.equal_int(md.block_at(empty, 0).kind, md.KIND_NONE)
+
+    -- Adjacent non-blank lines merge into one paragraph.
+    const joined: md.Document = md.parse("one\ntwo\nthree")
+    test.equal_int(md.block_count(joined), 1)
+    test.equal_text(md.block_at(joined, 0).text, "one two three")
+
+    -- Heading levels clamp 1..6 via constructor helper.
+    const h: md.Block = md.heading_block(9, "Deep")
+    test.equal_int(h.level, md.MAX_HEADING_LEVEL)
+    test.equal_text(md.kind_name(md.KIND_HEADING), "heading")
+    test.equal_text(md.kind_name(md.KIND_PARAGRAPH), "paragraph")
+    test.equal_text(md.kind_name(0), "none")
+end
+
+@test
+document_ui_state_and_source()
+    var doc: md.Document = md.parse_with_title("# A", "Help")
+    test.equal_text(md.title_of(doc), "Help")
+    test.equal_text(md.source_of(doc), "# A")
+    test.equal_int(md.block_count(doc), 1)
+    doc = md.open_ui(doc)
+    test.assert(md.is_open(doc), "open")
+    doc = md.close(doc)
+    test.assert(not md.is_open(doc), "closed")
+    doc = md.set_title(doc, "Docs")
+    test.equal_text(md.title_of(doc), "Docs")
+end
+
+@test
+ime_linux_stub_is_noop()
+    var s: ime.ImeState = ime.create()
+    test.equal_int(ime.platform_of(s), ime.PLATFORM_LINUX)
+    test.equal_text(ime.platform_name(s), "linux")
+    test.assert(not ime.supports_real_ime(s), "no real IME on stub")
+    test.assert(ime.is_windows_only_real_impl(), "IMM32 is Windows Phase OS")
+    test.assert(not ime.is_enabled(s), "disabled by default")
+
+    s = ime.enable(s)
+    test.assert(ime.is_enabled(s), "enable flag only")
+    s = ime.set_composition(s, "你好")
+    test.equal_text(ime.composition_text(s), "")
+    test.assert(not ime.is_composing(s), "composition stays empty")
+    test.assert(not ime.process_key(s, 65), "keys not consumed")
+    test.equal_int(ime.candidate_count_of(s), 0)
+
+    s = ime.begin_composition(s)
+    test.equal_text(ime.composition_text(s), "")
+    s = ime.end_composition(s)
+    s = ime.disable(s)
+    test.assert(not ime.is_enabled(s), "disabled")
+    s = ime.clear(s)
+    test.assert(not ime.is_enabled(s), "cleared")
+
+    var win: ime.ImeState = ime.create_for_platform(ime.PLATFORM_WINDOWS)
+    test.equal_int(ime.platform_of(win), ime.PLATFORM_WINDOWS)
+    test.equal_text(ime.platform_name(win), "windows")
+    -- Even when labeled Windows, this package only ships Linux no-op stubs.
+    test.assert(not ime.supports_real_ime(win), "real IMM32 deferred Phase OS")
+end

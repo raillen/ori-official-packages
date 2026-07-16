@@ -1,0 +1,144 @@
+module game.input
+
+import raylib = rl
+import ori.math.vec2 = vec2
+
+public const KEY_RIGHT: int = 262
+public const KEY_LEFT: int = 263
+public const KEY_DOWN: int = 264
+public const KEY_UP: int = 265
+public const KEY_SPACE: int = 32
+public const KEY_ENTER: int = 257
+public const KEY_ESCAPE: int = 256
+public const KEY_A: int = 65
+public const KEY_C: int = 67
+public const KEY_D: int = 68
+public const KEY_E: int = 69
+public const KEY_Q: int = 81
+public const KEY_S: int = 83
+public const KEY_W: int = 87
+public const KEY_R: int = 82
+public const KEY_T: int = 84
+public const KEY_F: int = 70
+public const KEY_P: int = 80
+public const KEY_K: int = 75
+public const KEY_V: int = 86
+public const KEY_F3: int = 292
+public const KEY_F5: int = 294
+public const KEY_F6: int = 295
+public const KEY_F12: int = 301
+public const KEY_F11: int = 300
+public const KEY_LEFT_SHIFT: int = 340
+public const KEY_RIGHT_SHIFT: int = 344
+public const KEY_LEFT_CONTROL: int = 341
+public const KEY_RIGHT_CONTROL: int = 345
+public const KEY_1: int = 49
+public const KEY_2: int = 50
+public const KEY_3: int = 51
+public const KEY_4: int = 52
+
+public const MOUSE_LEFT: int = 0
+public const MOUSE_RIGHT: int = 1
+public const MOUSE_MIDDLE: int = 2
+
+-- raylib GAMEPAD_BUTTON_* (common subset)
+public const GAMEPAD_BUTTON_LEFT_FACE_UP: int = 1
+public const GAMEPAD_BUTTON_LEFT_FACE_RIGHT: int = 2
+public const GAMEPAD_BUTTON_LEFT_FACE_DOWN: int = 3
+public const GAMEPAD_BUTTON_LEFT_FACE_LEFT: int = 4
+public const GAMEPAD_BUTTON_RIGHT_FACE_UP: int = 5
+public const GAMEPAD_BUTTON_RIGHT_FACE_RIGHT: int = 6
+public const GAMEPAD_BUTTON_RIGHT_FACE_DOWN: int = 7
+public const GAMEPAD_BUTTON_RIGHT_FACE_LEFT: int = 8
+public const GAMEPAD_BUTTON_LEFT_TRIGGER_1: int = 9
+public const GAMEPAD_BUTTON_LEFT_TRIGGER_2: int = 10
+public const GAMEPAD_BUTTON_RIGHT_TRIGGER_1: int = 11
+public const GAMEPAD_BUTTON_RIGHT_TRIGGER_2: int = 12
+public const GAMEPAD_BUTTON_MIDDLE_LEFT: int = 13
+public const GAMEPAD_BUTTON_MIDDLE: int = 14
+public const GAMEPAD_BUTTON_MIDDLE_RIGHT: int = 15
+public const GAMEPAD_BUTTON_LEFT_THUMB: int = 16
+public const GAMEPAD_BUTTON_RIGHT_THUMB: int = 17
+
+public const GAMEPAD_AXIS_LEFT_X: int = 0
+public const GAMEPAD_AXIS_LEFT_Y: int = 1
+public const GAMEPAD_AXIS_RIGHT_X: int = 2
+public const GAMEPAD_AXIS_RIGHT_Y: int = 3
+public const GAMEPAD_AXIS_LEFT_TRIGGER: int = 4
+public const GAMEPAD_AXIS_RIGHT_TRIGGER: int = 5
+
+public key_down(key: int) -> bool
+    return rl.ori_rl_IsKeyDown(key)
+end
+
+public key_pressed(key: int) -> bool
+    return rl.ori_rl_IsKeyPressed(key)
+end
+
+public key_released(key: int) -> bool
+    return rl.ori_rl_IsKeyReleased(key)
+end
+
+public key_up(key: int) -> bool
+    return rl.ori_rl_IsKeyUp(key)
+end
+
+public next_key() -> int
+    return rl.ori_rl_GetKeyPressed()
+end
+
+public mouse_x() -> float
+    return rl.ori_rl_GetMouseX()
+end
+
+public mouse_y() -> float
+    return rl.ori_rl_GetMouseY()
+end
+
+public mouse_pos() -> vec2.Vec2
+    return vec2.Vec2 { x: rl.ori_rl_GetMouseX(), y: rl.ori_rl_GetMouseY() }
+end
+
+public mouse_delta() -> vec2.Vec2
+    return vec2.Vec2 { x: rl.ori_rl_GetMouseDeltaX(), y: rl.ori_rl_GetMouseDeltaY() }
+end
+
+public mouse_down(button: int) -> bool
+    return rl.ori_rl_IsMouseButtonDown(button)
+end
+
+public mouse_pressed(button: int) -> bool
+    return rl.ori_rl_IsMouseButtonPressed(button)
+end
+
+public mouse_released(button: int) -> bool
+    return rl.ori_rl_IsMouseButtonReleased(button)
+end
+
+public mouse_wheel() -> float
+    return rl.ori_rl_GetMouseWheelMove()
+end
+
+public gamepad_available(gamepad: int) -> bool
+    return rl.ori_rl_IsGamepadAvailable(gamepad)
+end
+
+public gamepad_button_pressed(gamepad: int, button: int) -> bool
+    return rl.ori_rl_IsGamepadButtonPressed(gamepad, button)
+end
+
+public gamepad_button_down(gamepad: int, button: int) -> bool
+    return rl.ori_rl_IsGamepadButtonDown(gamepad, button)
+end
+
+public gamepad_button_released(gamepad: int, button: int) -> bool
+    return rl.ori_rl_IsGamepadButtonReleased(gamepad, button)
+end
+
+public gamepad_axis(gamepad: int, axis: int) -> float
+    return rl.ori_rl_GetGamepadAxisMovement(gamepad, axis)
+end
+
+public gamepad_button_pressed_any() -> int
+    return rl.ori_rl_GetGamepadButtonPressed()
+end

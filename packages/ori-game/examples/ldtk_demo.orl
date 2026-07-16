@@ -1,0 +1,111 @@
+module app.ldtk_demo
+
+-- Load assets/maps/sample.ldtk and walk solid IntGrid cells.
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.shape = shape
+    game.tilemap = tilemap
+    game.ldtk = ldtk
+    ori.math.vec2 = vec2
+    ori.math = math
+    ori.list = lists
+end
+
+var grid: tilemap.Tilemap = tilemap.create(8, 5, 32.0)
+var ready: bool = false
+var status: string = "loading..."
+var px: float = 48.0
+var py: float = 64.0
+const size: float = 14.0
+const speed: float = 140.0
+
+solid_at(wx: float, wy: float) -> bool
+    var g: tilemap.Tilemap = grid
+    if g.tile_size <= 0.0
+        return false
+    end
+    const tx: int = math.floor(wx / g.tile_size)
+    const ty: int = math.floor(wy / g.tile_size)
+    return ldtk.is_solid_value(tilemap.get_tile(grid, tx, ty))
+end
+
+on_update(dt: float) -> void
+    if not ready
+        return
+    end
+    var nx: float = px
+    var ny: float = py
+    if input.key_down(input.KEY_RIGHT)
+        nx = nx + speed * dt
+    end
+    if input.key_down(input.KEY_LEFT)
+        nx = nx - speed * dt
+    end
+    if input.key_down(input.KEY_DOWN)
+        ny = ny + speed * dt
+    end
+    if input.key_down(input.KEY_UP)
+        ny = ny - speed * dt
+    end
+    if not solid_at(nx, ny) and not solid_at(nx + size, ny + size)
+        px = nx
+        py = ny
+    end
+end
+
+on_draw() -> void
+    if not ready
+        draw.draw_text(status, vec2.Vec2 { x: 10.0, y: 10.0 }, 18, color.RED)
+        return
+    end
+    var g: tilemap.Tilemap = grid
+    var y: int = 0
+    while y < g.height
+        var x: int = 0
+        while x < g.width
+            const v: int = tilemap.get_tile(grid, x, y)
+            if ldtk.is_solid_value(v)
+                draw.draw_rect(tilemap.tile_rect(grid, x, y), color.DARKGREEN)
+            else
+                draw.draw_rect(tilemap.tile_rect(grid, x, y), color.DARKGRAY)
+            end
+            x = x + 1
+        end
+        y = y + 1
+    end
+    draw.draw_rect(shape.rect(px, py, size, size), color.YELLOW)
+    draw.draw_text("LDtk demo — arrows", vec2.Vec2 { x: 10.0, y: 10.0 }, 16, color.WHITE)
+    draw.draw_text(status, vec2.Vec2 { x: 10.0, y: 32.0 }, 14, color.LIGHTGRAY)
+end
+
+main()
+    match ldtk.load_project("assets/maps/sample.ldtk")
+        case ok(proj):
+            match ldtk.first_level(proj)
+                case some(lv):
+                    match ldtk.level_to_tilemap(lv)
+                        case some(tm):
+                            grid = tm
+                            ready = true
+                            status = "loaded sample.ldtk"
+                            const spawns: list[ldtk.LdtkEntity] = ldtk.entities_of(lv, "PlayerStart")
+                            if lists.len(spawns) > 0
+                                var s: ldtk.LdtkEntity = spawns[0]
+                                px = s.x
+                                py = s.y
+                            end
+                        case none:
+                            status = "no collision layer"
+                    end
+                case none:
+                    status = "no level"
+            end
+        case err(msg):
+            status = msg
+    end
+    app.run_window("LDtk Demo", 320, 200, on_update, on_draw)
+end

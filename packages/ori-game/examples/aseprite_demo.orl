@@ -1,0 +1,74 @@
+module app.aseprite_demo
+
+-- Animate Aseprite JSON tags (debug rects — no PNG required).
+-- Space toggles idle / walk.
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.aseprite = ase
+    game.shape = shape
+    ori.math.vec2 = vec2
+end
+
+var ready: bool = false
+var status: string = "loading..."
+var use_walk: bool = false
+var player: ase.AsePlayer = ase.create_player(
+    ase.AseSheet {
+        image: "",
+        sheet_w: 0,
+        sheet_h: 0,
+        frames: [],
+        tags: []
+    },
+    true
+)
+
+on_update(dt: float) -> void
+    if not ready
+        return
+    end
+    if input.key_pressed(input.KEY_SPACE)
+        use_walk = not use_walk
+        if use_walk
+            player = ase.play_tag(player, "walk")
+            status = "tag: walk"
+        else
+            player = ase.play_tag(player, "idle")
+            status = "tag: idle"
+        end
+    end
+    player = ase.tick(player, dt)
+end
+
+on_draw() -> void
+    if not ready
+        draw.draw_text(status, vec2.Vec2 { x: 10.0, y: 10.0 }, 18, color.RED)
+        return
+    end
+    match ase.current_frame(player)
+        case some(f):
+            draw.draw_rect(shape.rect(140.0, 80.0, f.w, f.h), color.ORANGE)
+            draw.draw_text(f.name, vec2.Vec2 { x: 10.0, y: 140.0 }, 14, color.YELLOW)
+        case none:
+    end
+    draw.draw_text("Aseprite demo (debug rects)", vec2.Vec2 { x: 10.0, y: 10.0 }, 18, color.WHITE)
+    draw.draw_text(status, vec2.Vec2 { x: 10.0, y: 36.0 }, 16, color.LIGHTGRAY)
+    draw.draw_text("Space = idle/walk", vec2.Vec2 { x: 10.0, y: 56.0 }, 14, color.GRAY)
+end
+
+main()
+    match ase.load_sheet("assets/sprites/hero.json")
+        case ok(sheet):
+            player = ase.create_player(sheet, true)
+            player = ase.play_tag(player, "idle")
+            ready = true
+            status = "tag: idle"
+        case err(msg):
+            status = msg
+    end
+    app.run_window("Aseprite Demo", 320, 200, on_update, on_draw)
+end

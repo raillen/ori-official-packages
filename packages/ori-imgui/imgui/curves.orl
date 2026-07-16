@@ -1,0 +1,59 @@
+module imgui.curves
+
+-- Cubic-ish piecewise linear curve (milli) for Tier 2 MVP.
+
+import ori.list = lists
+
+public struct Point
+    t_milli: int
+    v_milli: int
+end
+
+public struct Curve
+    points: list[Point]
+end
+
+public create() -> Curve
+    return Curve { points: [] }
+end
+
+public add_point(c: Curve, t_milli: int, v_milli: int) -> Curve
+    var out: Curve = c
+    lists.push(out.points, Point { t_milli: t_milli, v_milli: v_milli })
+    return out
+end
+
+public sample(c: Curve, t_milli: int) -> int
+    const n: int = lists.len(c.points)
+    if n == 0
+        return 0
+    end
+    if n == 1
+        return c.points[0].v_milli
+    end
+    if t_milli <= c.points[0].t_milli
+        return c.points[0].v_milli
+    end
+    if t_milli >= c.points[n - 1].t_milli
+        return c.points[n - 1].v_milli
+    end
+    var i: int = 0
+    while i < n - 1
+        const a: Point = c.points[i]
+        const b: Point = c.points[i + 1]
+        if t_milli >= a.t_milli and t_milli <= b.t_milli
+            const dt: int = b.t_milli - a.t_milli
+            if dt == 0
+                return a.v_milli
+            end
+            const u: int = ((t_milli - a.t_milli) * 1000) / dt
+            return a.v_milli + ((b.v_milli - a.v_milli) * u) / 1000
+        end
+        i = i + 1
+    end
+    return c.points[n - 1].v_milli
+end
+
+public point_count(c: Curve) -> int
+    return lists.len(c.points)
+end

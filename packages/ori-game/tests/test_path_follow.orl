@@ -1,0 +1,35 @@
+module test.path_follow
+
+imports
+    game.path_follow = pfollow
+    ori.math = math
+    ori.test = test
+end
+
+@test
+velocity_magnitude_equals_speed()
+    var pf: pfollow.PathFollow = pfollow.empty()
+    pf = pfollow.add_waypoint(pf, 100.0, 0.0)
+    pf = pfollow.set_speed(pf, 32.0)
+    -- Far from the waypoint, speed must still be ~32 (regression:
+    -- old speed/(d²+1) scaling crawled at long distances).
+    const far: pfollow.VelXZ = pfollow.desired_velocity_xz(pf, 0.0, 0.0)
+    const mag_far: float = math.hypot(far.vx, far.vz)
+    test.assert(mag_far > 31.9 and mag_far < 32.1, "far speed ~32")
+    -- Close (but outside arrive_eps) must also be ~32, not speed/2.
+    const near: pfollow.VelXZ = pfollow.desired_velocity_xz(pf, 96.0, 0.0)
+    const mag_near: float = math.hypot(near.vx, near.vz)
+    test.assert(mag_near > 31.9 and mag_near < 32.1, "near speed ~32")
+end
+
+@test
+waypoints_and_finish()
+    var pf: pfollow.PathFollow = pfollow.empty()
+    pf = pfollow.add_waypoint(pf, 10.0, 0.0)
+    pf = pfollow.add_waypoint(pf, 10.0, 10.0)
+    test.equal_int(pfollow.waypoint_count(pf), 2)
+    pf = pfollow.advance_if_arrived(pf, 10.0, 0.0)
+    test.equal_int(pfollow.current_index(pf), 1)
+    pf = pfollow.advance_if_arrived(pf, 10.0, 10.0)
+    test.assert(pfollow.finished(pf), "finished")
+end

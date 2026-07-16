@@ -1,0 +1,27 @@
+module game.mechanics.platforms
+
+import game.shape = shape
+import game.collision = collision
+import ori.math.vec2 = vec2
+
+public struct Platform
+    rect: shape.Rectangle
+    solid: bool
+end
+
+public resolve_floor(pos: vec2.Vec2, half_w: float, half_h: float, plat: Platform) -> vec2.Vec2
+    if not plat.solid
+        return pos
+    end
+    const body: shape.Rectangle = shape.Rectangle {
+        x: pos.x - half_w,
+        y: pos.y - half_h,
+        width: half_w * 2.0,
+        height: half_h * 2.0
+    }
+    if not collision.rects_overlap(body, plat.rect)
+        return pos
+    end
+    -- snap on top
+    return vec2.Vec2 { x: pos.x, y: plat.rect.y - half_h }
+end

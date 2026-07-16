@@ -1,0 +1,70 @@
+module test.context_image
+
+imports
+    imgui.ui = ui
+    ori.test = test
+end
+
+-- Multi-context + image helpers (PR5 / B3). Needs host window (init).
+
+@test
+primary_context_after_init()
+    test.assert(ui.init(320, 200, "ctx_image_t1"), "init")
+    test.equal_int(ui.current_context(), 0)
+    test.assert(ui.context_is_live(0), "slot0 live")
+    test.assert(not ui.context_is_live(1), "slot1 empty")
+    test.assert(ui.max_contexts() >= 2, "pool size")
+    ui.shutdown()
+end
+
+@test
+create_set_destroy_extra_context()
+    test.assert(ui.init(320, 200, "ctx_image_t2"), "init")
+    test.equal_int(ui.current_context(), 0)
+    var extra: int = ui.create_context()
+    test.assert(extra > 0, "extra slot id")
+    test.assert(ui.context_is_live(extra), "extra live")
+    -- create must not steal current
+    test.equal_int(ui.current_context(), 0)
+    test.assert(ui.set_current_context(extra), "set extra")
+    test.equal_int(ui.current_context(), extra)
+    test.assert(ui.set_current_context(0), "back to primary")
+    test.equal_int(ui.current_context(), 0)
+    ui.destroy_context(extra)
+    test.assert(not ui.context_is_live(extra), "destroyed")
+    test.assert(not ui.set_current_context(extra), "set dead fails")
+    test.equal_int(ui.current_context(), 0)
+    ui.shutdown()
+end
+
+@test
+destroy_primary_refused_and_switch_back()
+    test.assert(ui.init(320, 200, "ctx_image_t3"), "init")
+    var a: int = ui.create_context()
+    test.assert(a > 0, "a")
+    test.assert(ui.set_current_context(a), "switch a")
+    test.equal_int(ui.current_context(), a)
+    -- destroying current extra restores primary
+    ui.destroy_context(a)
+    test.equal_int(ui.current_context(), 0)
+    -- refuse destroy of primary
+    ui.destroy_context(0)
+    test.assert(ui.context_is_live(0), "primary still live")
+    ui.shutdown()
+end
+
+@test
+image_and_image_button_in_frame()
+    test.assert(ui.init(320, 200, "ctx_image_t4"), "init")
+    ui.begin_frame()
+    if ui.begin_window("Tex")
+        -- tex_id 0 is invalid GL but still a legal call (opaque int id)
+        ui.image(0, 16, 16)
+        ui.image(42, 32, 24)
+        -- no click without input: button returns false
+        test.assert(not ui.image_button("tex_btn", 7, 16, 16), "no click")
+        ui.end_window()
+    end
+    ui.end_frame()
+    ui.shutdown()
+end

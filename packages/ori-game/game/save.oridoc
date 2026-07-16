@@ -1,0 +1,147 @@
+# save — Sistema de Save/Load
+
+Módulo para salvar e carregar progresso do jogo.
+
+## Checkpoint
+
+Ponto de verificação.
+
+```ori
+struct Checkpoint
+    pos: Vec2
+    id: string
+    activated: bool = false
+end
+```
+
+## SaveData
+
+Dados para salvar.
+
+```ori
+struct SaveData
+    player_pos: Vec2
+    health: int
+    score: int
+    level: int
+    inventory: list<string>
+    activated_checkpoints: list<string>
+    defeated_bosses: list<string>
+    timestamp: double = 0.0
+end
+```
+
+## SaveSystem
+
+Gerenciador de saves.
+
+```ori
+struct SaveSystem
+    checkpoints: list<Checkpoint>
+    last_checkpoint: Checkpoint = nil
+    save_slots: int = 3
+end
+```
+
+## Funções
+
+### create_save_system
+
+Cria um novo sistema de save.
+
+```ori
+func create_save_system() -> SaveSystem
+```
+
+### add_checkpoint
+
+Adiciona um checkpoint.
+
+```ori
+func add_checkpoint(system: SaveSystem, cp: Checkpoint) -> void
+```
+
+### activate_checkpoint
+
+Ativa um checkpoint.
+
+```ori
+func activate_checkpoint(system: SaveSystem, cp_id: string) -> void
+```
+
+### get_last_checkpoint
+
+Retorna o último checkpoint ativo.
+
+```ori
+func get_last_checkpoint(system: SaveSystem) -> optional<Checkpoint>
+```
+
+### respawn_position
+
+Retorna a posição de respawn.
+
+```ori
+func respawn_position(system: SaveSystem) -> Vec2
+```
+
+### save_game
+
+Salva o jogo.
+
+```ori
+func save_game(data: SaveData, slot: int) -> bool
+```
+
+### load_game
+
+Carrega o jogo.
+
+```ori
+func load_game(slot: int) -> optional<SaveData>
+```
+
+### delete_save
+
+Deleta um save.
+
+```ori
+func delete_save(slot: int) -> bool
+```
+
+### has_save
+
+Verifica se existe um save.
+
+```ori
+func has_save(slot: int) -> bool
+```
+
+**Exemplo:**
+```ori
+var save_system = save.create_save_system()
+
+-- Adicionar checkpoint
+save.add_checkpoint(save_system, save.Checkpoint(
+    pos: vec2.Vec2(x: 100.0, y: 200.0),
+    id: "level_1_start"
+))
+
+-- Ativar checkpoint
+save.activate_checkpoint(save_system, "level_1_start")
+
+-- Respawn
+var respawn_pos = save.respawn_position(save_system)
+
+-- Salvar
+var data = save.SaveData(
+    player_pos: player.pos,
+    health: player.hp.current,
+    score: score,
+    level: 1,
+    inventory: list<string>(),
+    activated_checkpoints: list<string>(),
+    defeated_bosses: list<string>()
+)
+save.save_game(data, 1)
+```

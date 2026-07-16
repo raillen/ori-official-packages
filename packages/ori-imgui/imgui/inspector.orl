@@ -1,0 +1,82 @@
+module imgui.inspector
+
+-- Tier 1 inspector helpers: labelled property rows on top of imgui.ui.
+
+import imgui.ui = ui
+
+public struct IntField
+    label: string
+    value: int
+    v_min: int
+    v_max: int
+end
+
+public struct BoolField
+    label: string
+    value: bool
+end
+
+public struct MilliField
+    label: string
+    value_milli: int
+    v_min_milli: int
+    v_max_milli: int
+end
+
+public int_field(label: string, value: int, v_min: int, v_max: int) -> IntField
+    return IntField {
+        label: label,
+        value: value,
+        v_min: v_min,
+        v_max: v_max
+    }
+end
+
+public bool_field(label: string, value: bool) -> BoolField
+    return BoolField { label: label, value: value }
+end
+
+public milli_field(label: string, value_milli: int, v_min: int, v_max: int) -> MilliField
+    return MilliField {
+        label: label,
+        value_milli: value_milli,
+        v_min_milli: v_min,
+        v_max_milli: v_max
+    }
+end
+
+public draw_int(f: IntField) -> IntField
+    var out: IntField = f
+    out.value = ui.slider_int(f.label, f.value, f.v_min, f.v_max)
+    return out
+end
+
+public draw_bool(f: BoolField) -> BoolField
+    var out: BoolField = f
+    out.value = ui.checkbox(f.label, f.value)
+    return out
+end
+
+public draw_milli(f: MilliField) -> MilliField
+    var out: MilliField = f
+    out.value_milli = ui.slider_float_milli(f.label, f.value_milli, f.v_min_milli, f.v_max_milli)
+    return out
+end
+
+public section(title: string) -> bool
+    return ui.collapsing_header(title)
+end
+
+public begin_panel(title: string) -> bool
+    return ui.begin_window(title)
+end
+
+public end_panel() -> void
+    ui.end_window()
+end
+
+public label_value(label: string, value: string) -> void
+    ui.bullet_text(label)
+    ui.same_line()
+    ui.text(value)
+end

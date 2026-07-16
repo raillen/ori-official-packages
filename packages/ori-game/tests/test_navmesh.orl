@@ -1,0 +1,65 @@
+module test.navmesh
+
+imports
+    game.navmesh = nav
+    ori.test = test
+end
+
+@test
+plane_path_has_waypoints()
+    test.assert(nav.build_plane(20000, 20000, 300), "build_plane")
+    test.assert(nav.is_ready(), "ready")
+    const n: int = nav.find_path(2000, 0, 10000, 12000, 0, 10000)
+    test.assert(n >= 2, "waypoint_count >= 2")
+    test.equal_int(nav.waypoint_count(), n)
+    const x0: int = nav.waypoint_x(0)
+    const x1: int = nav.waypoint_x(n - 1)
+    test.assert(x0 < 5000, "start x near begin")
+    test.assert(x1 > 8000, "end x near goal")
+    nav.destroy()
+end
+
+@test
+triangle_soup_build_and_path()
+    nav.mesh_clear()
+    const v0: int = nav.mesh_add_vertex(0, 0, 0)
+    const v1: int = nav.mesh_add_vertex(10000, 0, 0)
+    const v2: int = nav.mesh_add_vertex(10000, 0, 10000)
+    const v3: int = nav.mesh_add_vertex(0, 0, 10000)
+    test.equal_int(v0, 0)
+    test.equal_int(v3, 3)
+    test.assert(nav.mesh_add_triangle(0, 2, 1), "tri0")
+    test.assert(nav.mesh_add_triangle(0, 3, 2), "tri1")
+    test.equal_int(nav.mesh_vertex_count(), 4)
+    test.equal_int(nav.mesh_triangle_count(), 2)
+    test.assert(nav.build_mesh(300, 0), "build_mesh")
+    test.assert(nav.is_ready(), "ready after soup")
+    const n: int = nav.find_path(1500, 0, 5000, 8500, 0, 5000)
+    test.assert(n >= 2, "soup path waypoints")
+    nav.destroy()
+end
+
+@test
+nearest_poly_snaps_point()
+    test.assert(nav.build_plane(15000, 15000, 300), "build")
+    test.assert(nav.find_nearest(5000, 500, 5000), "nearest found")
+    const nx: int = nav.nearest_x()
+    const nz: int = nav.nearest_z()
+    test.assert(nx > 2000, "nearest x low")
+    test.assert(nx < 8000, "nearest x high")
+    test.assert(nz > 2000, "nearest z low")
+    test.assert(nz < 8000, "nearest z high")
+    nav.destroy()
+    test.assert(not nav.find_nearest(5000, 0, 5000), "no nearest without mesh")
+end
+
+@test
+destroy_clears_path()
+    test.assert(nav.build_plane_ex(12000, 12000, 300, 200), "build_plane_ex")
+    test.assert(nav.is_ready(), "ready")
+    const n: int = nav.find_path(2000, 0, 6000, 9000, 0, 6000)
+    test.assert(n >= 2, "path with custom radius")
+    nav.destroy()
+    test.assert(not nav.is_ready(), "not ready after destroy")
+    test.equal_int(nav.find_path(1000, 0, 5000, 8000, 0, 5000), 0)
+end

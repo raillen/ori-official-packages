@@ -1,0 +1,85 @@
+module game.audio_buses
+
+-- X5: named volume buses (master / sfx / bgm) over game.audio.
+
+import game.audio = audio
+
+public struct BusMixer
+    master: float
+    sfx: float
+    bgm: float
+    ready: bool
+end
+
+public create() -> BusMixer
+    return BusMixer {
+        master: 1.0,
+        sfx: 1.0,
+        bgm: 0.7,
+        ready: false
+    }
+end
+
+public ensure_init(m: BusMixer) -> BusMixer
+    var out: BusMixer = m
+    if out.ready == false
+        audio.init()
+        out.ready = true
+        apply_master(out)
+    end
+    return out
+end
+
+public apply_master(m: BusMixer) -> void
+    audio.set_master_volume(m.master)
+end
+
+public set_master(m: BusMixer, v: float) -> BusMixer
+    var out: BusMixer = m
+    out.master = clamp01(v)
+    if out.ready
+        apply_master(out)
+    end
+    return out
+end
+
+public set_sfx(m: BusMixer, v: float) -> BusMixer
+    var out: BusMixer = m
+    out.sfx = clamp01(v)
+    return out
+end
+
+public set_bgm(m: BusMixer, v: float) -> BusMixer
+    var out: BusMixer = m
+    out.bgm = clamp01(v)
+    return out
+end
+
+clamp01(v: float) -> float
+    if v < 0.0
+        return 0.0
+    end
+    if v > 1.0
+        return 1.0
+    end
+    return v
+end
+
+public sfx_volume(m: BusMixer) -> float
+    return m.master * m.sfx
+end
+
+public bgm_volume(m: BusMixer) -> float
+    return m.master * m.bgm
+end
+
+-- Play SFX with bus attenuation.
+public play_sfx(m: BusMixer, sound: audio.SoundId) -> void
+    audio.set_sound_volume(sound, sfx_volume(m))
+    audio.play_sound(sound)
+end
+
+public play_bgm(m: BusMixer, music: audio.MusicId) -> void
+    audio.set_music_volume(music, bgm_volume(m))
+    audio.play_music(music)
+end

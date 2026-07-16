@@ -1,0 +1,629 @@
+module game.ogame_level_csg
+
+-- Multi-piece AABB CSG: oriented box → world AABB, sequential carve into N slabs.
+
+import ori.list = lists
+import ori.math = math
+
+public struct Aabb
+    x: float
+    y: float
+    z: float
+    sx: float
+    sy: float
+    sz: float
+end
+
+-- Center + full size + Euler degrees (XYZ order used by Studio / level JSON).
+public struct OrientedBox
+    x: float
+    y: float
+    z: float
+    sx: float
+    sy: float
+    sz: float
+    rx: float
+    ry: float
+    rz: float
+end
+
+-- Axis-aligned min/max corners (not center/size).
+public struct Bounds3
+    min_x: float
+    max_x: float
+    min_y: float
+    max_y: float
+    min_z: float
+    max_z: float
+end
+
+struct Corner3
+    x: float
+    y: float
+    z: float
+end
+
+-- Cached sin/cos for Rx, Ry, Rz (radians).
+struct RotBasis
+    cx: float
+    sx: float
+    cy: float
+    sy: float
+    cz: float
+    sz: float
+end
+
+public aabb(
+    x: float,
+    y: float,
+    z: float,
+    sx: float,
+    sy: float,
+    sz: float
+) -> Aabb
+    return Aabb { x: x, y: y, z: z, sx: sx, sy: sy, sz: sz }
+end
+
+public oriented_box(
+    x: float,
+    y: float,
+    z: float,
+    sx: float,
+    sy: float,
+    sz: float,
+    rx: float,
+    ry: float,
+    rz: float
+) -> OrientedBox
+    return OrientedBox {
+        x: x, y: y, z: z, sx: sx, sy: sy, sz: sz, rx: rx, ry: ry, rz: rz
+    }
+end
+
+public aabb_to_bounds(a: Aabb) -> Bounds3
+    return Bounds3 {
+        min_x: a.x - a.sx * 0.5,
+        max_x: a.x + a.sx * 0.5,
+        min_y: a.y - a.sy * 0.5,
+        max_y: a.y + a.sy * 0.5,
+        min_z: a.z - a.sz * 0.5,
+        max_z: a.z + a.sz * 0.5
+    }
+end
+
+public bounds_to_aabb(b: Bounds3) -> Aabb
+    return Aabb {
+        x: (b.min_x + b.max_x) * 0.5,
+        y: (b.min_y + b.max_y) * 0.5,
+        z: (b.min_z + b.max_z) * 0.5,
+        sx: b.max_x - b.min_x,
+        sy: b.max_y - b.min_y,
+        sz: b.max_z - b.min_z
+    }
+end
+
+public bounds_is_empty(b: Bounds3) -> bool
+    return b.min_x >= b.max_x or b.min_y >= b.max_y or b.min_z >= b.max_z
+end
+
+fmin(a: float, b: float) -> float
+    if a < b
+        return a
+    end
+    return b
+end
+
+fmax(a: float, b: float) -> float
+    if a > b
+        return a
+    end
+    return b
+end
+
+clamp_bounds_to(inner: Bounds3, outer: Bounds3) -> Bounds3
+    return Bounds3 {
+        min_x: fmax(inner.min_x, outer.min_x),
+        max_x: fmin(inner.max_x, outer.max_x),
+        min_y: fmax(inner.min_y, outer.min_y),
+        max_y: fmin(inner.max_y, outer.max_y),
+        min_z: fmax(inner.min_z, outer.min_z),
+        max_z: fmin(inner.max_z, outer.max_z)
+    }
+end
+
+overlaps(a: Aabb, b: Aabb) -> bool
+    if a.sx <= 0.0001 or a.sy <= 0.0001 or a.sz <= 0.0001
+        return false
+    end
+    return math.abs_float(a.x - b.x) * 2.0 < a.sx + b.sx and math.abs_float(a.y - b.y) * 2.0 < a.sy + b.sy and math.abs_float(a.z - b.z) * 2.0 < a.sz + b.sz
+end
+
+signed_half(index: int, half: float) -> float
+    if index == 0
+        return 0.0 - half
+    end
+    return half
+end
+
+rot_basis_from_degrees(rx: float, ry: float, rz: float) -> RotBasis
+    const deg: float = 0.017453292519943295
+    return RotBasis {
+        cx: math.cos(rx * deg),
+        sx: math.sin(rx * deg),
+        cy: math.cos(ry * deg),
+        sy: math.sin(ry * deg),
+        cz: math.cos(rz * deg),
+        sz: math.sin(rz * deg)
+    }
+end
+
+-- R = Rz * Ry * Rx
+rotate_local_corner(local: Corner3, basis: RotBasis) -> Corner3
+    const y1: float = local.y * basis.cx - local.z * basis.sx
+    const z1: float = local.y * basis.sx + local.z * basis.cx
+    const x1: float = local.x
+    const x2: float = x1 * basis.cy + z1 * basis.sy
+    const y2: float = y1
+    const z2: float = 0.0 - x1 * basis.sy + z1 * basis.cy
+    return Corner3 {
+        x: x2 * basis.cz - y2 * basis.sz,
+        y: x2 * basis.sz + y2 * basis.cz,
+        z: z2
+    }
+end
+
+expand_bounds_with_point(b: Bounds3, p: Corner3) -> Bounds3
+    return Bounds3 {
+        min_x: fmin(b.min_x, p.x),
+        max_x: fmax(b.max_x, p.x),
+        min_y: fmin(b.min_y, p.y),
+        max_y: fmax(b.max_y, p.y),
+        min_z: fmin(b.min_z, p.z),
+        max_z: fmax(b.max_z, p.z)
+    }
+end
+
+empty_expand_bounds() -> Bounds3
+    return Bounds3 {
+        min_x: 1.0e30,
+        max_x: -1.0e30,
+        min_y: 1.0e30,
+        max_y: -1.0e30,
+        min_z: 1.0e30,
+        max_z: -1.0e30
+    }
+end
+
+public oriented_box_to_aabb(box: OrientedBox) -> Aabb
+    const basis: RotBasis = rot_basis_from_degrees(box.rx, box.ry, box.rz)
+    const hx: float = box.sx * 0.5
+    const hy: float = box.sy * 0.5
+    const hz: float = box.sz * 0.5
+    var bounds: Bounds3 = empty_expand_bounds()
+    var ix: int = 0
+    while ix < 2
+        var iy: int = 0
+        while iy < 2
+            var iz: int = 0
+            while iz < 2
+                const local: Corner3 = Corner3 {
+                    x: signed_half(ix, hx),
+                    y: signed_half(iy, hy),
+                    z: signed_half(iz, hz)
+                }
+                const rotated: Corner3 = rotate_local_corner(local, basis)
+                const world: Corner3 = Corner3 {
+                    x: box.x + rotated.x,
+                    y: box.y + rotated.y,
+                    z: box.z + rotated.z
+                }
+                bounds = expand_bounds_with_point(bounds, world)
+                iz = iz + 1
+            end
+            iy = iy + 1
+        end
+        ix = ix + 1
+    end
+    return bounds_to_aabb(bounds)
+end
+
+-- Convenience for call sites that still pass scalars (tests / thin wrappers).
+public oriented_to_aabb(
+    x: float,
+    y: float,
+    z: float,
+    sx: float,
+    sy: float,
+    sz: float,
+    rx: float,
+    ry: float,
+    rz: float
+) -> Aabb
+    return oriented_box_to_aabb(oriented_box(x, y, z, sx, sy, sz, rx, ry, rz))
+end
+
+push_slab_bounds(out: list[Aabb], b: Bounds3) -> void
+    if bounds_is_empty(b)
+        return
+    end
+    const w: float = b.max_x - b.min_x
+    const h: float = b.max_y - b.min_y
+    const d: float = b.max_z - b.min_z
+    if w < 0.0001 or h < 0.0001 or d < 0.0001
+        return
+    end
+    lists.push(out, bounds_to_aabb(b))
+end
+
+-- solid − cut → up to 6 AABBs appended to out
+public aabb_subtract(out: list[Aabb], solid: Aabb, cut: Aabb) -> void
+    if overlaps(solid, cut) == false
+        lists.push(out, solid)
+        return
+    end
+    const solid_b: Bounds3 = aabb_to_bounds(solid)
+    const cut_b: Bounds3 = clamp_bounds_to(aabb_to_bounds(cut), solid_b)
+    if bounds_is_empty(cut_b)
+        lists.push(out, solid)
+        return
+    end
+    -- -X slab
+    push_slab_bounds(out, Bounds3 {
+        min_x: solid_b.min_x, max_x: cut_b.min_x,
+        min_y: solid_b.min_y, max_y: solid_b.max_y,
+        min_z: solid_b.min_z, max_z: solid_b.max_z
+    })
+    -- +X slab
+    push_slab_bounds(out, Bounds3 {
+        min_x: cut_b.max_x, max_x: solid_b.max_x,
+        min_y: solid_b.min_y, max_y: solid_b.max_y,
+        min_z: solid_b.min_z, max_z: solid_b.max_z
+    })
+    -- -Y slab (between X of cut)
+    push_slab_bounds(out, Bounds3 {
+        min_x: cut_b.min_x, max_x: cut_b.max_x,
+        min_y: solid_b.min_y, max_y: cut_b.min_y,
+        min_z: solid_b.min_z, max_z: solid_b.max_z
+    })
+    -- +Y slab
+    push_slab_bounds(out, Bounds3 {
+        min_x: cut_b.min_x, max_x: cut_b.max_x,
+        min_y: cut_b.max_y, max_y: solid_b.max_y,
+        min_z: solid_b.min_z, max_z: solid_b.max_z
+    })
+    -- -Z slab
+    push_slab_bounds(out, Bounds3 {
+        min_x: cut_b.min_x, max_x: cut_b.max_x,
+        min_y: cut_b.min_y, max_y: cut_b.max_y,
+        min_z: solid_b.min_z, max_z: cut_b.min_z
+    })
+    -- +Z slab
+    push_slab_bounds(out, Bounds3 {
+        min_x: cut_b.min_x, max_x: cut_b.max_x,
+        min_y: cut_b.min_y, max_y: cut_b.max_y,
+        min_z: cut_b.max_z, max_z: solid_b.max_z
+    })
+end
+
+public carve(solid: Aabb, cuts: list[Aabb]) -> list[Aabb]
+    var pieces: list[Aabb] = []
+    lists.push(pieces, solid)
+    const nc: int = lists.len(cuts)
+    var ci: int = 0
+    while ci < nc
+        var next: list[Aabb] = []
+        const np: int = lists.len(pieces)
+        var pi: int = 0
+        while pi < np
+            aabb_subtract(next, pieces[pi], cuts[ci])
+            pi = pi + 1
+        end
+        pieces = next
+        if lists.len(pieces) == 0 or lists.len(pieces) > 128
+            return pieces
+        end
+        ci = ci + 1
+    end
+    return pieces
+end
+
+public carve_oriented(solid: OrientedBox, cuts: list[OrientedBox]) -> list[Aabb]
+    var cut_aabbs: list[Aabb] = []
+    const n: int = lists.len(cuts)
+    var i: int = 0
+    while i < n
+        lists.push(cut_aabbs, oriented_box_to_aabb(cuts[i]))
+        i = i + 1
+    end
+    return carve(oriented_box_to_aabb(solid), cut_aabbs)
+end
+
+-- ---------------------------------------------------------------------------
+-- L6: boolean ops + adjacent merge + axis half-space clip (AABB BSP leaf)
+-- Not polyhedral Hammer CSG; reliable solids for G1 + Studio tools.
+-- ---------------------------------------------------------------------------
+
+public const OP_SUBTRACT: int = 0
+public const OP_INTERSECT: int = 1
+public const OP_UNION_HULL: int = 2
+public const OP_UNION_ADD: int = 3
+
+public const CLIP_AXIS_X: int = 0
+public const CLIP_AXIS_Y: int = 1
+public const CLIP_AXIS_Z: int = 2
+
+const MERGE_EPS: float = 0.001
+
+-- Half-space clip descriptor (axis-aligned BSP split).
+public struct AxisPlaneClip
+    axis: int
+    plane: float
+    keep_pos: bool
+end
+
+public axis_plane_clip(axis: int, plane: float, keep_pos: bool) -> AxisPlaneClip
+    return AxisPlaneClip { axis: axis, plane: plane, keep_pos: keep_pos }
+end
+
+near_eq(a: float, b: float) -> bool
+    const d: float = a - b
+    if d < 0.0
+        return 0.0 - d <= MERGE_EPS
+    end
+    return d <= MERGE_EPS
+end
+
+public aabb_volume(a: Aabb) -> float
+    if a.sx <= 0.0 or a.sy <= 0.0 or a.sz <= 0.0
+        return 0.0
+    end
+    return a.sx * a.sy * a.sz
+end
+
+-- Intersection as bounds; empty if no overlap.
+public aabb_intersect_bounds(a: Aabb, b: Aabb) -> Bounds3
+    const ab: Bounds3 = aabb_to_bounds(a)
+    const bb: Bounds3 = aabb_to_bounds(b)
+    return Bounds3 {
+        min_x: fmax(ab.min_x, bb.min_x),
+        max_x: fmin(ab.max_x, bb.max_x),
+        min_y: fmax(ab.min_y, bb.min_y),
+        max_y: fmin(ab.max_y, bb.max_y),
+        min_z: fmax(ab.min_z, bb.min_z),
+        max_z: fmin(ab.max_z, bb.max_z)
+    }
+end
+
+public aabb_intersect(a: Aabb, b: Aabb) -> Aabb
+    const ib: Bounds3 = aabb_intersect_bounds(a, b)
+    if bounds_is_empty(ib)
+        return aabb(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    end
+    return bounds_to_aabb(ib)
+end
+
+public aabb_union_hull(a: Aabb, b: Aabb) -> Aabb
+    const ab: Bounds3 = aabb_to_bounds(a)
+    const bb: Bounds3 = aabb_to_bounds(b)
+    return bounds_to_aabb(Bounds3 {
+        min_x: fmin(ab.min_x, bb.min_x),
+        max_x: fmax(ab.max_x, bb.max_x),
+        min_y: fmin(ab.min_y, bb.min_y),
+        max_y: fmax(ab.max_y, bb.max_y),
+        min_z: fmin(ab.min_z, bb.min_z),
+        max_z: fmax(ab.max_z, bb.max_z)
+    })
+end
+
+-- Merge when coplanar-adjacent along exactly one axis (same cross-section).
+public can_merge_aabb(a: Aabb, b: Aabb) -> bool
+    if aabb_volume(a) <= 0.0 or aabb_volume(b) <= 0.0
+        return false
+    end
+    const ab: Bounds3 = aabb_to_bounds(a)
+    const bb: Bounds3 = aabb_to_bounds(b)
+    -- Same YZ slab, touch on X
+    if near_eq(ab.min_y, bb.min_y) and near_eq(ab.max_y, bb.max_y) and near_eq(ab.min_z, bb.min_z) and near_eq(ab.max_z, bb.max_z)
+        if near_eq(ab.max_x, bb.min_x) or near_eq(bb.max_x, ab.min_x)
+            return true
+        end
+    end
+    -- Same XZ slab, touch on Y
+    if near_eq(ab.min_x, bb.min_x) and near_eq(ab.max_x, bb.max_x) and near_eq(ab.min_z, bb.min_z) and near_eq(ab.max_z, bb.max_z)
+        if near_eq(ab.max_y, bb.min_y) or near_eq(bb.max_y, ab.min_y)
+            return true
+        end
+    end
+    -- Same XY slab, touch on Z
+    if near_eq(ab.min_x, bb.min_x) and near_eq(ab.max_x, bb.max_x) and near_eq(ab.min_y, bb.min_y) and near_eq(ab.max_y, bb.max_y)
+        if near_eq(ab.max_z, bb.min_z) or near_eq(bb.max_z, ab.min_z)
+            return true
+        end
+    end
+    return false
+end
+
+public merge_aabb(a: Aabb, b: Aabb) -> Aabb
+    return aabb_union_hull(a, b)
+end
+
+-- Greedy pairwise merge until stable or cap (reduces slab explosion after carve).
+public merge_aabb_list(pieces: list[Aabb]) -> list[Aabb]
+    var work: list[Aabb] = []
+    const n0: int = lists.len(pieces)
+    var i0: int = 0
+    while i0 < n0
+        if aabb_volume(pieces[i0]) > 0.0
+            lists.push(work, pieces[i0])
+        end
+        i0 = i0 + 1
+    end
+    var guard: int = 0
+    while guard < 64
+        var merged: bool = false
+        const n: int = lists.len(work)
+        var i: int = 0
+        while i < n and merged == false
+            var j: int = i + 1
+            while j < n and merged == false
+                if can_merge_aabb(work[i], work[j])
+                    const m: Aabb = merge_aabb(work[i], work[j])
+                    var next: list[Aabb] = []
+                    var k: int = 0
+                    while k < n
+                        if k != i and k != j
+                            lists.push(next, work[k])
+                        end
+                        k = k + 1
+                    end
+                    lists.push(next, m)
+                    work = next
+                    merged = true
+                end
+                j = j + 1
+            end
+            i = i + 1
+        end
+        if merged == false
+            return work
+        end
+        guard = guard + 1
+    end
+    return work
+end
+
+-- Axis-aligned half-space clip → 0 or 1 AABB (BSP leaf style).
+public clip_aabb_axis_plane(a: Aabb, clip: AxisPlaneClip) -> Aabb
+    if aabb_volume(a) <= 0.0
+        return aabb(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    end
+    var b: Bounds3 = aabb_to_bounds(a)
+    if clip.axis == CLIP_AXIS_X
+        if clip.keep_pos
+            b.min_x = fmax(b.min_x, clip.plane)
+        else
+            b.max_x = fmin(b.max_x, clip.plane)
+        end
+    elif clip.axis == CLIP_AXIS_Y
+        if clip.keep_pos
+            b.min_y = fmax(b.min_y, clip.plane)
+        else
+            b.max_y = fmin(b.max_y, clip.plane)
+        end
+    elif clip.axis == CLIP_AXIS_Z
+        if clip.keep_pos
+            b.min_z = fmax(b.min_z, clip.plane)
+        else
+            b.max_z = fmin(b.max_z, clip.plane)
+        end
+    end
+    if bounds_is_empty(b)
+        return aabb(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    end
+    const out: Aabb = bounds_to_aabb(b)
+    if (out.sx < MERGE_EPS) or (out.sy < MERGE_EPS) or (out.sz < MERGE_EPS)
+        return aabb(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    end
+    return out
+end
+
+public clip_list_axis_plane(pieces: list[Aabb], clip: AxisPlaneClip) -> list[Aabb]
+    var out: list[Aabb] = []
+    const n: int = lists.len(pieces)
+    var i: int = 0
+    while i < n
+        const c: Aabb = clip_aabb_axis_plane(pieces[i], clip)
+        if aabb_volume(c) > 0.0
+            lists.push(out, c)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- Binary boolean on two AABBs → piece list (may be empty).
+public boolean_aabb(a: Aabb, b: Aabb, op: int) -> list[Aabb]
+    var out: list[Aabb] = []
+    if op == OP_INTERSECT
+        const inter: Aabb = aabb_intersect(a, b)
+        if aabb_volume(inter) > 0.0
+            lists.push(out, inter)
+        end
+        return out
+    end
+    if op == OP_UNION_HULL
+        if aabb_volume(a) > 0.0 and aabb_volume(b) > 0.0
+            lists.push(out, aabb_union_hull(a, b))
+        elif aabb_volume(a) > 0.0
+            lists.push(out, a)
+        elif aabb_volume(b) > 0.0
+            lists.push(out, b)
+        end
+        return out
+    end
+    if op == OP_UNION_ADD
+        if aabb_volume(a) <= 0.0
+            if aabb_volume(b) > 0.0
+                lists.push(out, b)
+            end
+            return out
+        end
+        if aabb_volume(b) <= 0.0
+            lists.push(out, a)
+            return out
+        end
+        if can_merge_aabb(a, b)
+            lists.push(out, merge_aabb(a, b))
+        else
+            lists.push(out, a)
+            lists.push(out, b)
+        end
+        return out
+    end
+    -- default OP_SUBTRACT: a − b
+    aabb_subtract(out, a, b)
+    return out
+end
+
+public carve_merged(solid: Aabb, cuts: list[Aabb]) -> list[Aabb]
+    return merge_aabb_list(carve(solid, cuts))
+end
+
+public carve_oriented_merged(solid: OrientedBox, cuts: list[OrientedBox]) -> list[Aabb]
+    return merge_aabb_list(carve_oriented(solid, cuts))
+end
+
+-- Intersect solid against a volume (room shell / brush ∩ box).
+public intersect_volume(solid: Aabb, volume: Aabb) -> list[Aabb]
+    return boolean_aabb(solid, volume, OP_INTERSECT)
+end
+
+-- Apply a chain of axis clips (simple BSP path) then optional merge.
+public compile_bsp_clips(solid: Aabb, clips: list[AxisPlaneClip], do_merge: bool) -> list[Aabb]
+    var pieces: list[Aabb] = []
+    lists.push(pieces, solid)
+    const n: int = lists.len(clips)
+    var i: int = 0
+    while i < n
+        pieces = clip_list_axis_plane(pieces, clips[i])
+        if lists.len(pieces) == 0
+            return pieces
+        end
+        i = i + 1
+    end
+    if do_merge
+        return merge_aabb_list(pieces)
+    end
+    return pieces
+end
+
+public total_volume(pieces: list[Aabb]) -> float
+    var v: float = 0.0
+    const n: int = lists.len(pieces)
+    var i: int = 0
+    while i < n
+        v = v + aabb_volume(pieces[i])
+        i = i + 1
+    end
+    return v
+end

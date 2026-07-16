@@ -1,0 +1,89 @@
+module tracy.profiler
+
+-- Tracy instrumentation for Ori (zones / frames / message / plot).
+-- Headless counters always work; FULL build talks to Tracy server when linked.
+
+import ori.mem = mem
+
+extern c
+    public ori_tracy_zone_begin(name_ptr: int) -> void
+    public ori_tracy_zone_end() -> void
+    public ori_tracy_zone_depth() -> int
+    public ori_tracy_zone_begins() -> int
+    public ori_tracy_zone_ends() -> int
+    public ori_tracy_overflow_begins() -> int
+    public ori_tracy_orphan_ends() -> int
+    public ori_tracy_frame_mark() -> void
+    public ori_tracy_frame_count() -> int
+    public ori_tracy_reset_stats() -> void
+    public ori_tracy_is_full_build() -> int
+    public ori_tracy_message(text_ptr: int) -> void
+    public ori_tracy_plot_m(name_ptr: int, value_m: int) -> void
+    public ori_tracy_message_count() -> int
+    public ori_tracy_plot_count() -> int
+    public ori_tracy_last_plot_value_m() -> int
+end
+
+public zone_begin(name: string) -> void
+    ori_tracy_zone_begin(mem.string_as_ptr(name))
+end
+
+public zone_end() -> void
+    ori_tracy_zone_end()
+end
+
+public zone_depth() -> int
+    return ori_tracy_zone_depth()
+end
+
+public zone_begins() -> int
+    return ori_tracy_zone_begins()
+end
+
+public zone_ends() -> int
+    return ori_tracy_zone_ends()
+end
+
+public overflow_begins() -> int
+    return ori_tracy_overflow_begins()
+end
+
+public orphan_ends() -> int
+    return ori_tracy_orphan_ends()
+end
+
+public frame_mark() -> void
+    ori_tracy_frame_mark()
+end
+
+public frame_count() -> int
+    return ori_tracy_frame_count()
+end
+
+public reset_stats() -> void
+    ori_tracy_reset_stats()
+end
+
+public is_full_build() -> bool
+    return ori_tracy_is_full_build() != 0
+end
+
+public message(text: string) -> void
+    ori_tracy_message(mem.string_as_ptr(text))
+end
+
+public plot_m(name: string, value_m: int) -> void
+    ori_tracy_plot_m(mem.string_as_ptr(name), value_m)
+end
+
+public message_count() -> int
+    return ori_tracy_message_count()
+end
+
+public plot_count() -> int
+    return ori_tracy_plot_count()
+end
+
+public last_plot_value_m() -> int
+    return ori_tracy_last_plot_value_m()
+end

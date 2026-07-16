@@ -1,0 +1,149 @@
+module enet.tf_codec
+
+-- R7.2: encode/decode transform-like messages for net samples.
+-- Format: "tf:<x>,<y>,<z>" with 2 decimal milli-ish floats as plain numbers.
+-- Keep pure (no enet link) for unit-style checks inside enet package.
+
+import ori.format = fmt
+import ori.string = str
+
+public struct TfPose
+    x: float
+    y: float
+    z: float
+    ok: bool
+end
+
+public encode_tf(x: float, y: float, z: float) -> string
+    return "tf:"
+        + fmt.number_with(x, 2)
+        + ","
+        + fmt.number_with(y, 2)
+        + ","
+        + fmt.number_with(z, 2)
+end
+
+public encode_ack() -> string
+    return "ack:tf"
+end
+
+public is_tf_message(msg: string) -> bool
+    if str.len(msg) < 4
+        return false
+    end
+    return str.slice(msg, 0, 3) == "tf:"
+end
+
+public is_ack_message(msg: string) -> bool
+    return msg == "ack:tf"
+end
+
+-- Minimal parser: skip "tf:" then split on commas via scans (no full split API).
+public decode_tf(msg: string) -> TfPose
+    var out: TfPose = TfPose { x: 0.0, y: 0.0, z: 0.0, ok: false }
+    if is_tf_message(msg) == false
+        return out
+    end
+    const body: string = str.slice(msg, 3, str.len(msg))
+    -- Find commas
+    const n: int = str.len(body)
+    var c1: int = -1
+    var c2: int = -1
+    var i: int = 0
+    while i < n
+        const ch: string = str.slice(body, i, i + 1)
+        if ch == ","
+            if c1 < 0
+                c1 = i
+            elif c2 < 0
+                c2 = i
+            end
+        end
+        i = i + 1
+    end
+    if c1 < 0 or c2 < 0
+        return out
+    end
+    const xs: string = str.slice(body, 0, c1)
+    const ys: string = str.slice(body, c1 + 1, c2)
+    const zs: string = str.slice(body, c2 + 1, n)
+    out.x = parse_simple_float(xs)
+    out.y = parse_simple_float(ys)
+    out.z = parse_simple_float(zs)
+    out.ok = true
+    return out
+end
+
+-- Tiny float parser for "12.5" / "-3" / "0" (enough for demo poses).
+parse_simple_float(s: string) -> float
+    if s == ""
+        return 0.0
+    end
+    var neg: bool = false
+    var i: int = 0
+    const n: int = str.len(s)
+    if str.slice(s, 0, 1) == "-"
+        neg = true
+        i = 1
+    end
+    var whole: float = 0.0
+    var frac: float = 0.0
+    var div: float = 1.0
+    var in_frac: bool = false
+    while i < n
+        const ch: string = str.slice(s, i, i + 1)
+        if ch == "."
+            in_frac = true
+        else
+            const d: int = digit_of(ch)
+            if d >= 0
+                if in_frac
+                    div = div * 10.0
+                    frac = frac + float(d) / div
+                else
+                    whole = whole * 10.0 + float(d)
+                end
+            end
+        end
+        i = i + 1
+    end
+    var v: float = whole + frac
+    if neg
+        v = 0.0 - v
+    end
+    return v
+end
+
+digit_of(ch: string) -> int
+    if ch == "0"
+        return 0
+    end
+    if ch == "1"
+        return 1
+    end
+    if ch == "2"
+        return 2
+    end
+    if ch == "3"
+        return 3
+    end
+    if ch == "4"
+        return 4
+    end
+    if ch == "5"
+        return 5
+    end
+    if ch == "6"
+        return 6
+    end
+    if ch == "7"
+        return 7
+    end
+    if ch == "8"
+        return 8
+    end
+    if ch == "9"
+        return 9
+    end
+    return -1
+end

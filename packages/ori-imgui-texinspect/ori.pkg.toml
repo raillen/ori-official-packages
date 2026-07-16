@@ -1,0 +1,11 @@
+[package]
+name = "texinspect"
+version = "0.1.0"
+entry = "texinspect/inspect.orl"
+ori_version = "0.3.0"
+description = "ImGui texture inspect for Ori (pure Ori: texture id, zoom, channel toggle)"
+license = "MIT"
+# Pure Ori state machine — no native shim. Product draw path-deps sibling ori-imgui.
+
+[dependencies]
+imgui = { path = "../ori-imgui", version = "0.5.1" }

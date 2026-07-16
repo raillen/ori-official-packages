@@ -1,0 +1,134 @@
+module implot.charts
+
+-- ImPlot for Ori. Series buffer + axis labels always; FULL draw needs ImGui context.
+
+import ori.mem = mem
+
+extern c
+    public ori_implot_create_context() -> void
+    public ori_implot_destroy_context() -> void
+    public ori_implot_clear_series() -> void
+    public ori_implot_reset() -> void
+    public ori_implot_push_point_m(x_m: int, y_m: int) -> int
+    public ori_implot_series_count() -> int
+    public ori_implot_series_capacity() -> int
+    public ori_implot_series_sum_m() -> int
+    public ori_implot_series_min_m() -> int
+    public ori_implot_series_max_m() -> int
+    public ori_implot_setup_axes(x_label_ptr: int, y_label_ptr: int) -> void
+    public ori_implot_x_label_len() -> int
+    public ori_implot_y_label_len() -> int
+    public ori_implot_x_label_eq(ptr: int) -> int
+    public ori_implot_y_label_eq(ptr: int) -> int
+    public ori_implot_begin_plot(title_ptr: int, w: int, h: int) -> int
+    public ori_implot_plot_line(label_ptr: int) -> void
+    public ori_implot_plot_scatter(label_ptr: int) -> void
+    public ori_implot_plot_bars(label_ptr: int) -> void
+    public ori_implot_end_plot() -> void
+    public ori_implot_last_draw() -> int
+    public ori_implot_plot_was_open() -> int
+    public ori_implot_begin_ok() -> int
+    public ori_implot_is_full_build() -> int
+end
+
+-- last_draw kinds
+public const DRAW_NONE: int = 0
+public const DRAW_LINE: int = 1
+public const DRAW_SCATTER: int = 2
+public const DRAW_BARS: int = 3
+
+public create_context() -> void
+    ori_implot_create_context()
+end
+
+public destroy_context() -> void
+    ori_implot_destroy_context()
+end
+
+public clear() -> void
+    ori_implot_clear_series()
+end
+
+public reset() -> void
+    ori_implot_reset()
+end
+
+public push_m(x_m: int, y_m: int) -> bool
+    return ori_implot_push_point_m(x_m, y_m) == 0
+end
+
+public count() -> int
+    return ori_implot_series_count()
+end
+
+public capacity() -> int
+    return ori_implot_series_capacity()
+end
+
+public sum_m() -> int
+    return ori_implot_series_sum_m()
+end
+
+public min_m() -> int
+    return ori_implot_series_min_m()
+end
+
+public max_m() -> int
+    return ori_implot_series_max_m()
+end
+
+public setup_axes(x_label: string, y_label: string) -> void
+    ori_implot_setup_axes(mem.string_as_ptr(x_label), mem.string_as_ptr(y_label))
+end
+
+public x_label_len() -> int
+    return ori_implot_x_label_len()
+end
+
+public y_label_len() -> int
+    return ori_implot_y_label_len()
+end
+
+public x_label_eq(expected: string) -> bool
+    return ori_implot_x_label_eq(mem.string_as_ptr(expected)) == 1
+end
+
+public y_label_eq(expected: string) -> bool
+    return ori_implot_y_label_eq(mem.string_as_ptr(expected)) == 1
+end
+
+public begin_plot(title: string, w: int, h: int) -> bool
+    return ori_implot_begin_plot(mem.string_as_ptr(title), w, h) == 0
+end
+
+public plot_line(label: string) -> void
+    ori_implot_plot_line(mem.string_as_ptr(label))
+end
+
+public plot_scatter(label: string) -> void
+    ori_implot_plot_scatter(mem.string_as_ptr(label))
+end
+
+public plot_bars(label: string) -> void
+    ori_implot_plot_bars(mem.string_as_ptr(label))
+end
+
+public end_plot() -> void
+    ori_implot_end_plot()
+end
+
+public last_draw() -> int
+    return ori_implot_last_draw()
+end
+
+public plot_was_open() -> bool
+    return ori_implot_plot_was_open() == 1
+end
+
+public begin_ok() -> bool
+    return ori_implot_begin_ok() == 1
+end
+
+public is_full() -> bool
+    return ori_implot_is_full_build() == 1
+end

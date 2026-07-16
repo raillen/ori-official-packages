@@ -1,0 +1,68 @@
+module game.net_predict
+
+-- Pure helpers for client prediction / reconciliation (no enet coupling).
+
+public struct Snapshot
+    tick: int
+    x_m: int
+    y_m: int
+    vx_m: int
+    vy_m: int
+end
+
+public struct InputCmd
+    tick: int
+    ax_m: int
+    ay_m: int
+end
+
+public create_snapshot(tick: int, x_m: int, y_m: int, vx_m: int, vy_m: int) -> Snapshot
+    return Snapshot { tick: tick, x_m: x_m, y_m: y_m, vx_m: vx_m, vy_m: vy_m }
+end
+
+-- Integrate one tick (milli units, dt_milli e.g. 16).
+public predict_move(s: Snapshot, cmd: InputCmd, dt_milli: int) -> Snapshot
+    var out: Snapshot = s
+    out.tick = cmd.tick
+    out.vx_m = cmd.ax_m
+    out.vy_m = cmd.ay_m
+    out.x_m = out.x_m + (out.vx_m * dt_milli) / 1000
+    out.y_m = out.y_m + (out.vy_m * dt_milli) / 1000
+    return out
+end
+
+-- Hard snap to authoritative state.
+public reconcile(local: Snapshot, auth: Snapshot) -> Snapshot
+    return auth
+end
+
+-- Soft blend if error small (alpha 0..1000).
+public reconcile_soft(local: Snapshot, auth: Snapshot, alpha_milli: int) -> Snapshot
+    var a: int = alpha_milli
+    if a < 0
+        a = 0
+    end
+    if a > 1000
+        a = 1000
+    end
+    const inv: int = 1000 - a
+    return Snapshot {
+        tick: auth.tick,
+        x_m: (local.x_m * inv + auth.x_m * a) / 1000,
+        y_m: (local.y_m * inv + auth.y_m * a) / 1000,
+        vx_m: (local.vx_m * inv + auth.vx_m * a) / 1000,
+        vy_m: (local.vy_m * inv + auth.vy_m * a) / 1000
+    }
+end
+
+public error_m(local: Snapshot, auth: Snapshot) -> int
+    var dx: int = local.x_m - auth.x_m
+    if dx < 0
+        dx = 0 - dx
+    end
+    var dy: int = local.y_m - auth.y_m
+    if dy < 0
+        dy = 0 - dy
+    end
+    return dx + dy
+end

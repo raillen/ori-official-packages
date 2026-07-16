@@ -1,0 +1,25 @@
+@{ layout "layouts/app" }
+@{ assign title = "{{AppName}}" }
+
+<section class="card">
+  <h2>New note</h2>
+  <form method="post" action="/notes" class="row">
+    <input type="hidden" name="csrf_token" value="@{ csrf_token }">
+    <input type="text" name="text" required maxlength="500" placeholder="Write something…">
+    <button type="submit">Save</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Notes</h2>
+  <ul class="list">
+  @{ for i, note in notes }
+    <li><span class="idx">#@{ i }</span> @{ note }</li>
+  @{ end }
+  @{ if notes_empty }
+    <li class="muted">No notes yet.</li>
+  @{ end }
+  </ul>
+</section>
+
+@{ end }

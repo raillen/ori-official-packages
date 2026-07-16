@@ -1,0 +1,29 @@
+module app.raw
+import ori.io = io
+import ori.format = fmt
+
+extern c
+    public ori_b2_create_world(gx: float, gy: float) -> int
+    public ori_b2_create_static_box(w: int, x: float, y: float, hw: float, hh: float) -> int
+    public ori_b2_create_dynamic_box(w: int, x: float, y: float, hw: float, hh: float, d: float) -> int
+    public ori_b2_body_y(b: int) -> float
+    public ori_b2_step(w: int, dt: float, sub: int) -> void
+    public ori_b2_destroy_world(w: int) -> void
+end
+
+main()
+    const w: int = ori_b2_create_world(0.0, -10.0)
+    const g: int = ori_b2_create_static_box(w, 0.0, -10.0, 50.0, 10.0)
+    const b: int = ori_b2_create_dynamic_box(w, 0.0, 4.0, 0.5, 0.5, 1.0)
+    io.print(fmt.number(float(w), 0))
+    io.print(fmt.number(float(g), 0))
+    io.print(fmt.number(float(b), 0))
+    io.print(fmt.number(ori_b2_body_y(b), 3))
+    var i: int = 0
+    while i < 60
+        ori_b2_step(w, 0.0166667, 4)
+        i = i + 1
+    end
+    io.print(fmt.number(ori_b2_body_y(b), 3))
+    ori_b2_destroy_world(w)
+end

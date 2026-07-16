@@ -1,0 +1,42 @@
+module game.marching_cubes_draw
+
+-- Draw helpers for game.marching_cubes meshes (raylib 3D).
+
+import game.marching_cubes = mc
+import game.draw3d = draw3d
+import game.color = color
+import ori.math.vec3 = vec3
+import ori.list = lists
+
+vec_from_m(p: mc.Vec3m) -> vec3.Vec3
+    return vec3.Vec3 {
+        x: mc.m_to_f(p.x_m),
+        y: mc.m_to_f(p.y_m),
+        z: mc.m_to_f(p.z_m)
+    }
+end
+
+-- Wireframe: three edges per triangle.
+public draw_mesh_wires(m: mc.Mesh, c: color.Color) -> void
+    var i: int = 0
+    while i < lists.len(m.tris)
+        const t: mc.Tri = m.tris[i]
+        const a: vec3.Vec3 = vec_from_m(t.a)
+        const b: vec3.Vec3 = vec_from_m(t.b)
+        const d: vec3.Vec3 = vec_from_m(t.c)
+        draw3d.draw_line_3d(a, b, c)
+        draw3d.draw_line_3d(b, d, c)
+        draw3d.draw_line_3d(d, a, c)
+        i = i + 1
+    end
+end
+
+-- Filled triangles (CCW order as produced by MC tables).
+public draw_mesh_solid(m: mc.Mesh, c: color.Color) -> void
+    var i: int = 0
+    while i < lists.len(m.tris)
+        const t: mc.Tri = m.tris[i]
+        draw3d.draw_triangle_3d(vec_from_m(t.a), vec_from_m(t.b), vec_from_m(t.c), c)
+        i = i + 1
+    end
+end

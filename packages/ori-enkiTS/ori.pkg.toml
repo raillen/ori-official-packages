@@ -1,0 +1,8 @@
+[package]
+name = "enkits"
+version = "0.2.0"
+entry = "enkits/tasks.orl"
+ori_version = "0.3.0"
+description = "enkiTS task scheduler for Ori"
+license = "Zlib"
+native_libs = ["ori_enkits_shim"]

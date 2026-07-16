@@ -1,0 +1,136 @@
+module game.gltf
+
+-- Thin glue: glTF / GLB via package `cgltf` (`cgltf.loader`).
+-- Path-dep `cgltf` on ori_game; links `ori_cgltf_shim`. No scene graph.
+-- Package leaf is `loader` (not `gltf`/`load`) so dual path-dep + `game.gltf`
+-- avoid last-segment import ambiguity with local and sibling modules.
+-- 0.2: mesh export (interleaved floats + indices) for upload helpers.
+
+import cgltf.loader = gltf
+
+-- Load a .gltf / .glb path. Returns true on parse success.
+public load_file(path: string) -> bool
+    return gltf.load_file(path)
+end
+
+public free() -> void
+    gltf.free()
+end
+
+public mesh_count() -> int
+    return gltf.mesh_count()
+end
+
+public node_count() -> int
+    return gltf.node_count()
+end
+
+public material_count() -> int
+    return gltf.material_count()
+end
+
+public animation_count() -> int
+    return gltf.animation_count()
+end
+
+-- Vertex count of mesh index 0 (POSITION accessor on first primitive).
+public mesh0_vertex_count() -> int
+    return gltf.mesh0_vertex_count()
+end
+
+public mesh_primitive_count(mesh_i: int) -> int
+    return gltf.mesh_primitive_count(mesh_i)
+end
+
+public mesh_vertex_count(mesh_i: int, prim_i: int) -> int
+    return gltf.mesh_vertex_count(mesh_i, prim_i)
+end
+
+public mesh_index_count(mesh_i: int, prim_i: int) -> int
+    return gltf.mesh_index_count(mesh_i, prim_i)
+end
+
+public mesh_has_position(mesh_i: int, prim_i: int) -> bool
+    return gltf.mesh_has_position(mesh_i, prim_i)
+end
+
+public mesh_has_normal(mesh_i: int, prim_i: int) -> bool
+    return gltf.mesh_has_normal(mesh_i, prim_i)
+end
+
+public node_has_translation(node_i: int) -> bool
+    return gltf.node_has_translation(node_i)
+end
+
+public node_has_rotation(node_i: int) -> bool
+    return gltf.node_has_rotation(node_i)
+end
+
+public node_has_scale(node_i: int) -> bool
+    return gltf.node_has_scale(node_i)
+end
+
+-- Node translation component in milli (axis 0=x,1=y,2=z). Missing → 0.
+public node_translation_m(node_i: int, axis: int) -> int
+    return gltf.node_translation_m(node_i, axis)
+end
+
+-- Node rotation quaternion component in milli (0=x,1=y,2=z,3=w).
+public node_rotation_m(node_i: int, component: int) -> int
+    return gltf.node_rotation_m(node_i, component)
+end
+
+-- Node scale component in milli. Missing → 1000 (1.0).
+public node_scale_m(node_i: int, axis: int) -> int
+    return gltf.node_scale_m(node_i, axis)
+end
+
+-- Material base color RGBA in milli (channel 0..3).
+public material_base_color_m(mat_i: int, channel: int) -> int
+    return gltf.material_base_color_m(mat_i, channel)
+end
+
+-- Export interleaved float mesh [px,py,pz,nx,ny,nz]*V for raylib upload helpers.
+public export_mesh(mesh_i: int, prim_i: int) -> bool
+    return gltf.export_mesh(mesh_i, prim_i)
+end
+
+public export_vertex_count() -> int
+    return gltf.export_vertex_count()
+end
+
+public export_index_count() -> int
+    return gltf.export_index_count()
+end
+
+public export_float_count() -> int
+    return gltf.export_float_count()
+end
+
+public export_float_m(i: int) -> int
+    return gltf.export_float_m(i)
+end
+
+public export_index(i: int) -> int
+    return gltf.export_index(i)
+end
+
+public export_pos_m(vert_i: int, axis: int) -> int
+    return gltf.export_pos_m(vert_i, axis)
+end
+
+public export_normal_m(vert_i: int, axis: int) -> int
+    return gltf.export_normal_m(vert_i, axis)
+end
+
+public export_floats_ptr() -> int
+    return gltf.export_floats_ptr()
+end
+
+public export_indices_ptr() -> int
+    return gltf.export_indices_ptr()
+end
+
+public export_sum_m() -> int
+    return gltf.export_sum_m()
+end

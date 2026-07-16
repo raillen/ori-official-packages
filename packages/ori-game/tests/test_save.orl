@@ -1,0 +1,24 @@
+module test.save
+
+imports
+    ori.test = test
+    game.save = save
+end
+
+@test
+checkpoint_roundtrip()
+    var store: save.SaveStore = save.create_store()
+    store = save.checkpoint(store, "start", "payload-a")
+    test.equal_int(save.count(store), 1)
+    test.equal_text(save.last_payload(store), "payload-a")
+end
+
+@test
+json_file_roundtrip()
+    const path: string = "/tmp/ori_game_save_test.json"
+    const body: string = "{\"hp\":10,\"name\":\"hero\"}"
+    test.assert(save.save_json(path, body), "write")
+    const loaded: string = save.load_json(path)
+    test.equal_text(loaded, body)
+    test.assert(save.is_valid_json(loaded), "valid json")
+end

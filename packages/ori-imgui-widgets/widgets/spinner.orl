@@ -1,0 +1,111 @@
+module widgets.spinner
+
+-- Indeterminate spinner phase (headless product surface).
+-- phase_milli is 0..999 (one full turn = 1000 milli-turns).
+-- speed_milli: milli-turns advanced per second of wall time.
+
+public struct Spinner
+    phase_milli: int
+    speed_milli: int
+    active: bool
+end
+
+public const PHASE_FULL: int = 1000
+public const DEFAULT_SPEED_MILLI: int = 1000
+
+wrap_phase(phase_milli: int) -> int
+    var p: int = phase_milli
+    -- Normalize into [0, PHASE_FULL).
+    while p < 0
+        p = p + PHASE_FULL
+    end
+    while p >= PHASE_FULL
+        p = p - PHASE_FULL
+    end
+    return p
+end
+
+public create() -> Spinner
+    return Spinner {
+        phase_milli: 0,
+        speed_milli: DEFAULT_SPEED_MILLI,
+        active: true
+    }
+end
+
+public create_with_speed(speed_milli: int) -> Spinner
+    var s: int = speed_milli
+    if s < 0
+        s = 0
+    end
+    return Spinner {
+        phase_milli: 0,
+        speed_milli: s,
+        active: true
+    }
+end
+
+public set_phase_milli(s: Spinner, phase_milli: int) -> Spinner
+    var out: Spinner = s
+    out.phase_milli = wrap_phase(phase_milli)
+    return out
+end
+
+public phase_milli_of(s: Spinner) -> int
+    return s.phase_milli
+end
+
+-- Angle for drawing: 0..359999 milli-degrees from phase.
+public phase_angle_milli_deg_of(s: Spinner) -> int
+    return (s.phase_milli * 360000) / PHASE_FULL
+end
+
+public set_speed_milli(s: Spinner, speed_milli: int) -> Spinner
+    var out: Spinner = s
+    var v: int = speed_milli
+    if v < 0
+        v = 0
+    end
+    out.speed_milli = v
+    return out
+end
+
+public speed_milli_of(s: Spinner) -> int
+    return s.speed_milli
+end
+
+public start(s: Spinner) -> Spinner
+    var out: Spinner = s
+    out.active = true
+    return out
+end
+
+public stop(s: Spinner) -> Spinner
+    var out: Spinner = s
+    out.active = false
+    return out
+end
+
+public is_active(s: Spinner) -> bool
+    return s.active
+end
+
+-- Advance phase by wall-clock delta. When inactive, phase freezes.
+public tick(s: Spinner, delta_milli: int) -> Spinner
+    if not s.active
+        return s
+    end
+    var d: int = delta_milli
+    if d < 0
+        d = 0
+    end
+    -- delta_milli * speed_milli / 1000  → milli-turns advanced
+    const step: int = (d * s.speed_milli) / 1000
+    return set_phase_milli(s, s.phase_milli + step)
+end
+
+public reset(s: Spinner) -> Spinner
+    var out: Spinner = s
+    out.phase_milli = 0
+    return out
+end

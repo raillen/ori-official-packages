@@ -1,0 +1,74 @@
+module app.protocol_demo
+
+-- Encode/decode "TYPE|body" and round-trip over loopback.
+
+imports
+    enet.host = enet
+    enet.protocol = proto
+    ori.io = io
+end
+
+const port: int = 27781
+
+main()
+    const wire: string = proto.encode("CHAT", "hello world")
+    const parsed: proto.Message = proto.decode(wire)
+    if not proto.kind_is(parsed, "CHAT") or parsed.body != "hello world"
+        io.print("encode_fail")
+        return
+    end
+
+    if not enet.initialize_ok()
+        io.print("init_fail")
+        return
+    end
+    var server: enet.Host = enet.create_server(port, 4, 1)
+    var client: enet.Host = enet.create_client(1, 1)
+    var remote: enet.Peer = enet.connect(client, "127.0.0.1", port, 1)
+
+    var server_peer: enet.Peer = enet.Peer { id: 0 - 1 }
+    var ok_net: bool = false
+    var i: int = 0
+    while i < 400
+        const se: int = enet.service(server, 5)
+        if se == enet.EVENT_CONNECT
+            server_peer = enet.event_peer()
+        end
+        if se == enet.EVENT_RECEIVE
+            const raw: string = enet.packet_text()
+            enet.destroy_packet()
+            const m: proto.Message = proto.decode(raw)
+            if proto.kind_is(m, "JOIN") and m.body == "p1"
+                enet.send_reliable(server_peer, proto.encode("WELCOME", "ok"))
+                enet.flush(server)
+            end
+        end
+
+        const ce: int = enet.service(client, 5)
+        if ce == enet.EVENT_CONNECT
+            enet.send_reliable(remote, proto.encode("JOIN", "p1"))
+            enet.flush(client)
+        end
+        if ce == enet.EVENT_RECEIVE
+            const raw: string = enet.packet_text()
+            enet.destroy_packet()
+            const m: proto.Message = proto.decode(raw)
+            if proto.kind_is(m, "WELCOME")
+                ok_net = true
+                break
+            end
+        end
+        i = i + 1
+    end
+
+    enet.disconnect_now(remote)
+    enet.destroy(client)
+    enet.destroy(server)
+    enet.deinitialize()
+
+    if ok_net
+        io.print("ok")
+        return
+    end
+    io.print("fail")
+end

@@ -1,0 +1,60 @@
+module test.multi_scene
+
+imports
+    game.multi_scene = ms
+    game.ogame = ogame
+    game.world = world
+    ori.list = lists
+    ori.test = test
+end
+
+sample_entity_paths() -> list[string]
+    var paths: list[string] = []
+    lists.push(paths, "assets/sample_project/entities/player/entity.json")
+    lists.push(paths, "assets/sample_project/entities/enemy/entity.json")
+    lists.push(paths, "assets/sample_project/entities/solid/entity.json")
+    lists.push(paths, "assets/sample_project/entities/empty/entity.json")
+    return paths
+end
+
+@test
+scene_set_switch()
+    var ss: ms.SceneSet = ms.empty_set()
+    ss = ms.add_slot(
+        ss,
+        "engine_test",
+        "assets/sample_project/scenes/engine_test.scene.json"
+    )
+    ss = ms.add_slot(
+        ss,
+        "room1",
+        "assets/sample_project/scenes/room1.scene.json"
+    )
+    test.equal_int(ms.slot_count(ss), 2)
+    test.assert(ms.active_name(ss) == "engine_test", "active name")
+    ss = ms.next_slot(ss)
+    test.assert(ms.active_name(ss) == "room1", "next")
+    ss = ms.prev_slot(ss)
+    test.assert(ms.active_name(ss) == "engine_test", "prev")
+end
+
+@test
+load_active_world_from_set()
+    var ss: ms.SceneSet = ms.empty_set()
+    ss = ms.add_slot(
+        ss,
+        "engine_test",
+        "assets/sample_project/scenes/engine_test.scene.json"
+    )
+    match ogame.load_catalog(sample_entity_paths())
+        case ok(cat):
+            match ms.load_active_world(ss, cat)
+                case ok(w):
+                    test.assert(world.live_count(w) > 0, "spawned entities")
+                case err(msg):
+                    test.assert(false, "load failed: " + msg)
+            end
+        case err(msg):
+            test.assert(false, "catalog failed: " + msg)
+    end
+end

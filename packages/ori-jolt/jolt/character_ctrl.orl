@@ -1,0 +1,106 @@
+module jolt.character_ctrl
+
+-- Frame-oriented character: wish direction + jump, not raw velocity only.
+
+import jolt.dynamics = jolt
+
+public struct Controller
+    character: jolt.Character
+    speed_m: int
+    jump_m: int
+    wish_x_m: int
+    wish_z_m: int
+    jump_pressed: bool
+end
+
+public create(
+    s: jolt.System,
+    x_m: int,
+    y_m: int,
+    z_m: int,
+    radius_m: int,
+    half_height_m: int,
+    speed_m: int,
+    jump_m: int
+) -> Controller
+    return Controller {
+        character: jolt.create_character(s, x_m, y_m, z_m, radius_m, half_height_m),
+        speed_m: speed_m,
+        jump_m: jump_m,
+        wish_x_m: 0,
+        wish_z_m: 0,
+        jump_pressed: false
+    }
+end
+
+public set_wish_dir(ctrl: Controller, wish_x_m: int, wish_z_m: int) -> Controller
+    var out: Controller = ctrl
+    out.wish_x_m = wish_x_m
+    out.wish_z_m = wish_z_m
+    return out
+end
+
+public set_jump_pressed(ctrl: Controller, pressed: bool) -> Controller
+    var out: Controller = ctrl
+    out.jump_pressed = pressed
+    return out
+end
+
+-- Apply wish as horizontal velocity (milli-m/s scale via speed_m), then world.step.
+public prepare_velocity(ctrl: Controller) -> Controller
+    var out: Controller = ctrl
+    var vx: int = 0
+    var vz: int = 0
+    if out.wish_x_m != 0 or out.wish_z_m != 0
+        -- Normalize-ish: if both axes, use speed on each scaled (arcade)
+        vx = out.wish_x_m
+        vz = out.wish_z_m
+        if vx > 1000
+            vx = 1000
+        end
+        if vx < 0 - 1000
+            vx = 0 - 1000
+        end
+        if vz > 1000
+            vz = 1000
+        end
+        if vz < 0 - 1000
+            vz = 0 - 1000
+        end
+        vx = vx * out.speed_m / 1000
+        vz = vz * out.speed_m / 1000
+    end
+    var vy: int = 0
+    if out.jump_pressed and jolt.character_on_ground(out.character)
+        jolt.character_jump(out.character, out.jump_m)
+        out.jump_pressed = false
+    end
+    jolt.character_set_velocity(out.character, vx, vy, vz)
+    return out
+end
+
+public tick(ctrl: Controller, s: jolt.System, dt_micros: int) -> Controller
+    var out: Controller = prepare_velocity(ctrl)
+    jolt.step(s, dt_micros)
+    return out
+end
+
+public x_m(ctrl: Controller) -> int
+    return jolt.character_x_m(ctrl.character)
+end
+
+public y_m(ctrl: Controller) -> int
+    return jolt.character_y_m(ctrl.character)
+end
+
+public z_m(ctrl: Controller) -> int
+    return jolt.character_z_m(ctrl.character)
+end
+
+public on_ground(ctrl: Controller) -> bool
+    return jolt.character_on_ground(ctrl.character)
+end
+
+public destroy(ctrl: Controller) -> void
+    jolt.destroy_character(ctrl.character)
+end

@@ -1,0 +1,51 @@
+module imguizmo.curve
+
+-- ImCurveEdit for Ori. Headless: points + linear sample (milli).
+-- FULL: ori_curve_edit draws ImCurveEdit when ImGui context is active.
+
+extern c
+    public ori_curve_clear() -> void
+    public ori_curve_point_count() -> int
+    public ori_curve_add_point_m(t_m: int, v_m: int) -> int
+    public ori_curve_set_point_m(index: int, t_m: int, v_m: int) -> int
+    public ori_curve_point_t_m(index: int) -> int
+    public ori_curve_point_v_m(index: int) -> int
+    public ori_curve_sample_m(t_m: int) -> int
+    public ori_curve_edit() -> int
+end
+
+public clear() -> void
+    ori_curve_clear()
+end
+
+public point_count() -> int
+    return ori_curve_point_count()
+end
+
+-- Returns index after sort, or -1 if full.
+public add_point_m(t_m: int, v_m: int) -> int
+    return ori_curve_add_point_m(t_m, v_m)
+end
+
+-- Returns 0 on success, non-zero on bad index.
+public set_point_m(index: int, t_m: int, v_m: int) -> int
+    return ori_curve_set_point_m(index, t_m, v_m)
+end
+
+public point_t_m(index: int) -> int
+    return ori_curve_point_t_m(index)
+end
+
+public point_v_m(index: int) -> int
+    return ori_curve_point_v_m(index)
+end
+
+-- Piecewise linear sample at t (milli).
+public sample_m(t_m: int) -> int
+    return ori_curve_sample_m(t_m)
+end
+
+-- FULL: ImCurveEdit UI; headless always false.
+public edit() -> bool
+    return ori_curve_edit() == 1
+end

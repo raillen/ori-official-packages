@@ -1,0 +1,56 @@
+module app.kv_store
+
+imports
+    sqlite.db = sql
+    ori.io = io
+end
+
+main()
+    var db: sql.Db = sql.open("/tmp/ori_sqlite_kv.db")
+    if not sql.is_open(db)
+        io.print("open_failed")
+        return
+    end
+    if not sql.exec_ok(db, "CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v INTEGER)")
+        io.print("create_failed")
+        sql.close(db)
+        return
+    end
+    if not sql.begin(db)
+        io.print("begin_failed")
+        sql.close(db)
+        return
+    end
+    if not sql.exec_ok(db, "DELETE FROM kv")
+        sql.rollback(db)
+        io.print("delete_failed")
+        sql.close(db)
+        return
+    end
+    if not sql.exec_ok(db, "INSERT INTO kv(k,v) VALUES('score', 42)")
+        sql.rollback(db)
+        io.print("insert_failed")
+        sql.close(db)
+        return
+    end
+    if not sql.exec_ok(db, "INSERT INTO kv(k,v) VALUES('level', 3)")
+        sql.rollback(db)
+        io.print("insert2_failed")
+        sql.close(db)
+        return
+    end
+    if not sql.commit(db)
+        io.print("commit_failed")
+        sql.close(db)
+        return
+    end
+    const score: int = sql.query_int(db, "SELECT v FROM kv WHERE k='score'")
+    const name: string = sql.query_text(db, "SELECT k FROM kv WHERE v=42")
+    const n: int = sql.query_int(db, "SELECT COUNT(*) FROM kv")
+    if score == 42 and name == "score" and n == 2 and sql.changes(db) >= 0
+        io.print("ok")
+    else
+        io.print("fail")
+    end
+    sql.close(db)
+end

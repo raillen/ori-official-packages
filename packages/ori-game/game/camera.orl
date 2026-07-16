@@ -1,0 +1,159 @@
+module game.camera
+
+import ori.math.vec2 = vec2
+import raylib = rl
+
+public struct Camera2D
+    offset: vec2.Vec2
+    target: vec2.Vec2
+    rotation: float
+    zoom: float
+    min_x: float
+    min_y: float
+    max_x: float
+    max_y: float
+    has_limits: bool
+    shake_amp: float
+    shake_time: float
+    shake_seed: int
+end
+
+public create(offset: vec2.Vec2, target: vec2.Vec2, zoom: float) -> Camera2D
+    return Camera2D {
+        offset: offset,
+        target: target,
+        rotation: 0.0,
+        zoom: zoom,
+        min_x: 0.0,
+        min_y: 0.0,
+        max_x: 0.0,
+        max_y: 0.0,
+        has_limits: false,
+        shake_amp: 0.0,
+        shake_time: 0.0,
+        shake_seed: 1
+    }
+end
+
+public set_limits(cam: Camera2D, min_x: float, min_y: float, max_x: float, max_y: float) -> Camera2D
+    var out: Camera2D = cam
+    out.min_x = min_x
+    out.min_y = min_y
+    out.max_x = max_x
+    out.max_y = max_y
+    out.has_limits = true
+    return out
+end
+
+public clear_limits(cam: Camera2D) -> Camera2D
+    var out: Camera2D = cam
+    out.has_limits = false
+    return out
+end
+
+public begin_mode(cam: Camera2D) -> void
+    var tx: float = cam.target.x
+    var ty: float = cam.target.y
+    if cam.shake_time > 0.0 and cam.shake_amp > 0.0
+        -- deterministic pseudo-offset from seed
+        const s: int = cam.shake_seed
+        const ox: float = float((s * 17) - (s * 17 / 100) * 100 - 50) / 50.0 * cam.shake_amp
+        const oy: float = float((s * 31) - (s * 31 / 100) * 100 - 50) / 50.0 * cam.shake_amp
+        tx = tx + ox
+        ty = ty + oy
+    end
+    rl.ori_rl_BeginMode2D(cam.offset.x, cam.offset.y, tx, ty, cam.rotation, cam.zoom)
+end
+
+public end_mode() -> void
+    rl.ori_rl_EndMode2D()
+end
+
+public follow(cam: Camera2D, target: vec2.Vec2, lerp: float) -> Camera2D
+    var out: Camera2D = cam
+    out.target = vec2.Vec2 {
+        x: out.target.x + (target.x - out.target.x) * lerp,
+        y: out.target.y + (target.y - out.target.y) * lerp
+    }
+    return clamp_target(out)
+end
+
+public follow_deadzone(
+    cam: Camera2D,
+    target: vec2.Vec2,
+    half_w: float,
+    half_h: float,
+    lerp: float
+) -> Camera2D
+    var out: Camera2D = cam
+    var dx: float = target.x - out.target.x
+    var dy: float = target.y - out.target.y
+    if dx > half_w
+        out.target = vec2.Vec2 {
+            x: out.target.x + (dx - half_w) * lerp,
+            y: out.target.y
+        }
+    elif dx < 0.0 - half_w
+        out.target = vec2.Vec2 {
+            x: out.target.x + (dx + half_w) * lerp,
+            y: out.target.y
+        }
+    end
+    if dy > half_h
+        out.target = vec2.Vec2 {
+            x: out.target.x,
+            y: out.target.y + (dy - half_h) * lerp
+        }
+    elif dy < 0.0 - half_h
+        out.target = vec2.Vec2 {
+            x: out.target.x,
+            y: out.target.y + (dy + half_h) * lerp
+        }
+    end
+    return clamp_target(out)
+end
+
+public shake(cam: Camera2D, amplitude: float, duration: float) -> Camera2D
+    var out: Camera2D = cam
+    out.shake_amp = amplitude
+    out.shake_time = duration
+    out.shake_seed = out.shake_seed + 1
+    return out
+end
+
+public update(cam: Camera2D, dt: float) -> Camera2D
+    var out: Camera2D = cam
+    if out.shake_time > 0.0
+        out.shake_time = out.shake_time - dt
+        if out.shake_time < 0.0
+            out.shake_time = 0.0
+            out.shake_amp = 0.0
+        else
+            out.shake_seed = out.shake_seed + 3
+        end
+    end
+    return out
+end
+
+clamp_target(cam: Camera2D) -> Camera2D
+    if not cam.has_limits
+        return cam
+    end
+    var out: Camera2D = cam
+    var x: float = out.target.x
+    var y: float = out.target.y
+    if x < out.min_x
+        x = out.min_x
+    end
+    if y < out.min_y
+        y = out.min_y
+    end
+    if x > out.max_x
+        x = out.max_x
+    end
+    if y > out.max_y
+        y = out.max_y
+    end
+    out.target = vec2.Vec2 { x: x, y: y }
+    return out
+end

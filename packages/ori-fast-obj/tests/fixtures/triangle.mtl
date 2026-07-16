@@ -1,0 +1,6 @@
+# Companion MTL for triangle.obj
+newmtl Default
+Kd 1.0 0.5 0.25
+Ns 10.0
+d 1.0
+illum 2

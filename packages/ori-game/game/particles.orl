@@ -1,0 +1,84 @@
+module game.particles
+
+import ori.list = lists
+import ori.math.vec2 = vec2
+import game.color = color
+import game.draw = draw
+
+public struct Particle
+    pos: vec2.Vec2
+    vel: vec2.Vec2
+    life: float
+    max_life: float
+    size: float
+    col: color.Color
+    alive: bool
+end
+
+public struct Emitter
+    particles: list[Particle]
+end
+
+public create_emitter() -> Emitter
+    var ps: list[Particle] = []
+    return Emitter { particles: ps }
+end
+
+public emit(em: Emitter, pos: vec2.Vec2, vel: vec2.Vec2, life: float, size: float, col: color.Color) -> Emitter
+    var out: Emitter = em
+    lists.push(out.particles, Particle {
+        pos: pos,
+        vel: vel,
+        life: life,
+        max_life: life,
+        size: size,
+        col: col,
+        alive: true
+    })
+    return out
+end
+
+public update(em: Emitter, dt: float) -> Emitter
+    var out: Emitter = em
+    const n: int = lists.len(out.particles)
+    var i: int = 0
+    while i < n
+        var p: Particle = out.particles[i]
+        if p.alive
+            p.life = p.life - dt
+            if p.life <= 0.0
+                p.alive = false
+            else
+                p.pos = vec2.Vec2 { x: p.pos.x + p.vel.x * dt, y: p.pos.y + p.vel.y * dt }
+            end
+            lists.set(out.particles, i, p)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+public draw_all(em: Emitter) -> void
+    const n: int = lists.len(em.particles)
+    var i: int = 0
+    while i < n
+        const p: Particle = em.particles[i]
+        if p.alive
+            draw.draw_circle(p.pos, p.size, p.col)
+        end
+        i = i + 1
+    end
+end
+
+public count_alive(em: Emitter) -> int
+    var total: int = 0
+    const n: int = lists.len(em.particles)
+    var i: int = 0
+    while i < n
+        if em.particles[i].alive
+            total = total + 1
+        end
+        i = i + 1
+    end
+    return total
+end

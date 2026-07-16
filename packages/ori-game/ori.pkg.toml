@@ -1,0 +1,34 @@
+[package]
+name = "ori_game"
+version = "0.3.0"
+entry = "game/app.orl"
+ori_version = "0.3.0"
+description = "Game helpers (L1) for Ori — L0 raylib lives in ori-raylib"
+authors = ["Ori Team"]
+license = "MIT"
+repository = "https://github.com/raillen/ori-game"
+# native_libs come from path-deps (raylib, rres, freetype, cgltf, …).
+# Do not re-list ori_raylib_shim/raylib here — dual -L paths cause multiple definitions.
+
+[dependencies]
+# L0 raylib (module `raylib`); stage libs with tools/setup_raylib_linux.sh
+raylib = { path = "../ori-raylib", version = "0.1.0" }
+# Optional: `game.rres_assets` imports `rres.pack`
+rres = { path = "../ori-rres", version = "0.3.0" }
+# Optional: `game.font_atlas` (FreeType gray atlas → texture)
+freetype = { path = "../ori-freetype", version = "0.1.0" }
+# Optional: `game.gltf` imports `cgltf.loader` (glTF/GLB + interleaved export)
+cgltf = { path = "../ori-cgltf", version = "0.2.0" }
+# Optional: `game.obj` imports `fast_obj.mesh` (Wavefront OBJ + mesh export)
+fast_obj = { path = "../ori-fast-obj", version = "0.2.0" }
+# Optional: `game.physfs_assets` imports `physfs.fs` (virtual FS mounts + write)
+physfs = { path = "../ori-physfs", version = "0.2.0" }
+# Optional: `game.noise` imports `noise.fnl` (FastNoiseLite)
+noise = { path = "../ori-noise", version = "0.2.0" }
+# Optional: `game.compress` imports `lz4.codec` / `miniz.deflate`
+lz4 = { path = "../ori-lz4", version = "0.2.0" }
+miniz = { path = "../ori-miniz", version = "0.2.0" }
+# Optional: `game.navmesh` imports `recast.nav` (navmesh path query)
+recast = { path = "../ori-recast", version = "0.2.0" }
+# Optional: R7 samples (`examples/world_net_sync.orl`) + session helpers
+enet = { path = "../ori-enet", version = "0.3.0" }

@@ -1,0 +1,28 @@
+module test.camera_matrices
+
+imports
+    game.camera_matrix = cmat
+    ori.math.vec3 = vec3
+    ori.test = test
+    ori.list = lists
+end
+
+@test
+view_matrix_has_16()
+    const pose: cmat.CamPose = cmat.make_pose(
+        vec3.Vec3 { x: 0.0, y: 10.0, z: 20.0 },
+        vec3.Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+        vec3.Vec3 { x: 0.0, y: 1.0, z: 0.0 },
+        45.0
+    )
+    const m: list[int] = cmat.view_matrix_m(pose)
+    test.assert(lists.len(m) == 16, "16 elements")
+    test.assert(m[15] == 1000, "w=1")
+end
+
+@test
+perspective_matrix_has_16()
+    const m: list[int] = cmat.perspective_matrix_m(45.0, 1.777, 0.1, 1000.0)
+    test.assert(lists.len(m) == 16, "16 elements")
+    test.assert(m[11] == -1000, "perspective w row")
+end

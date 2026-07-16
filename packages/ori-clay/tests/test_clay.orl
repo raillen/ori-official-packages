@@ -1,0 +1,103 @@
+module test.clay
+
+imports
+    clay.layout = layout
+    ori.test = test
+end
+
+@test
+layout_two_boxes_sizes()
+    test.assert(layout.init(800, 600), "init")
+    test.equal_int(layout.layout_two_boxes(), 2)
+    test.equal_int(layout.box_count(), 2)
+    -- Fixed sizes from shim: BoxA 100x50, BoxB 120x50 (milli)
+    test.equal_int(layout.box_w_m(0), 100000)
+    test.equal_int(layout.box_h_m(0), 50000)
+    test.equal_int(layout.box_w_m(1), 120000)
+    test.equal_int(layout.box_h_m(1), 50000)
+    layout.shutdown()
+end
+
+@test
+layout_two_boxes_padding_gap()
+    test.assert(layout.init(800, 600), "init")
+    test.equal_int(layout.layout_two_boxes(), 2)
+    -- Root pad=16 → BoxA at (16, 16); gap=16 → BoxB.x = 16+100+16 = 132
+    test.equal_int(layout.box_x_m(0), 16000)
+    test.equal_int(layout.box_y_m(0), 16000)
+    test.equal_int(layout.box_x_m(1), 132000)
+    test.equal_int(layout.box_y_m(1), 16000)
+    test.assert(layout.box_x_m(1) >= layout.box_x_m(0) + layout.box_w_m(0), "non-overlap x")
+    layout.shutdown()
+end
+
+@test
+layout_nested_padding_gap()
+    test.assert(layout.init(800, 600), "init")
+    test.equal_int(layout.layout_nested(), 4)
+    test.equal_int(layout.box_count(), 4)
+    -- Header at root pad (20, 20); Body y = 20+40+gap10 = 70
+    test.equal_int(layout.box_x_m(layout.BOX_HEADER), 20000)
+    test.equal_int(layout.box_y_m(layout.BOX_HEADER), 20000)
+    test.equal_int(layout.box_w_m(layout.BOX_HEADER), 200000)
+    test.equal_int(layout.box_h_m(layout.BOX_HEADER), 40000)
+    test.equal_int(layout.box_x_m(layout.BOX_BODY), 20000)
+    test.equal_int(layout.box_y_m(layout.BOX_BODY), 70000)
+    -- Left inside Body: pad 12 → (32, 82); Right gap 8 → x = 32+80+8 = 120
+    test.equal_int(layout.box_x_m(layout.BOX_LEFT), 32000)
+    test.equal_int(layout.box_y_m(layout.BOX_LEFT), 82000)
+    test.equal_int(layout.box_w_m(layout.BOX_LEFT), 80000)
+    test.equal_int(layout.box_h_m(layout.BOX_LEFT), 50000)
+    test.equal_int(layout.box_x_m(layout.BOX_RIGHT), 120000)
+    test.equal_int(layout.box_y_m(layout.BOX_RIGHT), 82000)
+    test.equal_int(layout.box_w_m(layout.BOX_RIGHT), 90000)
+    test.equal_int(layout.box_h_m(layout.BOX_RIGHT), 50000)
+    layout.shutdown()
+end
+
+@test
+command_list_export_rects()
+    test.assert(layout.init(800, 600), "init")
+    test.equal_int(layout.layout_nested(), 4)
+    -- Nested layout emits 5 rectangle commands (Root, Header, Body, Left, Right)
+    test.assert(layout.cmd_count() >= 5, "cmd_count")
+    test.equal_int(layout.rect_cmd_count(), 5)
+    var rects: int = 0
+    var i: int = 0
+    while i < layout.cmd_count()
+        if layout.cmd_type(i) == layout.CMD_RECTANGLE
+            test.assert(layout.cmd_w_m(i) > 0, "rect w")
+            test.assert(layout.cmd_h_m(i) > 0, "rect h")
+            test.assert(layout.cmd_a(i) > 0, "rect alpha")
+            rects = rects + 1
+        end
+        i = i + 1
+    end
+    test.equal_int(rects, 5)
+    -- Root rect is full layout size (800x600 milli)
+    test.equal_int(layout.cmd_type(0), layout.CMD_RECTANGLE)
+    test.equal_int(layout.cmd_x_m(0), 0)
+    test.equal_int(layout.cmd_y_m(0), 0)
+    test.equal_int(layout.cmd_w_m(0), 800000)
+    test.equal_int(layout.cmd_h_m(0), 600000)
+    -- Header rect matches box bounds + red-ish color
+    test.equal_int(layout.cmd_x_m(1), 20000)
+    test.equal_int(layout.cmd_y_m(1), 20000)
+    test.equal_int(layout.cmd_w_m(1), 200000)
+    test.equal_int(layout.cmd_h_m(1), 40000)
+    test.equal_int(layout.cmd_r(1), 200)
+    test.equal_int(layout.cmd_g(1), 50)
+    test.equal_int(layout.cmd_b(1), 50)
+    layout.shutdown()
+end
+
+@test
+layout_without_init_fails()
+    layout.shutdown()
+    test.equal_int(layout.layout_two_boxes(), 0)
+    test.equal_int(layout.layout_nested(), 0)
+    test.equal_int(layout.box_count(), 0)
+    test.equal_int(layout.cmd_count(), 0)
+    test.equal_int(layout.box_w_m(0), 0)
+    test.equal_int(layout.cmd_type(0), 0)
+end

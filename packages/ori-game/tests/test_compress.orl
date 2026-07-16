@@ -1,0 +1,45 @@
+module test.compress
+
+imports
+    game.compress = c
+    ori.test = test
+end
+
+@test
+lz4_roundtrip()
+    const s: string = "abcdefghij"
+    test.assert(c.lz4_compress_text(s) > 0, "lz4 compress")
+    test.equal_int(c.lz4_roundtrip_len(s), 10)
+end
+
+@test
+lz4_repetitive_smaller()
+    const s: string = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    const clen: int = c.lz4_compress_text(s)
+    test.assert(clen > 0, "compress")
+    test.assert(clen < 50, "compressed smaller than raw")
+    test.equal_int(c.lz4_roundtrip_len(s), 50)
+end
+
+@test
+lz4_stream_roundtrip()
+    const s: string = "stream-payload-ori-lz4-abcdefghijklmnopqrstuvwxyz"
+    const flen: int = c.lz4_stream_compress_text(s, 16)
+    test.assert(flen > 0, "stream compress")
+    test.equal_int(c.lz4_stream_roundtrip_len(s, 16), 49)
+end
+
+@test
+mz_roundtrip_and_crc()
+    const s: string = "miniz-payload-0123456789"
+    test.assert(c.mz_compress_text(s, 6) > 0, "mz compress")
+    test.equal_int(c.mz_roundtrip_len(s), 24)
+    const crc: int = c.mz_crc32_text(s)
+    test.assert(crc != 0, "crc non-zero")
+end
+
+@test
+mz_zip_roundtrip()
+    const plain: string = "zip-entry-body"
+    test.equal_int(c.mz_zip_roundtrip_len("e.txt", plain), 14)
+end

@@ -1,0 +1,86 @@
+module nfd.dialog
+
+import ori.mem = mem
+
+extern c
+    public ori_nfd_open_file(title_ptr: int, filter_ptr: int) -> int
+    public ori_nfd_open_files(title_ptr: int, filter_ptr: int) -> int
+    public ori_nfd_save_file(title_ptr: int, default_name_ptr: int) -> int
+    public ori_nfd_pick_folder(title_ptr: int) -> int
+    public ori_nfd_ok() -> int
+    public ori_nfd_path_ptr() -> int
+    public ori_nfd_path_len() -> int
+    public ori_nfd_path_byte(i: int) -> int
+    public ori_nfd_path_sum() -> int
+    public ori_nfd_path_count() -> int
+    public ori_nfd_path_at_len(idx: int) -> int
+    public ori_nfd_path_at_byte(idx: int, i: int) -> int
+    public ori_nfd_clear() -> int
+    public ori_nfd_set_path_for_test(path_ptr: int) -> int
+    public ori_nfd_set_paths_for_test(paths_ptr: int) -> int
+end
+
+-- Open a single file. Cancel or NFD_SMOKE_SKIP_UI → false / empty path.
+public open_file(title: string, filter: string) -> bool
+    return ori_nfd_open_file(mem.string_as_ptr(title), mem.string_as_ptr(filter)) == 0
+end
+
+-- Multi-select open (pfd opt::multiselect). Primary path is first selection.
+public open_files(title: string, filter: string) -> bool
+    return ori_nfd_open_files(mem.string_as_ptr(title), mem.string_as_ptr(filter)) == 0
+end
+
+public save_file(title: string, default_name: string) -> bool
+    return ori_nfd_save_file(mem.string_as_ptr(title), mem.string_as_ptr(default_name)) == 0
+end
+
+public pick_folder(title: string) -> bool
+    return ori_nfd_pick_folder(mem.string_as_ptr(title)) == 0
+end
+
+public is_ok() -> bool
+    return ori_nfd_ok() != 0
+end
+
+public path_len() -> int
+    return ori_nfd_path_len()
+end
+
+public path_ptr() -> int
+    return ori_nfd_path_ptr()
+end
+
+public path_byte(i: int) -> int
+    return ori_nfd_path_byte(i)
+end
+
+public path_sum() -> int
+    return ori_nfd_path_sum()
+end
+
+public path_count() -> int
+    return ori_nfd_path_count()
+end
+
+public path_at_len(idx: int) -> int
+    return ori_nfd_path_at_len(idx)
+end
+
+public path_at_byte(idx: int, i: int) -> int
+    return ori_nfd_path_at_byte(idx, i)
+end
+
+-- Reset to cancelled/empty without showing a dialog.
+public clear() -> void
+    const _r: int = ori_nfd_clear()
+end
+
+-- Headless: inject a single path (CI / unit tests). Empty path → cancel state.
+public set_path_for_test(path: string) -> bool
+    return ori_nfd_set_path_for_test(mem.string_as_ptr(path)) == 0
+end
+
+-- Headless multi: semicolon-separated paths (e.g. "/a;/b").
+public set_paths_for_test(paths: string) -> bool
+    return ori_nfd_set_paths_for_test(mem.string_as_ptr(paths)) == 0
+end

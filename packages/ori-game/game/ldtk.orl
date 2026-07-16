@@ -1,0 +1,503 @@
+module game.ldtk
+
+-- LDtk project JSON loader (single-file or simplified export).
+-- Supports IntGrid (intGridCsv), Entities (entityInstances), Tiles (gridTiles.t).
+-- External levels / multi-world / AutoLayer sources: not yet.
+
+import ori.json = json
+import ori.map = maps
+import ori.list = lists
+import ori.math = math
+import ori.fs = fs
+import game.tilemap = tilemap
+import game.shape = shape
+
+public struct LdtkEntity
+    identifier: string
+    x: float
+    y: float
+    width: float
+    height: float
+end
+
+public struct LdtkLayer
+    identifier: string
+    layer_type: string
+    grid_w: int
+    grid_h: int
+    grid_size: int
+    int_grid: list[int]
+    entities: list[LdtkEntity]
+    tile_ids: list[int]
+end
+
+public struct LdtkLevel
+    identifier: string
+    uid: int
+    px_width: int
+    px_height: int
+    world_x: int
+    world_y: int
+    layers: list[LdtkLayer]
+end
+
+public struct LdtkProject
+    json_version: string
+    default_grid_size: int
+    levels: list[LdtkLevel]
+end
+
+public alias LoadResult = result[LdtkProject, string]
+
+-- ── JSON helpers ──────────────────────────────────────────
+
+json_number(fields: map[string, json.Value], key: string, fallback: float) -> float
+    if some(v) = maps.try_get(fields, key)
+        match v
+            case Number(value):
+                return value
+            case else:
+                return fallback
+        end
+    end
+    return fallback
+end
+
+json_int(fields: map[string, json.Value], key: string, fallback: int) -> int
+    return math.round(json_number(fields, key, float(fallback)))
+end
+
+json_string(fields: map[string, json.Value], key: string, fallback: string) -> string
+    if some(v) = maps.try_get(fields, key)
+        match v
+            case String(value):
+                return value
+            case else:
+                return fallback
+        end
+    end
+    return fallback
+end
+
+parse_int_list(items: list[json.Value]) -> list[int]
+    var out: list[int] = []
+    const n: int = lists.len(items)
+    var i: int = 0
+    while i < n
+        match items[i]
+            case Number(value):
+                lists.push(out, math.round(value))
+            case else:
+                lists.push(out, 0)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- Entity.px is [x, y] in pixels (top-left of entity).
+parse_entity(val: json.Value) -> LdtkEntity
+    match val
+        case Object(fields):
+            var x: float = 0.0
+            var y: float = 0.0
+            if some(px_v) = maps.try_get(fields, "px")
+                match px_v
+                    case Array(items):
+                        if lists.len(items) >= 1
+                            match items[0]
+                                case Number(value):
+                                    x = value
+                                case else:
+                            end
+                        end
+                        if lists.len(items) >= 2
+                            match items[1]
+                                case Number(value):
+                                    y = value
+                                case else:
+                            end
+                        end
+                    case else:
+                end
+            end
+            return LdtkEntity {
+                identifier: json_string(fields, "__identifier", ""),
+                x: x,
+                y: y,
+                width: json_number(fields, "width", 0.0),
+                height: json_number(fields, "height", 0.0)
+            }
+        case else:
+            return LdtkEntity {
+                identifier: "",
+                x: 0.0,
+                y: 0.0,
+                width: 0.0,
+                height: 0.0
+            }
+    end
+end
+
+parse_entities(items: list[json.Value]) -> list[LdtkEntity]
+    var out: list[LdtkEntity] = []
+    const n: int = lists.len(items)
+    var i: int = 0
+    while i < n
+        lists.push(out, parse_entity(items[i]))
+        i = i + 1
+    end
+    return out
+end
+
+-- gridTiles: { t: tileId, d: [coordId] } → dense tile id grid (0 empty).
+parse_grid_tile_ids(items: list[json.Value], grid_w: int, grid_h: int) -> list[int]
+    const total: int = grid_w * grid_h
+    var out: list[int] = []
+    var i: int = 0
+    while i < total
+        lists.push(out, 0)
+        i = i + 1
+    end
+    if grid_w <= 0 or grid_h <= 0
+        return out
+    end
+    const n: int = lists.len(items)
+    var j: int = 0
+    while j < n
+        match items[j]
+            case Object(fields):
+                const tid: int = json_int(fields, "t", 0)
+                var flat: int = -1
+                if some(d_v) = maps.try_get(fields, "d")
+                    match d_v
+                        case Array(items):
+                            if lists.len(items) >= 1
+                                match items[0]
+                                    case Number(value):
+                                        flat = math.round(value)
+                                    case else:
+                                end
+                            end
+                        case else:
+                    end
+                end
+                if flat >= 0 and flat < total
+                    lists.set(out, flat, tid)
+                end
+            case else:
+        end
+        j = j + 1
+    end
+    return out
+end
+
+parse_layer(val: json.Value) -> LdtkLayer
+    var empty_i: list[int] = []
+    var empty_e: list[LdtkEntity] = []
+    match val
+        case Object(fields):
+            const layer_type: string = json_string(fields, "__type", "")
+            const identifier: string = json_string(fields, "__identifier", "")
+            const grid_w: int = json_int(fields, "__cWid", 0)
+            const grid_h: int = json_int(fields, "__cHei", 0)
+            const grid_size: int = json_int(fields, "__gridSize", 16)
+            var int_grid: list[int] = empty_i
+            if some(csv_v) = maps.try_get(fields, "intGridCsv")
+                match csv_v
+                    case Array(items):
+                        int_grid = parse_int_list(items)
+                    case else:
+                end
+            end
+            var entities: list[LdtkEntity] = empty_e
+            if some(ent_v) = maps.try_get(fields, "entityInstances")
+                match ent_v
+                    case Array(items):
+                        entities = parse_entities(items)
+                    case else:
+                end
+            end
+            var tile_ids: list[int] = empty_i
+            if some(tiles_v) = maps.try_get(fields, "gridTiles")
+                match tiles_v
+                    case Array(items):
+                        tile_ids = parse_grid_tile_ids(items, grid_w, grid_h)
+                    case else:
+                end
+            end
+            if some(auto_v) = maps.try_get(fields, "autoLayerTiles")
+                if lists.len(tile_ids) == 0
+                    match auto_v
+                        case Array(items):
+                            tile_ids = parse_grid_tile_ids(items, grid_w, grid_h)
+                        case else:
+                    end
+                end
+            end
+            return LdtkLayer {
+                identifier: identifier,
+                layer_type: layer_type,
+                grid_w: grid_w,
+                grid_h: grid_h,
+                grid_size: grid_size,
+                int_grid: int_grid,
+                entities: entities,
+                tile_ids: tile_ids
+            }
+        case else:
+            return LdtkLayer {
+                identifier: "",
+                layer_type: "Unknown",
+                grid_w: 0,
+                grid_h: 0,
+                grid_size: 16,
+                int_grid: empty_i,
+                entities: empty_e,
+                tile_ids: empty_i
+            }
+    end
+end
+
+parse_layers(items: list[json.Value]) -> list[LdtkLayer]
+    var out: list[LdtkLayer] = []
+    const n: int = lists.len(items)
+    var i: int = 0
+    while i < n
+        lists.push(out, parse_layer(items[i]))
+        i = i + 1
+    end
+    return out
+end
+
+parse_level(val: json.Value) -> LdtkLevel
+    var empty_l: list[LdtkLayer] = []
+    match val
+        case Object(fields):
+            var layers: list[LdtkLayer] = empty_l
+            if some(li) = maps.try_get(fields, "layerInstances")
+                match li
+                    case Array(items):
+                        layers = parse_layers(items)
+                    case else:
+                end
+            end
+            return LdtkLevel {
+                identifier: json_string(fields, "identifier", ""),
+                uid: json_int(fields, "uid", 0),
+                px_width: json_int(fields, "pxWid", 0),
+                px_height: json_int(fields, "pxHei", 0),
+                world_x: json_int(fields, "worldX", 0),
+                world_y: json_int(fields, "worldY", 0),
+                layers: layers
+            }
+        case else:
+            return LdtkLevel {
+                identifier: "",
+                uid: 0,
+                px_width: 0,
+                px_height: 0,
+                world_x: 0,
+                world_y: 0,
+                layers: empty_l
+            }
+    end
+end
+
+parse_levels(items: list[json.Value]) -> list[LdtkLevel]
+    var out: list[LdtkLevel] = []
+    const n: int = lists.len(items)
+    var i: int = 0
+    while i < n
+        lists.push(out, parse_level(items[i]))
+        i = i + 1
+    end
+    return out
+end
+
+-- ── Public API ────────────────────────────────────────────
+
+public parse_project(text: string) -> LoadResult
+    match json.parse(text)
+        case ok(val):
+            match val
+                case Object(fields):
+                    var levels: list[LdtkLevel] = []
+                    if some(lv) = maps.try_get(fields, "levels")
+                        match lv
+                            case Array(items):
+                                levels = parse_levels(items)
+                            case else:
+                        end
+                    end
+                    if lists.len(levels) == 0
+                        return err("no levels in project")
+                    end
+                    const proj: LdtkProject = LdtkProject {
+                        json_version: json_string(fields, "jsonVersion", ""),
+                        default_grid_size: json_int(fields, "defaultGridSize", 16),
+                        levels: levels
+                    }
+                    return ok(proj)
+                case else:
+                    return err("root must be a JSON object")
+            end
+        case err(msg):
+            return err(msg)
+    end
+    return err("parse failed")
+end
+
+public load_project(path: string) -> LoadResult
+    match fs.read_text(path)
+        case ok(text):
+            return parse_project(text)
+        case err(_):
+            return err("failed to read LDtk file")
+    end
+    return err("failed to read LDtk file")
+end
+
+public level_count(p: LdtkProject) -> int
+    return lists.len(p.levels)
+end
+
+public level_by_name(p: LdtkProject, name: string) -> optional[LdtkLevel]
+    const n: int = lists.len(p.levels)
+    var i: int = 0
+    while i < n
+        const lv: LdtkLevel = p.levels[i]
+        if lv.identifier == name
+            return some(lv)
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public first_level(p: LdtkProject) -> optional[LdtkLevel]
+    if lists.len(p.levels) == 0
+        return none
+    end
+    return some(p.levels[0])
+end
+
+public layer_by_name(level: LdtkLevel, name: string) -> optional[LdtkLayer]
+    const n: int = lists.len(level.layers)
+    var i: int = 0
+    while i < n
+        const layer: LdtkLayer = level.layers[i]
+        if layer.identifier == name
+            return some(layer)
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public first_int_grid(level: LdtkLevel) -> optional[LdtkLayer]
+    const n: int = lists.len(level.layers)
+    var i: int = 0
+    while i < n
+        const layer: LdtkLayer = level.layers[i]
+        if layer.layer_type == "IntGrid"
+            return some(layer)
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public first_entities(level: LdtkLevel) -> optional[LdtkLayer]
+    const n: int = lists.len(level.layers)
+    var i: int = 0
+    while i < n
+        const layer: LdtkLayer = level.layers[i]
+        if layer.layer_type == "Entities"
+            return some(layer)
+        end
+        i = i + 1
+    end
+    return none
+end
+
+public entities_of(level: LdtkLevel, identifier: string) -> list[LdtkEntity]
+    var out: list[LdtkEntity] = []
+    const n: int = lists.len(level.layers)
+    var i: int = 0
+    while i < n
+        const layer: LdtkLayer = level.layers[i]
+        const m: int = lists.len(layer.entities)
+        var j: int = 0
+        while j < m
+            const e: LdtkEntity = layer.entities[j]
+            if e.identifier == identifier
+                lists.push(out, e)
+            end
+            j = j + 1
+        end
+        i = i + 1
+    end
+    return out
+end
+
+public entity_rect(e: LdtkEntity) -> shape.Rectangle
+    return shape.rect(e.x, e.y, e.width, e.height)
+end
+
+-- IntGrid value as tile id (0 = empty).
+public int_grid_to_tilemap(layer: LdtkLayer) -> tilemap.Tilemap
+    const gs: float = float(layer.grid_size)
+    var tm: tilemap.Tilemap = tilemap.create(layer.grid_w, layer.grid_h, gs)
+    const total: int = layer.grid_w * layer.grid_h
+    const n: int = lists.len(layer.int_grid)
+    var i: int = 0
+    while i < total and i < n
+        const v: int = layer.int_grid[i]
+        const x: int = i % layer.grid_w
+        const y: int = i / layer.grid_w
+        tm = tilemap.set_tile(tm, x, y, v)
+        i = i + 1
+    end
+    return tm
+end
+
+public tiles_to_tilemap(layer: LdtkLayer) -> tilemap.Tilemap
+    const gs: float = float(layer.grid_size)
+    var tm: tilemap.Tilemap = tilemap.create(layer.grid_w, layer.grid_h, gs)
+    const total: int = layer.grid_w * layer.grid_h
+    const n: int = lists.len(layer.tile_ids)
+    var i: int = 0
+    while i < total and i < n
+        const v: int = layer.tile_ids[i]
+        const x: int = i % layer.grid_w
+        const y: int = i / layer.grid_w
+        tm = tilemap.set_tile(tm, x, y, v)
+        i = i + 1
+    end
+    return tm
+end
+
+-- Prefer IntGrid for collision; else Tiles layer.
+public level_to_tilemap(level: LdtkLevel) -> optional[tilemap.Tilemap]
+    match first_int_grid(level)
+        case some(layer):
+            return some(int_grid_to_tilemap(layer))
+        case none:
+            const n: int = lists.len(level.layers)
+            var i: int = 0
+            while i < n
+                const layer: LdtkLayer = level.layers[i]
+                if layer.layer_type == "Tiles" or layer.layer_type == "AutoLayer"
+                    return some(tiles_to_tilemap(layer))
+                end
+                i = i + 1
+            end
+            return none
+    end
+    return none
+end
+
+public is_solid_value(v: int) -> bool
+    return v != 0
+end

@@ -1,0 +1,265 @@
+module box2d.dynamics
+
+-- Box2D 3.x for Ori. Boundary uses milli-units (int): meters×1000, µs for dt,
+-- millidegrees / milli-deg/s for angles, material coeffs ×1000.
+-- See `box2d.units` for float helpers.
+
+extern c
+    public ori_b2_create_world(gravity_x_m: int, gravity_y_m: int) -> int
+    public ori_b2_destroy_world(world: int) -> void
+    public ori_b2_world_is_valid(world: int) -> int
+    public ori_b2_set_gravity(world: int, gravity_x_m: int, gravity_y_m: int) -> void
+    public ori_b2_step(world: int, dt_micros: int, substeps: int) -> void
+    public ori_b2_create_static_box(world: int, x_m: int, y_m: int, half_w_m: int, half_h_m: int) -> int
+    public ori_b2_create_dynamic_box(world: int, x_m: int, y_m: int, half_w_m: int, half_h_m: int, density_m: int) -> int
+    public ori_b2_create_kinematic_box(world: int, x_m: int, y_m: int, half_w_m: int, half_h_m: int) -> int
+    public ori_b2_create_static_circle(world: int, x_m: int, y_m: int, radius_m: int) -> int
+    public ori_b2_create_dynamic_circle(world: int, x_m: int, y_m: int, radius_m: int, density_m: int) -> int
+    public ori_b2_create_static_poly4(world: int, x_m: int, y_m: int, x0: int, y0: int, x1: int, y1: int, x2: int, y2: int, x3: int, y3: int) -> int
+    public ori_b2_create_dynamic_poly4(world: int, x_m: int, y_m: int, x0: int, y0: int, x1: int, y1: int, x2: int, y2: int, x3: int, y3: int, density_m: int) -> int
+    public ori_b2_destroy_body(body: int) -> void
+    public ori_b2_body_is_valid(body: int) -> int
+    public ori_b2_body_x_m(body: int) -> int
+    public ori_b2_body_y_m(body: int) -> int
+    public ori_b2_body_angle_mdeg(body: int) -> int
+    public ori_b2_body_vx_m(body: int) -> int
+    public ori_b2_body_vy_m(body: int) -> int
+    public ori_b2_body_omega_mdeg(body: int) -> int
+    public ori_b2_set_angular_velocity(body: int, omega_mdeg: int) -> void
+    public ori_b2_set_position(body: int, x_m: int, y_m: int) -> void
+    public ori_b2_set_linear_velocity(body: int, vx_m: int, vy_m: int) -> void
+    public ori_b2_apply_force_to_center(body: int, fx_m: int, fy_m: int) -> void
+    public ori_b2_apply_linear_impulse_to_center(body: int, ix_m: int, iy_m: int) -> void
+    public ori_b2_set_awake(body: int, awake: int) -> void
+    public ori_b2_set_friction(body: int, friction_m: int) -> void
+    public ori_b2_set_restitution(body: int, restitution_m: int) -> void
+    public ori_b2_body_friction_m(body: int) -> int
+    public ori_b2_body_restitution_m(body: int) -> int
+    public ori_b2_body_count_live() -> int
+    public ori_b2_create_distance_joint(body_a: int, body_b: int, ax_m: int, ay_m: int, bx_m: int, by_m: int, length_m: int) -> int
+    public ori_b2_create_revolute_joint(body_a: int, body_b: int, ax_m: int, ay_m: int, bx_m: int, by_m: int) -> int
+    public ori_b2_create_weld_joint(body_a: int, body_b: int, ax_m: int, ay_m: int, bx_m: int, by_m: int) -> int
+    public ori_b2_destroy_joint(joint: int) -> void
+    public ori_b2_joint_is_valid(joint: int) -> int
+    public ori_b2_raycast(world: int, ox_m: int, oy_m: int, tx_m: int, ty_m: int) -> int
+    public ori_b2_last_ray_hit() -> int
+    public ori_b2_last_ray_x_m() -> int
+    public ori_b2_last_ray_y_m() -> int
+    public ori_b2_query_aabb(world: int, min_x_m: int, min_y_m: int, max_x_m: int, max_y_m: int) -> int
+    public ori_b2_aabb_result_count() -> int
+    public ori_b2_aabb_result_body(index: int) -> int
+    public ori_b2_contact_count() -> int
+    public ori_b2_contact_body_a(index: int) -> int
+    public ori_b2_contact_body_b(index: int) -> int
+end
+
+public struct World
+    id: int
+end
+
+public struct Body
+    id: int
+end
+
+public struct Joint
+    id: int
+end
+
+public create_world(gravity_x_m: int, gravity_y_m: int) -> World
+    return World { id: ori_b2_create_world(gravity_x_m, gravity_y_m) }
+end
+
+public destroy_world(w: World) -> void
+    ori_b2_destroy_world(w.id)
+end
+
+public is_valid(w: World) -> bool
+    return ori_b2_world_is_valid(w.id) != 0
+end
+
+public set_gravity(w: World, gravity_x_m: int, gravity_y_m: int) -> void
+    ori_b2_set_gravity(w.id, gravity_x_m, gravity_y_m)
+end
+
+public step(w: World, dt_micros: int) -> void
+    ori_b2_step(w.id, dt_micros, 4)
+end
+
+public step_substeps(w: World, dt_micros: int, substeps: int) -> void
+    ori_b2_step(w.id, dt_micros, substeps)
+end
+
+public create_static_box(w: World, x_m: int, y_m: int, half_w_m: int, half_h_m: int) -> Body
+    return Body { id: ori_b2_create_static_box(w.id, x_m, y_m, half_w_m, half_h_m) }
+end
+
+public create_dynamic_box(w: World, x_m: int, y_m: int, half_w_m: int, half_h_m: int, density_m: int) -> Body
+    return Body { id: ori_b2_create_dynamic_box(w.id, x_m, y_m, half_w_m, half_h_m, density_m) }
+end
+
+public create_kinematic_box(w: World, x_m: int, y_m: int, half_w_m: int, half_h_m: int) -> Body
+    return Body { id: ori_b2_create_kinematic_box(w.id, x_m, y_m, half_w_m, half_h_m) }
+end
+
+public create_static_circle(w: World, x_m: int, y_m: int, radius_m: int) -> Body
+    return Body { id: ori_b2_create_static_circle(w.id, x_m, y_m, radius_m) }
+end
+
+public create_dynamic_circle(w: World, x_m: int, y_m: int, radius_m: int, density_m: int) -> Body
+    return Body { id: ori_b2_create_dynamic_circle(w.id, x_m, y_m, radius_m, density_m) }
+end
+
+-- Convex quad: body at (x,y); verts local milli-meters relative to body origin.
+public create_static_poly4(w: World, x_m: int, y_m: int, x0: int, y0: int, x1: int, y1: int, x2: int, y2: int, x3: int, y3: int) -> Body
+    return Body { id: ori_b2_create_static_poly4(w.id, x_m, y_m, x0, y0, x1, y1, x2, y2, x3, y3) }
+end
+
+public create_dynamic_poly4(w: World, x_m: int, y_m: int, x0: int, y0: int, x1: int, y1: int, x2: int, y2: int, x3: int, y3: int, density_m: int) -> Body
+    return Body { id: ori_b2_create_dynamic_poly4(w.id, x_m, y_m, x0, y0, x1, y1, x2, y2, x3, y3, density_m) }
+end
+
+public destroy_body(b: Body) -> void
+    ori_b2_destroy_body(b.id)
+end
+
+public body_is_valid(b: Body) -> bool
+    return ori_b2_body_is_valid(b.id) != 0
+end
+
+public body_x_m(b: Body) -> int
+    return ori_b2_body_x_m(b.id)
+end
+
+public body_y_m(b: Body) -> int
+    return ori_b2_body_y_m(b.id)
+end
+
+public body_angle_mdeg(b: Body) -> int
+    return ori_b2_body_angle_mdeg(b.id)
+end
+
+public body_vx_m(b: Body) -> int
+    return ori_b2_body_vx_m(b.id)
+end
+
+public body_vy_m(b: Body) -> int
+    return ori_b2_body_vy_m(b.id)
+end
+
+-- Angular velocity in milli-deg/s (deg/s × 1000).
+public body_omega_mdeg(b: Body) -> int
+    return ori_b2_body_omega_mdeg(b.id)
+end
+
+public set_angular_velocity(b: Body, omega_mdeg: int) -> void
+    ori_b2_set_angular_velocity(b.id, omega_mdeg)
+end
+
+public set_position(b: Body, x_m: int, y_m: int) -> void
+    ori_b2_set_position(b.id, x_m, y_m)
+end
+
+public set_linear_velocity(b: Body, vx_m: int, vy_m: int) -> void
+    ori_b2_set_linear_velocity(b.id, vx_m, vy_m)
+end
+
+public apply_force_to_center(b: Body, fx_m: int, fy_m: int) -> void
+    ori_b2_apply_force_to_center(b.id, fx_m, fy_m)
+end
+
+public apply_impulse_to_center(b: Body, ix_m: int, iy_m: int) -> void
+    ori_b2_apply_linear_impulse_to_center(b.id, ix_m, iy_m)
+end
+
+public set_awake(b: Body, awake: bool) -> void
+    var a: int = 0
+    if awake
+        a = 1
+    end
+    ori_b2_set_awake(b.id, a)
+end
+
+-- Material: coeffs ×1000 (500 = 0.5). Applied to all shapes on the body.
+public set_friction(b: Body, friction_m: int) -> void
+    ori_b2_set_friction(b.id, friction_m)
+end
+
+public set_restitution(b: Body, restitution_m: int) -> void
+    ori_b2_set_restitution(b.id, restitution_m)
+end
+
+public body_friction_m(b: Body) -> int
+    return ori_b2_body_friction_m(b.id)
+end
+
+public body_restitution_m(b: Body) -> int
+    return ori_b2_body_restitution_m(b.id)
+end
+
+public live_body_count() -> int
+    return ori_b2_body_count_live()
+end
+
+-- Joints: anchors are world milli-meters. length_m <= 0 → use current distance.
+public create_distance_joint(a: Body, b: Body, ax_m: int, ay_m: int, bx_m: int, by_m: int, length_m: int) -> Joint
+    return Joint { id: ori_b2_create_distance_joint(a.id, b.id, ax_m, ay_m, bx_m, by_m, length_m) }
+end
+
+public create_revolute_joint(a: Body, b: Body, ax_m: int, ay_m: int, bx_m: int, by_m: int) -> Joint
+    return Joint { id: ori_b2_create_revolute_joint(a.id, b.id, ax_m, ay_m, bx_m, by_m) }
+end
+
+public create_weld_joint(a: Body, b: Body, ax_m: int, ay_m: int, bx_m: int, by_m: int) -> Joint
+    return Joint { id: ori_b2_create_weld_joint(a.id, b.id, ax_m, ay_m, bx_m, by_m) }
+end
+
+public destroy_joint(j: Joint) -> void
+    ori_b2_destroy_joint(j.id)
+end
+
+public joint_is_valid(j: Joint) -> bool
+    return ori_b2_joint_is_valid(j.id) != 0
+end
+
+-- Raycast: origin + translation (milli-m). Returns hit body or invalid Body (id < 0).
+public raycast(w: World, ox_m: int, oy_m: int, tx_m: int, ty_m: int) -> Body
+    return Body { id: ori_b2_raycast(w.id, ox_m, oy_m, tx_m, ty_m) }
+end
+
+public last_ray_hit() -> bool
+    return ori_b2_last_ray_hit() != 0
+end
+
+public last_ray_x_m() -> int
+    return ori_b2_last_ray_x_m()
+end
+
+public last_ray_y_m() -> int
+    return ori_b2_last_ray_y_m()
+end
+
+-- AABB query: returns hit count; use aabb_result_body(i) for body slots.
+public query_aabb(w: World, min_x_m: int, min_y_m: int, max_x_m: int, max_y_m: int) -> int
+    return ori_b2_query_aabb(w.id, min_x_m, min_y_m, max_x_m, max_y_m)
+end
+
+public aabb_result_count() -> int
+    return ori_b2_aabb_result_count()
+end
+
+public aabb_result_body(index: int) -> Body
+    return Body { id: ori_b2_aabb_result_body(index) }
+end
+
+-- Contacts: refreshed after each step.
+public contact_count() -> int
+    return ori_b2_contact_count()
+end
+
+public contact_body_a(index: int) -> Body
+    return Body { id: ori_b2_contact_body_a(index) }
+end
+
+public contact_body_b(index: int) -> Body
+    return Body { id: ori_b2_contact_body_b(index) }
+end

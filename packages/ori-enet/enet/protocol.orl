@@ -1,0 +1,36 @@
+module enet.protocol
+
+-- Tiny framing helpers for jam multiplayer: "TYPE|payload" text lines.
+-- Pure Ori — no FFI. Pair with enet.host send_text / packet_text.
+
+public struct Message
+    kind: string
+    body: string
+end
+
+public encode(kind: string, body: string) -> string
+    return ori.string.concat(kind, ori.string.concat("|", body))
+end
+
+public decode(raw: string) -> Message
+    const n: int = ori.string.len(raw)
+    var i: int = 0
+    while i < n
+        const ch: string = ori.string.slice(raw, i, i + 1)
+        if ch == "|"
+            return Message {
+                kind: ori.string.slice(raw, 0, i),
+                body: ori.string.slice(raw, i + 1, n)
+            }
+        end
+        i = i + 1
+    end
+    return Message {
+        kind: raw,
+        body: ""
+    }
+end
+
+public kind_is(msg: Message, kind: string) -> bool
+    return msg.kind == kind
+end

@@ -1,0 +1,167 @@
+module cgltf.loader
+
+-- glTF 2.0 loader (cgltf). Single leaf module — keep as `cgltf.loader`
+-- so path-dep + `game.gltf` do not collide on last segment.
+-- Milli-float: physical value * 1000 as int.
+
+import ori.mem = mem
+
+extern c
+    public ori_cgltf_load_file(path_ptr: int) -> int
+    public ori_cgltf_free() -> void
+    public ori_cgltf_mesh_count() -> int
+    public ori_cgltf_node_count() -> int
+    public ori_cgltf_material_count() -> int
+    public ori_cgltf_animation_count() -> int
+    public ori_cgltf_mesh0_vertex_count() -> int
+    public ori_cgltf_mesh_primitive_count(mesh_i: int) -> int
+    public ori_cgltf_mesh_vertex_count(mesh_i: int, prim_i: int) -> int
+    public ori_cgltf_mesh_index_count(mesh_i: int, prim_i: int) -> int
+    public ori_cgltf_mesh_has_position(mesh_i: int, prim_i: int) -> int
+    public ori_cgltf_mesh_has_normal(mesh_i: int, prim_i: int) -> int
+    public ori_cgltf_node_has_translation(node_i: int) -> int
+    public ori_cgltf_node_has_rotation(node_i: int) -> int
+    public ori_cgltf_node_has_scale(node_i: int) -> int
+    public ori_cgltf_node_translation_m(node_i: int, axis: int) -> int
+    public ori_cgltf_node_rotation_m(node_i: int, component: int) -> int
+    public ori_cgltf_node_scale_m(node_i: int, axis: int) -> int
+    public ori_cgltf_material_base_color_m(mat_i: int, channel: int) -> int
+    public ori_cgltf_export_mesh(mesh_i: int, prim_i: int) -> int
+    public ori_cgltf_export_vertex_count() -> int
+    public ori_cgltf_export_index_count() -> int
+    public ori_cgltf_export_float_count() -> int
+    public ori_cgltf_export_float_m(i: int) -> int
+    public ori_cgltf_export_index(i: int) -> int
+    public ori_cgltf_export_pos_m(vert_i: int, axis: int) -> int
+    public ori_cgltf_export_normal_m(vert_i: int, axis: int) -> int
+    public ori_cgltf_export_floats_ptr() -> int
+    public ori_cgltf_export_indices_ptr() -> int
+    public ori_cgltf_export_sum_m() -> int
+end
+
+-- Load a .gltf / .glb path. Returns true on parse success.
+public load_file(path: string) -> bool
+    return ori_cgltf_load_file(mem.string_as_ptr(path)) == 0
+end
+
+public free() -> void
+    ori_cgltf_free()
+end
+
+public mesh_count() -> int
+    return ori_cgltf_mesh_count()
+end
+
+public node_count() -> int
+    return ori_cgltf_node_count()
+end
+
+public material_count() -> int
+    return ori_cgltf_material_count()
+end
+
+public animation_count() -> int
+    return ori_cgltf_animation_count()
+end
+
+-- Vertex count of mesh index 0 (POSITION accessor on first primitive).
+public mesh0_vertex_count() -> int
+    return ori_cgltf_mesh0_vertex_count()
+end
+
+public mesh_primitive_count(mesh_i: int) -> int
+    return ori_cgltf_mesh_primitive_count(mesh_i)
+end
+
+public mesh_vertex_count(mesh_i: int, prim_i: int) -> int
+    return ori_cgltf_mesh_vertex_count(mesh_i, prim_i)
+end
+
+public mesh_index_count(mesh_i: int, prim_i: int) -> int
+    return ori_cgltf_mesh_index_count(mesh_i, prim_i)
+end
+
+public mesh_has_position(mesh_i: int, prim_i: int) -> bool
+    return ori_cgltf_mesh_has_position(mesh_i, prim_i) != 0
+end
+
+public mesh_has_normal(mesh_i: int, prim_i: int) -> bool
+    return ori_cgltf_mesh_has_normal(mesh_i, prim_i) != 0
+end
+
+public node_has_translation(node_i: int) -> bool
+    return ori_cgltf_node_has_translation(node_i) != 0
+end
+
+public node_has_rotation(node_i: int) -> bool
+    return ori_cgltf_node_has_rotation(node_i) != 0
+end
+
+public node_has_scale(node_i: int) -> bool
+    return ori_cgltf_node_has_scale(node_i) != 0
+end
+
+-- Node translation component in milli (axis 0=x,1=y,2=z). Missing → 0.
+public node_translation_m(node_i: int, axis: int) -> int
+    return ori_cgltf_node_translation_m(node_i, axis)
+end
+
+-- Node rotation quaternion component in milli (0=x,1=y,2=z,3=w). Missing → identity.
+public node_rotation_m(node_i: int, component: int) -> int
+    return ori_cgltf_node_rotation_m(node_i, component)
+end
+
+-- Node scale component in milli. Missing → 1000 (1.0).
+public node_scale_m(node_i: int, axis: int) -> int
+    return ori_cgltf_node_scale_m(node_i, axis)
+end
+
+-- Material base color RGBA in milli (channel 0..3).
+public material_base_color_m(mat_i: int, channel: int) -> int
+    return ori_cgltf_material_base_color_m(mat_i, channel)
+end
+
+-- Export interleaved float mesh [px,py,pz,nx,ny,nz]*V for raylib upload helpers.
+public export_mesh(mesh_i: int, prim_i: int) -> bool
+    return ori_cgltf_export_mesh(mesh_i, prim_i) == 0
+end
+
+public export_vertex_count() -> int
+    return ori_cgltf_export_vertex_count()
+end
+
+public export_index_count() -> int
+    return ori_cgltf_export_index_count()
+end
+
+public export_float_count() -> int
+    return ori_cgltf_export_float_count()
+end
+
+public export_float_m(i: int) -> int
+    return ori_cgltf_export_float_m(i)
+end
+
+public export_index(i: int) -> int
+    return ori_cgltf_export_index(i)
+end
+
+public export_pos_m(vert_i: int, axis: int) -> int
+    return ori_cgltf_export_pos_m(vert_i, axis)
+end
+
+public export_normal_m(vert_i: int, axis: int) -> int
+    return ori_cgltf_export_normal_m(vert_i, axis)
+end
+
+public export_floats_ptr() -> int
+    return ori_cgltf_export_floats_ptr()
+end
+
+public export_indices_ptr() -> int
+    return ori_cgltf_export_indices_ptr()
+end
+
+public export_sum_m() -> int
+    return ori_cgltf_export_sum_m()
+end

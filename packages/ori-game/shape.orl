@@ -1,0 +1,28 @@
+module game.shape
+
+import ori.math.vec2 = vec2
+
+public struct Rectangle
+    x: float
+    y: float
+    width: float
+    height: float
+end
+
+public struct Circle
+    center: vec2.Vec2
+    radius: float
+end
+
+public struct Line
+    start: vec2.Vec2
+    end_pos: vec2.Vec2
+end
+
+public rect(x: float, y: float, width: float, height: float) -> Rectangle
+    return Rectangle { x: x, y: y, width: width, height: height }
+end
+
+public circle(center: vec2.Vec2, radius: float) -> Circle
+    return Circle { center: center, radius: radius }
+end

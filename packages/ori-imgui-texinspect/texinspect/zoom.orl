@@ -1,0 +1,72 @@
+module texinspect.zoom
+
+-- Zoom factor in milli-units: 1000 = 1.0x, 2000 = 2.0x, 500 = 0.5x.
+-- Pure helpers for texture inspect; no ImGui dependency.
+
+public const ZOOM_1X_MILLI: int = 1000
+public const ZOOM_MIN_MILLI: int = 100
+public const ZOOM_MAX_MILLI: int = 16000
+public const ZOOM_STEP_MILLI: int = 250
+
+public struct Zoom
+    milli: int
+end
+
+clamp_milli(milli: int) -> int
+    if milli < ZOOM_MIN_MILLI
+        return ZOOM_MIN_MILLI
+    end
+    if milli > ZOOM_MAX_MILLI
+        return ZOOM_MAX_MILLI
+    end
+    return milli
+end
+
+-- Create zoom at 1.0x (or clamped custom milli).
+public create() -> Zoom
+    return Zoom { milli: ZOOM_1X_MILLI }
+end
+
+public create_milli(milli: int) -> Zoom
+    return Zoom { milli: clamp_milli(milli) }
+end
+
+public factor_milli(z: Zoom) -> int
+    return z.milli
+end
+
+public set_milli(z: Zoom, milli: int) -> Zoom
+    var out: Zoom = z
+    out.milli = clamp_milli(milli)
+    return out
+end
+
+public reset(z: Zoom) -> Zoom
+    var out: Zoom = z
+    out.milli = ZOOM_1X_MILLI
+    return out
+end
+
+public zoom_in(z: Zoom, step_milli: int) -> Zoom
+    var step: int = step_milli
+    if step <= 0
+        step = ZOOM_STEP_MILLI
+    end
+    return set_milli(z, z.milli + step)
+end
+
+public zoom_out(z: Zoom, step_milli: int) -> Zoom
+    var step: int = step_milli
+    if step <= 0
+        step = ZOOM_STEP_MILLI
+    end
+    return set_milli(z, z.milli - step)
+end
+
+-- Display size from source pixel size and zoom (integer milli math).
+public scaled_size(source_px: int, z: Zoom) -> int
+    if source_px <= 0
+        return 0
+    end
+    return (source_px * z.milli) / ZOOM_1X_MILLI
+end

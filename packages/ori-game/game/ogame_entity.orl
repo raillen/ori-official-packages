@@ -1,0 +1,184 @@
+module game.ogame_entity
+
+-- Entity type definitions (Studio "Entity" = GM Object type).
+
+import ori.json = json
+import ori.map = maps
+import ori.list = lists
+import ori.math = math
+import ori.fs = fs
+import game.json_fields = jf
+
+public struct EntityVar
+    name: string
+    type_name: string
+    default_float: float
+    default_int: int
+    default_bool: bool
+    default_string: string
+end
+
+public struct EntityDef
+    id: string
+    name: string
+    script: string
+    tags: list[string]
+    events: list[string]
+    vars: list[EntityVar]
+    parent: string
+end
+
+public alias EntityResult = result[EntityDef, string]
+
+empty_var() -> EntityVar
+    return EntityVar {
+        name: "",
+        type_name: "float",
+        default_float: 0.0,
+        default_int: 0,
+        default_bool: false,
+        default_string: ""
+    }
+end
+
+parse_entity_var(val: json.Value) -> EntityVar
+    match jf.as_object(val)
+        case some(fields):
+            const type_name: string = jf.string_field(fields, "type", "float")
+            var ev: EntityVar = empty_var()
+            ev.name = jf.string_field(fields, "name", "")
+            ev.type_name = type_name
+            if type_name == "float"
+                ev.default_float = jf.number_field(fields, "default", 0.0)
+            end
+            if type_name == "int"
+                ev.default_int = jf.int_field(fields, "default", 0)
+                ev.default_float = float(ev.default_int)
+            end
+            if type_name == "bool"
+                ev.default_bool = jf.bool_field(fields, "default", false)
+            end
+            if type_name == "string"
+                ev.default_string = jf.string_field(fields, "default", "")
+            end
+            if type_name == "float" or type_name == "int"
+                if some(d) = maps.try_get(fields, "default")
+                    match d
+                        case Number(value):
+                            ev.default_float = value
+                            ev.default_int = math.round(value)
+                        case else:
+                    end
+                end
+            end
+            return ev
+        case none:
+            return empty_var()
+    end
+    return empty_var()
+end
+
+parse_entity_vars(val: json.Value) -> list[EntityVar]
+    var out: list[EntityVar] = []
+    match val
+        case Array(items):
+            const n: int = lists.len(items)
+            var i: int = 0
+            while i < n
+                lists.push(out, parse_entity_var(items[i]))
+                i = i + 1
+            end
+        case else:
+    end
+    return out
+end
+
+public parse_entity(text: string) -> EntityResult
+    match json.parse(text)
+        case ok(root):
+            match jf.as_object(root)
+                case some(fields):
+                    const id: string = jf.string_field(fields, "id", "")
+                    if id == ""
+                        return err("entity.json: missing id")
+                    end
+                    var tags: list[string] = []
+                    var events: list[string] = []
+                    var vars: list[EntityVar] = []
+                    if some(t) = maps.try_get(fields, "tags")
+                        tags = jf.string_list_from_value(t)
+                    end
+                    if some(e) = maps.try_get(fields, "events")
+                        events = jf.string_list_from_value(e)
+                    end
+                    if some(v) = maps.try_get(fields, "vars")
+                        vars = parse_entity_vars(v)
+                    end
+                    var parent: string = ""
+                    if some(p) = maps.try_get(fields, "parent")
+                        match p
+                            case String(value):
+                                parent = value
+                            case else:
+                                parent = ""
+                        end
+                    end
+                    return ok(EntityDef {
+                        id: id,
+                        name: jf.string_field(fields, "name", id),
+                        script: jf.string_field(fields, "script", id + ".orl"),
+                        tags: tags,
+                        events: events,
+                        vars: vars,
+                        parent: parent
+                    })
+                case none:
+                    return err("entity.json: root must be object")
+            end
+        case err(msg):
+            return err(msg)
+    end
+    return err("entity.json: parse failed")
+end
+
+public load_entity(path: string) -> EntityResult
+    match fs.read_text(path)
+        case ok(text):
+            return parse_entity(text)
+        case err(_):
+            return err("failed to read entity file")
+    end
+    return err("failed to read entity file")
+end
+
+public script_path(entity_dir: string, def: EntityDef) -> string
+    return entity_dir + "/" + def.script
+end
+
+public has_tag(def: EntityDef, tag: string) -> bool
+    const n: int = lists.len(def.tags)
+    var i: int = 0
+    while i < n
+        if def.tags[i] == tag
+            return true
+        end
+        i = i + 1
+    end
+    return false
+end
+
+public has_event(def: EntityDef, event_name: string) -> bool
+    const n: int = lists.len(def.events)
+    var i: int = 0
+    while i < n
+        if def.events[i] == event_name
+            return true
+        end
+        i = i + 1
+    end
+    return false
+end
+
+public var_count(def: EntityDef) -> int
+    return lists.len(def.vars)
+end

@@ -1,0 +1,186 @@
+module game.world_triggers
+
+-- R3.3: AABB trigger volumes with enter/exit edge detection.
+-- Host stores volumes; tick compares entity positions against volumes.
+
+import ori.list = lists
+import game.world = world
+
+public struct TriggerVolume
+    id: string
+    x: float
+    y: float
+    z: float
+    half_x: float
+    half_y: float
+    half_z: float
+    layer: int
+end
+
+public struct TriggerEvent
+    volume_id: string
+    entity_id: world.EntityId
+    is_enter: bool
+end
+
+public struct TriggerHost
+    volumes: list[TriggerVolume]
+    -- Parallel occupancy: volume_index * max_entities encoding avoided;
+    -- store "volume_id|entity_id" keys as two lists.
+    inside_vol: list[string]
+    inside_ent: list[world.EntityId]
+end
+
+public empty_host() -> TriggerHost
+    var v: list[TriggerVolume] = []
+    var iv: list[string] = []
+    var ie: list[world.EntityId] = []
+    return TriggerHost { volumes: v, inside_vol: iv, inside_ent: ie }
+end
+
+public add_volume(host: TriggerHost, vol: TriggerVolume) -> TriggerHost
+    var out: TriggerHost = host
+    lists.push(out.volumes, vol)
+    return out
+end
+
+public make_volume(
+    id: string,
+    x: float,
+    y: float,
+    z: float,
+    half_x: float,
+    half_y: float,
+    half_z: float
+) -> TriggerVolume
+    return TriggerVolume {
+        id: id,
+        x: x,
+        y: y,
+        z: z,
+        half_x: half_x,
+        half_y: half_y,
+        half_z: half_z,
+        -- 0 = trigger fires for any entity (see entity_matches_volume).
+        layer: 0
+    }
+end
+
+-- Volume layer 0 = all entities; else entity needs a collider on that layer.
+entity_matches_volume(e: world.Entity, v: TriggerVolume) -> bool
+    if v.layer == 0
+        return true
+    end
+    if e.has_collider == false
+        return false
+    end
+    return e.collider.layer == v.layer
+end
+
+point_in_volume(px: float, py: float, pz: float, v: TriggerVolume) -> bool
+    if px < v.x - v.half_x or px > v.x + v.half_x
+        return false
+    end
+    if py < v.y - v.half_y or py > v.y + v.half_y
+        return false
+    end
+    if pz < v.z - v.half_z or pz > v.z + v.half_z
+        return false
+    end
+    return true
+end
+
+was_inside(host: TriggerHost, vol_id: string, eid: world.EntityId) -> bool
+    const n: int = lists.len(host.inside_vol)
+    var i: int = 0
+    while i < n
+        if host.inside_vol[i] == vol_id and host.inside_ent[i] == eid
+            return true
+        end
+        i = i + 1
+    end
+    return false
+end
+
+-- Returns events; host occupancy rebuilt for current frame.
+public tick(
+    host: TriggerHost,
+    w: world.World
+) -> TriggerHost
+    -- Rebuild occupancy; events collected by caller via tick_events.
+    var out: TriggerHost = host
+    var nv: list[string] = []
+    var ne: list[world.EntityId] = []
+    const nv_count: int = lists.len(out.volumes)
+    const ne_count: int = world.entity_count(w)
+    var vi: int = 0
+    while vi < nv_count
+        const vol: TriggerVolume = out.volumes[vi]
+        var ei: int = 0
+        while ei < ne_count
+            const e: world.Entity = world.get_entity(w, ei)
+            if e.alive and entity_matches_volume(e, vol)
+                if point_in_volume(
+                    e.transform.x,
+                    e.transform.y,
+                    e.transform.z,
+                    vol
+                )
+                    lists.push(nv, vol.id)
+                    lists.push(ne, e.id)
+                end
+            end
+            ei = ei + 1
+        end
+        vi = vi + 1
+    end
+    out.inside_vol = nv
+    out.inside_ent = ne
+    return out
+end
+
+public collect_events(
+    before: TriggerHost,
+    after: TriggerHost
+) -> list[TriggerEvent]
+    var events: list[TriggerEvent] = []
+    -- Enters: in after, not in before
+    const na: int = lists.len(after.inside_vol)
+    var i: int = 0
+    while i < na
+        const vid: string = after.inside_vol[i]
+        const eid: world.EntityId = after.inside_ent[i]
+        if was_inside(before, vid, eid) == false
+            lists.push(events, TriggerEvent {
+                volume_id: vid,
+                entity_id: eid,
+                is_enter: true
+            })
+        end
+        i = i + 1
+    end
+    -- Exits: in before, not in after
+    const nb: int = lists.len(before.inside_vol)
+    var j: int = 0
+    while j < nb
+        const vid2: string = before.inside_vol[j]
+        const eid2: world.EntityId = before.inside_ent[j]
+        if was_inside(after, vid2, eid2) == false
+            lists.push(events, TriggerEvent {
+                volume_id: vid2,
+                entity_id: eid2,
+                is_enter: false
+            })
+        end
+        j = j + 1
+    end
+    return events
+end
+
+public event_count(events: list[TriggerEvent]) -> int
+    return lists.len(events)
+end
+
+public is_entity_inside(host: TriggerHost, vol_id: string, eid: world.EntityId) -> bool
+    return was_inside(host, vol_id, eid)
+end

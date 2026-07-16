@@ -1,0 +1,247 @@
+module imguidialog.dialog
+
+-- In-ImGui file dialog state (open/save, filter, cancel, path result).
+-- Headless-safe: confirm/cancel/test hooks need no window or native shim.
+-- Product draw lives in imguidialog.draw (path-dep imgui.ui).
+
+import ori.list = lists
+import ori.os = os
+import ori.path = path
+import ori.string = str
+
+public const MODE_OPEN: int = 0
+public const MODE_SAVE: int = 1
+
+public struct Dialog
+    mode: int
+    title: string
+    dir: string
+    filter_ext: string
+    default_name: string
+    filename: string
+    open: bool
+    confirmed: bool
+    cancelled: bool
+    result_path: string
+end
+
+resolve_start_dir(start_dir: string) -> string
+    if start_dir != ""
+        return path.normalize(start_dir)
+    end
+    return os.current_dir_or(".")
+end
+
+empty_dialog(mode: int, title: string, start_dir: string, filter_ext: string, default_name: string) -> Dialog
+    return Dialog {
+        mode: mode,
+        title: title,
+        dir: resolve_start_dir(start_dir),
+        filter_ext: filter_ext,
+        default_name: default_name,
+        filename: default_name,
+        open: false,
+        confirmed: false,
+        cancelled: false,
+        result_path: ""
+    }
+end
+
+-- Create an open-file dialog (closed until `open_ui`).
+public create_open(title: string, start_dir: string, filter_ext: string) -> Dialog
+    return empty_dialog(MODE_OPEN, title, start_dir, filter_ext, "")
+end
+
+-- Create a save-file dialog with optional default filename.
+public create_save(title: string, start_dir: string, default_name: string, filter_ext: string) -> Dialog
+    return empty_dialog(MODE_SAVE, title, start_dir, filter_ext, default_name)
+end
+
+-- Show dialog; clears prior result flags.
+public open_ui(d: Dialog) -> Dialog
+    var out: Dialog = d
+    out.open = true
+    out.confirmed = false
+    out.cancelled = false
+    out.result_path = ""
+    if out.mode == MODE_SAVE
+        if out.filename == ""
+            out.filename = out.default_name
+        end
+    else
+        out.filename = ""
+    end
+    return out
+end
+
+public is_open(d: Dialog) -> bool
+    return d.open
+end
+
+public is_confirmed(d: Dialog) -> bool
+    return d.confirmed
+end
+
+public is_cancelled(d: Dialog) -> bool
+    return d.cancelled
+end
+
+public result_path_of(d: Dialog) -> string
+    return d.result_path
+end
+
+public mode_of(d: Dialog) -> int
+    return d.mode
+end
+
+public filter_of(d: Dialog) -> string
+    return d.filter_ext
+end
+
+public filename_of(d: Dialog) -> string
+    return d.filename
+end
+
+public dir_of(d: Dialog) -> string
+    return d.dir
+end
+
+-- Strip leading '.' so ".orl" and "orl" compare equal to path.extension.
+normalize_ext_token(token: string) -> string
+    const t: string = str.trim(token)
+    if str.len(t) > 0
+        if str.slice(t, 0, 1) == "."
+            return str.slice(t, 1, str.len(t))
+        end
+    end
+    return t
+end
+
+-- True if name matches filter. Empty filter accepts all.
+-- Multi-ext: "orl;txt" or ".orl,.txt" ('; or comma).
+public matches_filter(name: string, filter_ext: string) -> bool
+    const raw: string = str.trim(filter_ext)
+    if raw == ""
+        return true
+    end
+    if name == ""
+        return false
+    end
+    var sep: string = ";"
+    if str.count(raw, ";") == 0
+        if str.count(raw, ",") > 0
+            sep = ","
+        end
+    end
+    const parts: list[string] = str.split(raw, sep)
+    const n: int = lists.len(parts)
+    var i: int = 0
+    while i < n
+        const token: string = normalize_ext_token(parts[i])
+        if token != ""
+            if path.has_extension(name, token)
+                return true
+            end
+        end
+        i = i + 1
+    end
+    return false
+end
+
+join_dir_name(dir: string, name: string) -> string
+    if name == ""
+        return ""
+    end
+    if path.is_absolute(name)
+        return path.normalize(name)
+    end
+    var parts: list[string] = []
+    lists.push(parts, dir)
+    lists.push(parts, name)
+    return path.join(parts)
+end
+
+public set_filename(d: Dialog, name: string) -> Dialog
+    var out: Dialog = d
+    out.filename = name
+    return out
+end
+
+public set_dir(d: Dialog, dir: string) -> Dialog
+    var out: Dialog = d
+    out.dir = path.normalize(dir)
+    return out
+end
+
+public set_filter(d: Dialog, filter_ext: string) -> Dialog
+    var out: Dialog = d
+    out.filter_ext = filter_ext
+    return out
+end
+
+-- User/product cancel: close without path.
+public cancel(d: Dialog) -> Dialog
+    var out: Dialog = d
+    out.open = false
+    out.confirmed = false
+    out.cancelled = true
+    out.result_path = ""
+    return out
+end
+
+-- Confirm using current dir + filename. Fails (stays open) if name empty or filter rejects (open mode).
+public confirm(d: Dialog) -> Dialog
+    var out: Dialog = d
+    if out.filename == ""
+        return out
+    end
+    if not matches_filter(out.filename, out.filter_ext)
+        return out
+    end
+    const full: string = join_dir_name(out.dir, out.filename)
+    if full == ""
+        return out
+    end
+    out.result_path = full
+    out.confirmed = true
+    out.cancelled = false
+    out.open = false
+    return out
+end
+
+-- Headless: inject a full path and accept (CI / unit tests). Empty path → cancel.
+public confirm_path_for_test(d: Dialog, full_path: string) -> Dialog
+    var out: Dialog = d
+    if full_path == ""
+        return cancel(out)
+    end
+    const base: string = path.base_name(full_path)
+    if out.filter_ext != ""
+        if not matches_filter(base, out.filter_ext)
+            return out
+        end
+    end
+    out.result_path = path.normalize(full_path)
+    out.filename = base
+    const parent_dir: string = path.parent(full_path)
+    if parent_dir != ""
+        out.dir = parent_dir
+    end
+    out.confirmed = true
+    out.cancelled = false
+    out.open = false
+    return out
+end
+
+-- Headless alias for cancel (explicit test naming).
+public cancel_for_test(d: Dialog) -> Dialog
+    return cancel(d)
+end
+
+-- Consumer finished reading result_path; clear confirmed flag.
+public take_result(d: Dialog) -> Dialog
+    var out: Dialog = d
+    out.confirmed = false
+    out.result_path = ""
+    return out
+end

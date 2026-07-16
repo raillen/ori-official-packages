@@ -1,0 +1,390 @@
+module game.world_gameplay
+
+-- GP*/R* gameplay host over ECS-lite World (parallel bags by EntityId).
+-- Combat health, simple enemy chase AI, wave counters, HUD snapshot.
+
+import ori.list = lists
+import ori.format = fmt
+import ori.math = math
+import game.world = world
+import game.mechanics.combat = combat
+
+public struct HealthSlot
+    entity_id: world.EntityId
+    health: combat.Health
+end
+
+public struct AiSlot
+    entity_id: world.EntityId
+    state: int
+    aggro_radius: float
+    speed: float
+end
+
+public const AI_IDLE: int = 0
+public const AI_CHASE: int = 1
+public const AI_DEAD: int = 2
+
+public struct WaveHost
+    wave_index: int
+    enemies_alive: int
+    enemies_per_wave: int
+    max_waves: int
+    finished: bool
+end
+
+public struct GameplayHost
+    healths: list[HealthSlot]
+    ais: list[AiSlot]
+    waves: WaveHost
+    score: int
+    player_id: world.EntityId
+end
+
+public empty_waves() -> WaveHost
+    return WaveHost {
+        wave_index: 0,
+        enemies_alive: 0,
+        enemies_per_wave: 2,
+        max_waves: 2,
+        finished: false
+    }
+end
+
+public empty_host() -> GameplayHost
+    var h: list[HealthSlot] = []
+    var a: list[AiSlot] = []
+    return GameplayHost {
+        healths: h,
+        ais: a,
+        waves: empty_waves(),
+        score: 0,
+        player_id: 0
+    }
+end
+
+public attach_health(
+    host: GameplayHost,
+    eid: world.EntityId,
+    max_hp: int
+) -> GameplayHost
+    var out: GameplayHost = host
+    lists.push(out.healths, HealthSlot {
+        entity_id: eid,
+        health: combat.create_health(max_hp)
+    })
+    return out
+end
+
+public attach_ai(
+    host: GameplayHost,
+    eid: world.EntityId,
+    aggro: float,
+    speed: float
+) -> GameplayHost
+    var out: GameplayHost = host
+    lists.push(out.ais, AiSlot {
+        entity_id: eid,
+        state: AI_IDLE,
+        aggro_radius: aggro,
+        speed: speed
+    })
+    return out
+end
+
+public set_player(host: GameplayHost, eid: world.EntityId) -> GameplayHost
+    var out: GameplayHost = host
+    out.player_id = eid
+    return out
+end
+
+health_index(host: GameplayHost, eid: world.EntityId) -> int
+    const n: int = lists.len(host.healths)
+    var i: int = 0
+    while i < n
+        if host.healths[i].entity_id == eid
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+public get_health(host: GameplayHost, eid: world.EntityId) -> optional[combat.Health]
+    const idx: int = health_index(host, eid)
+    if idx < 0
+        return none
+    end
+    return some(host.healths[idx].health)
+end
+
+public damage_entity(
+    host: GameplayHost,
+    eid: world.EntityId,
+    amount: int,
+    i_frames_ms: int
+) -> GameplayHost
+    const idx: int = health_index(host, eid)
+    if idx < 0
+        return host
+    end
+    var out: GameplayHost = host
+    var slot: HealthSlot = out.healths[idx]
+    slot.health = combat.damage_with_i_frames(slot.health, amount, i_frames_ms)
+    out.healths[idx] = slot
+    if combat.is_dead(slot.health)
+        out.score = out.score + 10
+    end
+    return out
+end
+
+public tick_i_frames(host: GameplayHost, dt_ms: int) -> GameplayHost
+    var out: GameplayHost = host
+    const n: int = lists.len(out.healths)
+    var i: int = 0
+    while i < n
+        var slot: HealthSlot = out.healths[i]
+        slot.health = combat.tick_i_frames(slot.health, dt_ms)
+        out.healths[i] = slot
+        i = i + 1
+    end
+    return out
+end
+
+-- Enemy chase on XZ toward player; sets enemy velocity when in aggro radius.
+public ai_chase_system(host: GameplayHost, w: world.World, dt: float) -> world.World
+    var out: world.World = w
+    match world.find_by_id(out, host.player_id)
+        case some(player):
+            const pn: int = lists.len(host.ais)
+            var ai_i: int = 0
+            while ai_i < pn
+                const slot: AiSlot = host.ais[ai_i]
+                if slot.state != AI_DEAD
+                    match world.find_by_id(out, slot.entity_id)
+                        case some(enemy):
+                            const dx: float = player.transform.x - enemy.transform.x
+                            const dz: float = player.transform.z - enemy.transform.z
+                            const d2: float = dx * dx + dz * dz
+                            const r2: float = slot.aggro_radius * slot.aggro_radius
+                            if d2 <= r2
+                                -- Constant chase speed: normalize direction.
+                                const dist: float = math.hypot(dx, dz)
+                                if dist > 0.001
+                                    const inv: float = slot.speed / dist
+                                    const vx: float = dx * inv
+                                    const vz: float = dz * inv
+                                    out = world.set_velocity(
+                                        out,
+                                        enemy.id,
+                                        world.Velocity { vx: vx, vy: 0.0, vz: vz }
+                                    )
+                                end
+                            end
+                        case none:
+                    end
+                end
+                ai_i = ai_i + 1
+            end
+        case none:
+    end
+    return out
+end
+
+public contact_combat_system(
+    host: GameplayHost,
+    w: world.World,
+    hit_radius: float
+) -> GameplayHost
+    var out: GameplayHost = host
+    match world.find_by_id(w, out.player_id)
+        case some(player):
+            const n: int = lists.len(out.ais)
+            var i: int = 0
+            while i < n
+                const slot: AiSlot = out.ais[i]
+                if slot.state == AI_DEAD
+                    i = i + 1
+                    continue
+                end
+                match world.find_by_id(w, slot.entity_id)
+                    case some(enemy):
+                        const dx: float = enemy.transform.x - player.transform.x
+                        const dz: float = enemy.transform.z - player.transform.z
+                        const d2: float = dx * dx + dz * dz
+                        const hr2: float = hit_radius * hit_radius
+                        if d2 <= hr2
+                            out = damage_entity(out, enemy.id, 1, 400)
+                            const hi: int = health_index(out, enemy.id)
+                            if hi >= 0
+                                if combat.is_dead(out.healths[hi].health)
+                                    var dead_slot: AiSlot = out.ais[i]
+                                    dead_slot.state = AI_DEAD
+                                    out.ais[i] = dead_slot
+                                    if out.waves.enemies_alive > 0
+                                        out.waves.enemies_alive = out.waves.enemies_alive - 1
+                                    end
+                                end
+                            end
+                        end
+                    case none:
+                end
+                i = i + 1
+            end
+        case none:
+    end
+    return out
+end
+
+public start_waves(host: GameplayHost, per_wave: int, max_waves: int) -> GameplayHost
+    var out: GameplayHost = host
+    out.waves.enemies_per_wave = per_wave
+    out.waves.max_waves = max_waves
+    out.waves.wave_index = 1
+    out.waves.enemies_alive = per_wave
+    out.waves.finished = false
+    return out
+end
+
+-- Wave respawn: spawn bare enemy entities (sphere collider) in a ring
+-- around (cx, cz). Host attaches slots afterwards via attach_new_enemies
+-- (two calls — avoids returning World+GameplayHost together, see AOT note
+-- in world_systems).
+public spawn_wave_enemies(
+    w: world.World,
+    count: int,
+    cx: float,
+    cz: float,
+    y: float,
+    radius: float
+) -> world.World
+    var out: world.World = w
+    var i: int = 0
+    while i < count
+        var t: world.Transform = world.empty_transform()
+        t.y = y
+        const m: int = i - (i / 4) * 4
+        const ring: float = radius + float(i / 4) * 8.0
+        if m == 0
+            t.x = cx + ring
+            t.z = cz
+        elif m == 1
+            t.x = cx - ring
+            t.z = cz
+        elif m == 2
+            t.x = cx
+            t.z = cz + ring
+        else
+            t.x = cx
+            t.z = cz - ring
+        end
+        const meta: world.EntityMeta = world.EntityMeta {
+            instance_id: "wave_enemy_" + fmt.number_int(out.next_id),
+            entity_type: "enemy",
+            primary_tag: "enemy"
+        }
+        const new_id: world.EntityId = out.next_id
+        out = world.spawn_entity(out, meta, t)
+        out = world.set_collider(out, new_id, world.ColliderComp {
+            kind: "sphere",
+            radius: 8.0,
+            layer: 0
+        })
+        i = i + 1
+    end
+    return out
+end
+
+-- Attach health + AI to alive enemies that have no slots yet (post-spawn).
+public attach_new_enemies(
+    host: GameplayHost,
+    w: world.World,
+    hp: int,
+    aggro: float,
+    speed: float
+) -> GameplayHost
+    var out: GameplayHost = host
+    const n: int = world.entity_count(w)
+    var i: int = 0
+    while i < n
+        const e: world.Entity = world.get_entity(w, i)
+        if e.alive and e.meta.entity_type == "enemy"
+            if health_index(out, e.id) < 0
+                out = attach_health(out, e.id, hp)
+                out = attach_ai(out, e.id, aggro, speed)
+            end
+        end
+        i = i + 1
+    end
+    return out
+end
+
+public wave_index_of(host: GameplayHost) -> int
+    return host.waves.wave_index
+end
+
+public waves_finished(host: GameplayHost) -> bool
+    return host.waves.finished
+end
+
+public enemies_per_wave_of(host: GameplayHost) -> int
+    return host.waves.enemies_per_wave
+end
+
+public tick_waves(host: GameplayHost) -> GameplayHost
+    var out: GameplayHost = host
+    if out.waves.finished
+        return out
+    end
+    if out.waves.enemies_alive <= 0
+        if out.waves.wave_index >= out.waves.max_waves
+            out.waves.finished = true
+        else
+            out.waves.wave_index = out.waves.wave_index + 1
+            out.waves.enemies_alive = out.waves.enemies_per_wave
+        end
+    end
+    return out
+end
+
+public hud_line(host: GameplayHost) -> string
+    var hp: int = 0
+    var max_hp: int = 0
+    match get_health(host, host.player_id)
+        case some(h):
+            hp = h.current
+            max_hp = h.maximum
+        case none:
+    end
+    var line: string = "HP "
+    line = line + fmt.number_int(hp) + "/" + fmt.number_int(max_hp)
+    line = line + "  score " + fmt.number_int(host.score)
+    line = line + "  wave " + fmt.number_int(host.waves.wave_index)
+    if host.waves.finished
+        line = line + "  WIN"
+    end
+    return line
+end
+
+public is_entity_dead(host: GameplayHost, eid: world.EntityId) -> bool
+    match get_health(host, eid)
+        case some(h):
+            return combat.is_dead(h)
+        case none:
+            return false
+    end
+    return false
+end
+
+public despawn_dead(host: GameplayHost, w: world.World) -> world.World
+    var out: world.World = w
+    const n: int = lists.len(host.healths)
+    var i: int = 0
+    while i < n
+        if combat.is_dead(host.healths[i].health)
+            out = world.despawn(out, host.healths[i].entity_id)
+        end
+        i = i + 1
+    end
+    return out
+end

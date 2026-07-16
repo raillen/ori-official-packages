@@ -1,0 +1,64 @@
+module test.play_freshness
+
+imports
+    game.play_freshness = fresh
+    ori.fs = fs
+    ori.list = lists
+    ori.test = test
+end
+
+@test
+freshness_stamp_roundtrip()
+    const stamp: string = "/tmp/ori_test_play_stamp_r23"
+    var paths: list[string] = []
+    lists.push(paths, "/tmp/ori_test_play_src_a.orl")
+    lists.push(paths, "/tmp/ori_test_play_src_b.orl")
+    match fs.write_text(paths[0], "module a\n")
+        case ok(_):
+        case err(_):
+            test.assert(false, "write src a")
+    end
+    match fs.write_text(paths[1], "module b\n")
+        case ok(_):
+        case err(_):
+            test.assert(false, "write src b")
+    end
+    match fresh.write_stamp(stamp, paths)
+        case ok(_):
+        case err(_):
+            test.assert(false, "write stamp")
+    end
+    const r1: fresh.FreshnessReport = fresh.evaluate(stamp, paths)
+    test.equal_int(r1.status, fresh.STATUS_FRESH)
+    test.assert(fresh.is_fresh(r1), "is_fresh")
+    match fs.write_text(paths[0], "module a\n-- changed\n")
+        case ok(_):
+        case err(_):
+            test.assert(false, "mutate src")
+    end
+    const r2: fresh.FreshnessReport = fresh.evaluate(stamp, paths)
+    test.equal_int(r2.status, fresh.STATUS_STALE)
+    test.assert(fresh.needs_recompile_hint(r2), "stale needs recompile")
+    test.assert(fresh.status_label(r2.status) == "stale", "label")
+end
+
+@test
+freshness_missing_stamp()
+    var paths: list[string] = []
+    lists.push(paths, "/tmp/ori_test_play_src_only.orl")
+    match fs.write_text(paths[0], "ok\n")
+        case ok(_):
+        case err(_):
+            test.assert(false, "write")
+    end
+    const r: fresh.FreshnessReport = fresh.evaluate("/tmp/ori_test_play_stamp_missing_xyz", paths)
+    test.equal_int(r.status, fresh.STATUS_MISSING_STAMP)
+end
+
+@test
+freshness_sample_sources_nonempty()
+    const paths: list[string] = fresh.sample_project_sources("ori-game/assets/sample_project")
+    test.assert(lists.len(paths) >= 8, "sample source list")
+    const sp: string = fresh.stamp_path_for_project("ori-game/assets/sample_project")
+    test.assert(sp == "ori-game/assets/sample_project/.ori_play_stamp", "stamp path")
+end

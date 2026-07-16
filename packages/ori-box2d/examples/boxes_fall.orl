@@ -1,0 +1,33 @@
+module app.boxes_fall
+
+imports
+    box2d.dynamics = b2
+    box2d.units = units
+    ori.io = io
+end
+
+main()
+    var world: b2.World = b2.create_world(0, units.gravity_earth_y_m())
+    if not b2.is_valid(world)
+        io.print("world_invalid")
+        return
+    end
+    const ground: b2.Body = b2.create_static_box(world, 0, 0 - 10000, 50000, 10000)
+    var box: b2.Body = b2.create_dynamic_box(world, 0, 4000, 500, 500, 1000)
+    var ball: b2.Body = b2.create_dynamic_circle(world, 1500, 5000, 400, 1000)
+    const y0: int = b2.body_y_m(box)
+    const by0: int = b2.body_y_m(ball)
+    var i: int = 0
+    while i < 90
+        b2.step(world, units.step_60hz_micros())
+        i = i + 1
+    end
+    const y1: int = b2.body_y_m(box)
+    const by1: int = b2.body_y_m(ball)
+    if y1 < y0 and by1 < by0 and b2.body_is_valid(box) and b2.body_is_valid(ball)
+        io.print("fell")
+    else
+        io.print("did_not_fall")
+    end
+    b2.destroy_world(world)
+end

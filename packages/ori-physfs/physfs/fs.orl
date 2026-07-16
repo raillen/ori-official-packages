@@ -1,0 +1,96 @@
+module physfs.fs
+
+import ori.mem = mem
+
+extern c
+    public ori_physfs_init() -> int
+    public ori_physfs_deinit() -> int
+    public ori_physfs_mount(path_ptr: int, mount_point_ptr: int) -> int
+    public ori_physfs_unmount(path_ptr: int) -> int
+    public ori_physfs_exists(path_ptr: int) -> int
+    public ori_physfs_read(path_ptr: int) -> int
+    public ori_physfs_last_len() -> int
+    public ori_physfs_last_sum() -> int
+    public ori_physfs_last_byte(i: int) -> int
+    public ori_physfs_last_ptr() -> int
+    public ori_physfs_enumerate_count(dir_ptr: int) -> int
+    public ori_physfs_set_write_dir(path_ptr: int) -> int
+    public ori_physfs_mkdir(path_ptr: int) -> int
+    public ori_physfs_write(path_ptr: int, data_ptr: int, nbytes: int) -> int
+    public ori_physfs_last_write_len() -> int
+end
+
+public init() -> bool
+    return ori_physfs_init() == 0
+end
+
+public deinit() -> bool
+    return ori_physfs_deinit() == 0
+end
+
+-- Mount real path (dir or archive) at virtual mount_point ("" = root).
+-- Multiple mounts stack (appendToPath); earlier mounts win on name conflicts.
+public mount(path: string, mount_point: string) -> bool
+    return ori_physfs_mount(mem.string_as_ptr(path), mem.string_as_ptr(mount_point)) == 0
+end
+
+public unmount(path: string) -> bool
+    return ori_physfs_unmount(mem.string_as_ptr(path)) == 0
+end
+
+public exists(path: string) -> bool
+    return ori_physfs_exists(mem.string_as_ptr(path)) != 0
+end
+
+-- Read file into shim buffer; returns byte length (<0 fail).
+public read(path: string) -> int
+    return ori_physfs_read(mem.string_as_ptr(path))
+end
+
+public last_len() -> int
+    return ori_physfs_last_len()
+end
+
+public last_sum() -> int
+    return ori_physfs_last_sum()
+end
+
+public last_byte(i: int) -> int
+    return ori_physfs_last_byte(i)
+end
+
+public last_ptr() -> int
+    return ori_physfs_last_ptr()
+end
+
+-- Count entries under virtual dir ("" = root). -1 on error.
+public enumerate_count(dir: string) -> int
+    return ori_physfs_enumerate_count(mem.string_as_ptr(dir))
+end
+
+-- Real OS directory that receives PHYSFS writes (not auto-mounted).
+public set_write_dir(path: string) -> bool
+    return ori_physfs_set_write_dir(mem.string_as_ptr(path)) == 0
+end
+
+-- Create directory tree under the write dir (virtual path).
+public mkdir(path: string) -> bool
+    return ori_physfs_mkdir(mem.string_as_ptr(path)) == 0
+end
+
+-- Write string bytes to a virtual path (requires set_write_dir).
+-- Length taken in shim via strlen (NUL-terminated Ori string).
+-- Returns bytes written, or <0 on failure.
+public write(path: string, data: string) -> int
+    return ori_physfs_write(mem.string_as_ptr(path), mem.string_as_ptr(data), -1)
+end
+
+-- Write raw buffer (pointer + byte count). Returns bytes written or <0.
+-- Note: param must not be named `len` (collides with stdlib `len` → ori_len).
+public write_bytes(path: string, data_ptr: int, nbytes: int) -> int
+    return ori_physfs_write(mem.string_as_ptr(path), data_ptr, nbytes)
+end
+
+public last_write_len() -> int
+    return ori_physfs_last_write_len()
+end

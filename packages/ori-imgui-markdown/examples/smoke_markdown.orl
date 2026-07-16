@@ -1,0 +1,78 @@
+module app.smoke_markdown
+
+imports
+    markdown.parse = md
+    markdown.ime_stub = ime
+    ori.io = io
+    ori.string = str
+end
+
+-- Headless smoke: parse G1 markdown + IME stub policy — no GUI / no IMM32.
+main()
+    const src: string = "# Smoke\n\nParagraph one.\n\n```ori\nx = 1\n```\n\n## Done"
+    var doc: md.Document = md.parse_with_title(src, "Smoke MD")
+
+    if md.block_count(doc) != 4
+        io.println("block_count_fail")
+        return
+    end
+    if md.count_kind(doc, md.KIND_HEADING) != 2
+        io.println("heading_count_fail")
+        return
+    end
+    if md.count_kind(doc, md.KIND_CODE_FENCE) != 1
+        io.println("code_count_fail")
+        return
+    end
+    if md.first_heading_text(doc) != "Smoke"
+        io.println("first_heading_fail")
+        return
+    end
+
+    const code: md.Block = md.block_at(doc, 2)
+    if code.kind != md.KIND_CODE_FENCE
+        io.println("code_kind_fail")
+        return
+    end
+    if code.lang != "ori"
+        io.println("code_lang_fail")
+        return
+    end
+    if code.text != "x = 1"
+        io.println("code_body_fail")
+        return
+    end
+
+    doc = md.open_ui(doc)
+    if not md.is_open(doc)
+        io.println("open_fail")
+        return
+    end
+    doc = md.close(doc)
+    if md.is_open(doc)
+        io.println("close_fail")
+        return
+    end
+
+    var s: ime.ImeState = ime.create()
+    if ime.supports_real_ime(s)
+        io.println("ime_should_be_stub")
+        return
+    end
+    if not ime.is_windows_only_real_impl()
+        io.println("ime_policy_fail")
+        return
+    end
+    s = ime.enable(s)
+    s = ime.set_composition(s, "あ")
+    if str.len(ime.composition_text(s)) != 0
+        io.println("ime_composition_not_empty")
+        return
+    end
+    if ime.process_key(s, 1)
+        io.println("ime_key_consumed")
+        return
+    end
+
+    io.println("ok")
+end

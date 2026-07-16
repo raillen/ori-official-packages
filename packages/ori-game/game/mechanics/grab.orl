@@ -1,0 +1,24 @@
+module game.mechanics.grab
+
+import ori.math.vec2 = vec2
+
+public struct GrabState
+    holding: bool
+    offset: vec2.Vec2
+end
+
+public idle() -> GrabState
+    return GrabState { holding: false, offset: vec2.Vec2 { x: 0.0, y: 0.0 } }
+end
+
+public grab(offset: vec2.Vec2) -> GrabState
+    return GrabState { holding: true, offset: offset }
+end
+
+public release(_gs: GrabState) -> GrabState
+    return idle()
+end
+
+public held_pos(carrier: vec2.Vec2, gs: GrabState) -> vec2.Vec2
+    return vec2.Vec2 { x: carrier.x + gs.offset.x, y: carrier.y + gs.offset.y }
+end

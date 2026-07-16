@@ -1,0 +1,28 @@
+module app.jolt_impulse
+
+imports
+    jolt.dynamics = jolt
+    jolt.units = units
+    ori.io = io
+end
+
+main()
+    var sys: jolt.System = jolt.create_system(0, 0, 0)
+    var ball: jolt.Body = jolt.create_dynamic_sphere(sys, 0, 1000, 0, 500, 1000)
+    const x0: int = jolt.body_x_m(ball)
+    jolt.add_impulse(ball, 5000, 0, 0)
+    const dt: int = units.step_60hz_micros()
+    var i: int = 0
+    while i < 60
+        jolt.step(sys, dt)
+        i = i + 1
+    end
+    const x1: int = jolt.body_x_m(ball)
+    if x1 > x0
+        io.print("moved")
+    else
+        io.print("still")
+    end
+    jolt.destroy_body(ball)
+    jolt.destroy_system(sys)
+end

@@ -1,0 +1,15 @@
+module test.nav_path
+
+-- Headless: host ctor only. Full path query needs staged recast (see test_navmesh when libs link).
+
+imports
+    game.nav_path = npath
+    ori.test = test
+end
+
+@test
+empty_host_defaults()
+    const host: npath.NavHost = npath.empty_host()
+    test.assert(host.built == false, "not built")
+    test.assert(host.cell_m == 500, "cell milli")
+end

@@ -1,0 +1,90 @@
+module app.platformer
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.input = input
+    game.shape = shape
+    game.collision = collision
+    game.mechanics.jumps = jumps
+    game.mechanics.movement = movement
+    ori.math.vec2 = vec2
+    ori.list = lists
+end
+
+var px: float = 100.0
+var py: float = 200.0
+var vx: float = 0.0
+var vy: float = 0.0
+var js: jumps.JumpState = jumps.create(420.0)
+var platforms: list[shape.Rectangle] = []
+
+const pw: float = 24.0
+const ph: float = 24.0
+const gravity: float = 900.0
+
+player_rect() -> shape.Rectangle
+    return shape.rect(px, py, pw, ph)
+end
+
+on_update(dt: float) -> void
+    var axis: float = 0.0
+    if input.key_down(input.KEY_RIGHT) or input.key_down(input.KEY_D)
+        axis = 1.0
+    end
+    if input.key_down(input.KEY_LEFT) or input.key_down(input.KEY_A)
+        axis = -1.0
+    end
+    const speed: float = 180.0
+    var vel: vec2.Vec2 = movement.apply_axis(vec2.Vec2 { x: vx, y: vy }, axis, speed)
+    vx = vel.x
+    vy = vel.y + gravity * dt
+
+    if input.key_pressed(input.KEY_SPACE) or input.key_pressed(input.KEY_UP)
+        js = jumps.press_jump(js)
+    end
+    js = jumps.tick(js, dt)
+    if jumps.try_consume(js)
+        var jsl: jumps.JumpState = js
+        vy = -jsl.jump_speed
+        js = jumps.after_jump(js)
+    end
+
+    px = px + vx * dt
+    py = py + vy * dt
+
+    var grounded: bool = false
+    const n: int = lists.len(platforms)
+    var i: int = 0
+    while i < n
+        const plat: shape.Rectangle = platforms[i]
+        if collision.rects_overlap(player_rect(), plat)
+            if vy >= 0.0 and py + ph - plat.y < 20.0
+                py = plat.y - ph
+                vy = 0.0
+                grounded = true
+            end
+        end
+        i = i + 1
+    end
+    js = jumps.set_grounded(js, grounded)
+end
+
+on_draw() -> void
+    const n: int = lists.len(platforms)
+    var i: int = 0
+    while i < n
+        draw.draw_rect(platforms[i], color.DARKGREEN)
+        i = i + 1
+    end
+    draw.draw_rect(player_rect(), color.YELLOW)
+    draw.draw_text("A/D move, Space js", vec2.Vec2 { x: 10.0, y: 10.0 }, 18, color.WHITE)
+end
+
+main()
+    lists.push(platforms, shape.rect(0.0, 320.0, 640.0, 40.0))
+    lists.push(platforms, shape.rect(180.0, 250.0, 120.0, 16.0))
+    lists.push(platforms, shape.rect(360.0, 200.0, 100.0, 16.0))
+    app.run_window("Platformer", 640, 360, on_update, on_draw)
+end

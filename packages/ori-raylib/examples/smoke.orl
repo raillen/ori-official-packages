@@ -1,0 +1,7 @@
+module app.raylib_smoke
+import raylib = rl
+import ori.io = io
+main()
+    -- link resolves ori_rl_* from stub
+    io.print("ok")
+end

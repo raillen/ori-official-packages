@@ -1,0 +1,22 @@
+module test.scene
+
+imports
+    ori.test = test
+    game.scene = scene
+end
+
+@test
+stack_push_pop()
+    var ss: scene.SceneStack = scene.create("menu")
+    test.equal_text(scene.current(ss), "menu")
+    ss = scene.push(ss, "play")
+    test.equal_text(scene.current(ss), "play")
+    test.equal_int(scene.depth(ss), 2)
+    ss = scene.push(ss, "pause")
+    test.equal_text(scene.current(ss), "pause")
+    ss = scene.pop(ss)
+    test.equal_text(scene.current(ss), "play")
+    ss = scene.replace(ss, "game_over")
+    test.equal_text(scene.current(ss), "game_over")
+    test.equal_int(scene.depth(ss), 2)
+end

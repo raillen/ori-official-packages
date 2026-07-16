@@ -1,0 +1,374 @@
+module game.world_replicate
+
+-- R7.2+: snapshot compacto de transforms vivos do World (sem enet).
+-- Formato: "ws:<tick>|<count>|<id>:<x>,<y>,<z>|..." (máx 4 entidades).
+-- Codec puro → testes sem link de rede; enet envia a string.
+
+import ori.format = fmt
+import ori.string = str
+import game.world = world
+
+public const MAX_POSES: int = 4
+
+public struct PoseSlot
+    used: bool
+    id: world.EntityId
+    x: float
+    y: float
+    z: float
+end
+
+public struct WorldSnap
+    tick: int
+    count: int
+    p0: PoseSlot
+    p1: PoseSlot
+    p2: PoseSlot
+    p3: PoseSlot
+end
+
+empty_slot() -> PoseSlot
+    return PoseSlot { used: false, id: 0, x: 0.0, y: 0.0, z: 0.0 }
+end
+
+public empty_snap() -> WorldSnap
+    return WorldSnap {
+        tick: 0,
+        count: 0,
+        p0: empty_slot(),
+        p1: empty_slot(),
+        p2: empty_slot(),
+        p3: empty_slot()
+    }
+end
+
+public is_ws_message(msg: string) -> bool
+    if str.len(msg) < 4
+        return false
+    end
+    return str.slice(msg, 0, 3) == "ws:"
+end
+
+public pose_count(snap: WorldSnap) -> int
+    return snap.count
+end
+
+public pose_at(snap: WorldSnap, i: int) -> PoseSlot
+    if i == 0
+        return snap.p0
+    end
+    if i == 1
+        return snap.p1
+    end
+    if i == 2
+        return snap.p2
+    end
+    if i == 3
+        return snap.p3
+    end
+    return empty_slot()
+end
+
+set_pose_at(snap: WorldSnap, i: int, slot: PoseSlot) -> WorldSnap
+    var out: WorldSnap = snap
+    if i == 0
+        out.p0 = slot
+    elif i == 1
+        out.p1 = slot
+    elif i == 2
+        out.p2 = slot
+    elif i == 3
+        out.p3 = slot
+    end
+    return out
+end
+
+-- Captura até MAX_POSES entidades vivas (ordem de world.entities).
+public capture(w: world.World, tick: int) -> WorldSnap
+    var snap: WorldSnap = empty_snap()
+    snap.tick = tick
+    const n: int = world.entity_count(w)
+    var i: int = 0
+    var taken: int = 0
+    while i < n and taken < MAX_POSES
+        const e: world.Entity = world.get_entity(w, i)
+        if e.alive
+            const slot: PoseSlot = PoseSlot {
+                used: true,
+                id: e.id,
+                x: e.transform.x,
+                y: e.transform.y,
+                z: e.transform.z
+            }
+            snap = set_pose_at(snap, taken, slot)
+            taken = taken + 1
+        end
+        i = i + 1
+    end
+    snap.count = taken
+    return snap
+end
+
+encode_pose(slot: PoseSlot) -> string
+    return fmt.number_int(slot.id)
+        + ":"
+        + fmt.number_with(slot.x, 2)
+        + ","
+        + fmt.number_with(slot.y, 2)
+        + ","
+        + fmt.number_with(slot.z, 2)
+end
+
+public encode(snap: WorldSnap) -> string
+    var s: string = "ws:"
+        + fmt.number_int(snap.tick)
+        + "|"
+        + fmt.number_int(snap.count)
+    var i: int = 0
+    while i < snap.count
+        const slot: PoseSlot = pose_at(snap, i)
+        if slot.used
+            s = s + "|" + encode_pose(slot)
+        end
+        i = i + 1
+    end
+    return s
+end
+
+-- Parser demo-grade (mesmo espírito de enet.tf_codec).
+digit_of(ch: string) -> int
+    if ch == "0"
+        return 0
+    end
+    if ch == "1"
+        return 1
+    end
+    if ch == "2"
+        return 2
+    end
+    if ch == "3"
+        return 3
+    end
+    if ch == "4"
+        return 4
+    end
+    if ch == "5"
+        return 5
+    end
+    if ch == "6"
+        return 6
+    end
+    if ch == "7"
+        return 7
+    end
+    if ch == "8"
+        return 8
+    end
+    if ch == "9"
+        return 9
+    end
+    return -1
+end
+
+parse_simple_float(s: string) -> float
+    if s == ""
+        return 0.0
+    end
+    var neg: bool = false
+    var i: int = 0
+    const n: int = str.len(s)
+    if str.slice(s, 0, 1) == "-"
+        neg = true
+        i = 1
+    end
+    var whole: float = 0.0
+    var frac: float = 0.0
+    var div: float = 1.0
+    var in_frac: bool = false
+    while i < n
+        const ch: string = str.slice(s, i, i + 1)
+        if ch == "."
+            in_frac = true
+        else
+            const d: int = digit_of(ch)
+            if d >= 0
+                if in_frac
+                    div = div * 10.0
+                    frac = frac + float(d) / div
+                else
+                    whole = whole * 10.0 + float(d)
+                end
+            end
+        end
+        i = i + 1
+    end
+    var v: float = whole + frac
+    if neg
+        v = 0.0 - v
+    end
+    return v
+end
+
+parse_simple_int(s: string) -> int
+    if s == ""
+        return 0
+    end
+    var neg: bool = false
+    var i: int = 0
+    const n: int = str.len(s)
+    if str.slice(s, 0, 1) == "-"
+        neg = true
+        i = 1
+    end
+    var v: int = 0
+    while i < n
+        const d: int = digit_of(str.slice(s, i, i + 1))
+        if d >= 0
+            v = v * 10 + d
+        end
+        i = i + 1
+    end
+    if neg
+        return 0 - v
+    end
+    return v
+end
+
+-- Acha o próximo '|' a partir de start; -1 se nenhum.
+find_pipe(s: string, start: int) -> int
+    const n: int = str.len(s)
+    var i: int = start
+    while i < n
+        if str.slice(s, i, i + 1) == "|"
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+parse_pose_body(body: string) -> PoseSlot
+    var slot: PoseSlot = empty_slot()
+    const n: int = str.len(body)
+    var colon: int = -1
+    var c1: int = -1
+    var c2: int = -1
+    var i: int = 0
+    while i < n
+        const ch: string = str.slice(body, i, i + 1)
+        if ch == ":" and colon < 0
+            colon = i
+        elif ch == ","
+            if c1 < 0
+                c1 = i
+            elif c2 < 0
+                c2 = i
+            end
+        end
+        i = i + 1
+    end
+    if colon < 0 or c1 < 0 or c2 < 0
+        return slot
+    end
+    slot.used = true
+    slot.id = parse_simple_int(str.slice(body, 0, colon))
+    slot.x = parse_simple_float(str.slice(body, colon + 1, c1))
+    slot.y = parse_simple_float(str.slice(body, c1 + 1, c2))
+    slot.z = parse_simple_float(str.slice(body, c2 + 1, n))
+    return slot
+end
+
+public decode(msg: string) -> WorldSnap
+    var snap: WorldSnap = empty_snap()
+    if is_ws_message(msg) == false
+        return snap
+    end
+    const body: string = str.slice(msg, 3, str.len(msg))
+    -- tick
+    const p0: int = find_pipe(body, 0)
+    if p0 < 0
+        return snap
+    end
+    snap.tick = parse_simple_int(str.slice(body, 0, p0))
+    -- count
+    const p1: int = find_pipe(body, p0 + 1)
+    if p1 < 0
+        snap.count = parse_simple_int(str.slice(body, p0 + 1, str.len(body)))
+        return snap
+    end
+    snap.count = parse_simple_int(str.slice(body, p0 + 1, p1))
+    if snap.count > MAX_POSES
+        snap.count = MAX_POSES
+    end
+    if snap.count < 0
+        snap.count = 0
+    end
+    var start: int = p1 + 1
+    var taken: int = 0
+    const n: int = str.len(body)
+    while taken < snap.count and start <= n
+        const pipe: int = find_pipe(body, start)
+        var piece: string = ""
+        if pipe < 0
+            piece = str.slice(body, start, n)
+            start = n + 1
+        else
+            piece = str.slice(body, start, pipe)
+            start = pipe + 1
+        end
+        if piece != ""
+            const slot: PoseSlot = parse_pose_body(piece)
+            if slot.used
+                snap = set_pose_at(snap, taken, slot)
+                taken = taken + 1
+            end
+        end
+        if pipe < 0
+            break
+        end
+    end
+    snap.count = taken
+    return snap
+end
+
+-- Aplica poses a entidades existentes (só xyz; rotação/scale intactos).
+-- Nome: apply_snap — `apply` é reserved em Ori.
+-- Constrói Transform novo por entidade (evita alias se set_transform reusar stack).
+public apply_snap(w: world.World, snap: WorldSnap) -> world.World
+    var out: world.World = w
+    var i: int = 0
+    while i < snap.count
+        const slot: PoseSlot = pose_at(snap, i)
+        if slot.used
+            match world.find_by_id(out, slot.id)
+                case some(e):
+                    const t: world.Transform = world.Transform {
+                        x: slot.x,
+                        y: slot.y,
+                        z: slot.z,
+                        rx: e.transform.rx,
+                        ry: e.transform.ry,
+                        rz: e.transform.rz,
+                        sx: e.transform.sx,
+                        sy: e.transform.sy,
+                        sz: e.transform.sz
+                    }
+                    out = world.set_transform(out, slot.id, t)
+                case none:
+            end
+        end
+        i = i + 1
+    end
+    return out
+end
+
+public encode_world(w: world.World, tick: int) -> string
+    return encode(capture(w, tick))
+end
+
+public apply_message(w: world.World, msg: string) -> world.World
+    if is_ws_message(msg) == false
+        return w
+    end
+    return apply_snap(w, decode(msg))
+end

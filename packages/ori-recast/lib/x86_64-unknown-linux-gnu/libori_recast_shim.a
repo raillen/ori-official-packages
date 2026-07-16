@@ -1,0 +1,2 @@
+/* GNU ld script */
+INPUT ( /home/raillen/Documentos/Projetos/game-engine-full/ori-recast/lib/x86_64-unknown-linux-gnu/libori_recast_objs.a -lstdc++ -lm )

@@ -1,0 +1,134 @@
+module game.light_bank
+
+-- Up to 4 lights with fixed uniform names for assets/shaders/lit_bank.fs
+
+import game.shader = shader
+import game.light = light
+import game.color = color
+import ori.math.vec3 = vec3
+
+public const MAX_LIGHTS: int = 4
+
+public struct Bank
+    shader_id: shader.ShaderId
+    count: int
+    l0: light.Light
+    l1: light.Light
+    l2: light.Light
+    l3: light.Light
+    ready: bool
+end
+
+public empty_light() -> light.Light
+    return light.Light {
+        enabled: 0,
+        kind: light.LIGHT_DISABLED,
+        position: vec3.Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+        target: vec3.Vec3 { x: 0.0, y: -1.0, z: 0.0 },
+        color: color.WHITE,
+        intensity: 0.0
+    }
+end
+
+public create(sh: shader.ShaderId) -> Bank
+    return Bank {
+        shader_id: sh,
+        count: 0,
+        l0: empty_light(),
+        l1: empty_light(),
+        l2: empty_light(),
+        l3: empty_light(),
+        ready: sh != 0
+    }
+end
+
+public set_slot(bank: Bank, index: int, l: light.Light) -> Bank
+    var out: Bank = bank
+    if index == 0
+        out.l0 = l
+    end
+    if index == 1
+        out.l1 = l
+    end
+    if index == 2
+        out.l2 = l
+    end
+    if index == 3
+        out.l3 = l
+    end
+    if index >= 0 and index < MAX_LIGHTS and index >= out.count
+        out.count = index + 1
+    end
+    return out
+end
+
+public sun_default(bank: Bank) -> Bank
+    return set_slot(
+        bank,
+        0,
+        light.create_directional(
+            vec3.Vec3 { x: -0.3, y: -1.0, z: -0.2 },
+            color.WHITE,
+            1.0
+        )
+    )
+end
+
+upload_one(sh: shader.ShaderId, index: int, l: light.Light) -> void
+    -- Fixed names light0Enabled … light3Intensity
+    if index == 0
+        light.upload(
+            sh, l,
+            shader.location(sh, "light0Enabled"),
+            shader.location(sh, "light0Type"),
+            shader.location(sh, "light0Pos"),
+            shader.location(sh, "light0Target"),
+            shader.location(sh, "light0Color"),
+            shader.location(sh, "light0Intensity")
+        )
+    end
+    if index == 1
+        light.upload(
+            sh, l,
+            shader.location(sh, "light1Enabled"),
+            shader.location(sh, "light1Type"),
+            shader.location(sh, "light1Pos"),
+            shader.location(sh, "light1Target"),
+            shader.location(sh, "light1Color"),
+            shader.location(sh, "light1Intensity")
+        )
+    end
+    if index == 2
+        light.upload(
+            sh, l,
+            shader.location(sh, "light2Enabled"),
+            shader.location(sh, "light2Type"),
+            shader.location(sh, "light2Pos"),
+            shader.location(sh, "light2Target"),
+            shader.location(sh, "light2Color"),
+            shader.location(sh, "light2Intensity")
+        )
+    end
+    if index == 3
+        light.upload(
+            sh, l,
+            shader.location(sh, "light3Enabled"),
+            shader.location(sh, "light3Type"),
+            shader.location(sh, "light3Pos"),
+            shader.location(sh, "light3Target"),
+            shader.location(sh, "light3Color"),
+            shader.location(sh, "light3Intensity")
+        )
+    end
+end
+
+public upload_all(bank: Bank) -> void
+    if not bank.ready
+        return
+    end
+    const sh: shader.ShaderId = bank.shader_id
+    upload_one(sh, 0, bank.l0)
+    upload_one(sh, 1, bank.l1)
+    upload_one(sh, 2, bank.l2)
+    upload_one(sh, 3, bank.l3)
+end

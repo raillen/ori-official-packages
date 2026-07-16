@@ -1,0 +1,51 @@
+module app.render_texture_demo
+
+imports
+    game.app = app
+    game.draw = draw
+    game.color = color
+    game.shape = shape
+    ori.math.vec2 = vec2
+end
+
+var rt: draw.RenderTextureId = 0
+var ready: bool = false
+var pulse: float = 40.0
+
+on_update(dt: float) -> void
+    if not ready
+        rt = draw.load_render_texture(256, 256)
+        ready = true
+    end
+    pulse = pulse + dt * 20.0
+    if pulse > 70.0
+        pulse = 40.0
+    end
+end
+
+on_draw() -> void
+    if not ready
+        return
+    end
+    draw.begin_texture_mode(rt)
+    draw.clear(color.DARKBLUE)
+    draw.draw_circle(vec2.Vec2 { x: 128.0, y: 128.0 }, pulse, color.YELLOW)
+    draw.draw_text("offscreen", vec2.Vec2 { x: 40.0, y: 20.0 }, 18, color.WHITE)
+    draw.end_texture_mode()
+
+    const th: int = draw.render_texture_height(rt)
+    draw.draw_render_texture_rec(
+        rt,
+        shape.rect(0.0, 0.0, 256.0, -1.0 * float(th)),
+        shape.rect(192.0, 52.0, 256.0, 256.0),
+        color.WHITE
+    )
+    draw.draw_text("RenderTexture demo", vec2.Vec2 { x: 10.0, y: 10.0 }, 20, color.WHITE)
+end
+
+main()
+    app.run_window("RenderTexture Demo", 640, 360, on_update, on_draw)
+    if ready
+        draw.unload_render_texture(rt)
+    end
+end

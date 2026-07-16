@@ -1,0 +1,23 @@
+module app.tx_rollback
+
+imports
+    sqlite.db = sql
+    ori.io = io
+end
+
+main()
+    var db: sql.Db = sql.open("/tmp/ori_sqlite_tx.db")
+    sql.exec_ok(db, "CREATE TABLE IF NOT EXISTS t(x INTEGER)")
+    sql.exec_ok(db, "DELETE FROM t")
+    sql.exec_ok(db, "INSERT INTO t(x) VALUES(1)")
+    sql.begin(db)
+    sql.exec_ok(db, "INSERT INTO t(x) VALUES(2)")
+    sql.rollback(db)
+    const n: int = sql.query_int(db, "SELECT COUNT(*) FROM t")
+    if n == 1
+        io.print("ok")
+    else
+        io.print("fail")
+    end
+    sql.close(db)
+end

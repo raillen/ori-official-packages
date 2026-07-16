@@ -1,0 +1,384 @@
+module game.ogame_script
+
+-- Runtime interpreter for Studio N1 ogs:* visual-script markers.
+-- Uses milli-int for timing/vars where possible (Cranelift fcmp residual avoidance).
+
+import ori.list = lists
+import ori.string = str
+import ori.convert = conv
+import ori.log = log
+import ori.math = math
+import game.ogame_alarms = alarms
+
+public const KIND_PRINT: int = 1
+public const KIND_COMMENT: int = 2
+public const KIND_PASS: int = 3
+public const KIND_SET_VAR: int = 4
+public const KIND_IF: int = 5
+public const KIND_WAIT: int = 6
+public const KIND_ALARM: int = 7
+public const KIND_CALL: int = 8
+
+public struct ScriptAction
+    kind: int
+    text: string
+    arg: string
+    arg2: string
+end
+
+public struct ScriptState
+    self_id: int
+    var_names: list[string]
+    -- Values stored as milli-units (value * 1000) for integer compare safety.
+    var_millis: list[int]
+    alarms: alarms.AlarmBank
+    wait_ms: int
+    last_print: string
+    last_call: string
+    print_log: list[string]
+    actions: list[ScriptAction]
+    pc: int
+    skip_next: bool
+    finished: bool
+end
+
+public empty_state(self_id: int) -> ScriptState
+    var names: list[string] = []
+    var millis: list[int] = []
+    var prints: list[string] = []
+    var acts: list[ScriptAction] = []
+    return ScriptState {
+        self_id: self_id,
+        var_names: names,
+        var_millis: millis,
+        alarms: alarms.empty_bank(),
+        wait_ms: 0,
+        last_print: "",
+        last_call: "",
+        print_log: prints,
+        actions: acts,
+        pc: 0,
+        skip_next: false,
+        finished: true
+    }
+end
+
+public action_print(message: string) -> ScriptAction
+    return ScriptAction { kind: KIND_PRINT, text: message, arg: "", arg2: "" }
+end
+
+public action_comment(message: string) -> ScriptAction
+    return ScriptAction { kind: KIND_COMMENT, text: message, arg: "", arg2: "" }
+end
+
+public action_pass() -> ScriptAction
+    return ScriptAction { kind: KIND_PASS, text: "", arg: "", arg2: "" }
+end
+
+public action_set_var(name: string, value: string) -> ScriptAction
+    return ScriptAction { kind: KIND_SET_VAR, text: name, arg: value, arg2: "" }
+end
+
+public action_if(condition: string) -> ScriptAction
+    return ScriptAction { kind: KIND_IF, text: condition, arg: "", arg2: "" }
+end
+
+public action_wait(seconds: string) -> ScriptAction
+    return ScriptAction { kind: KIND_WAIT, text: "", arg: seconds, arg2: "" }
+end
+
+public action_alarm(index: string, delay_sec: string) -> ScriptAction
+    return ScriptAction { kind: KIND_ALARM, text: "", arg: delay_sec, arg2: index }
+end
+
+public action_call(fn_name: string) -> ScriptAction
+    return ScriptAction { kind: KIND_CALL, text: fn_name, arg: "", arg2: "" }
+end
+
+public load_program(state: ScriptState, actions: list[ScriptAction]) -> ScriptState
+    var out: ScriptState = state
+    out.actions = actions
+    out.pc = 0
+    out.wait_ms = 0
+    out.skip_next = false
+    out.finished = lists.len(actions) == 0
+    return out
+end
+
+to_milli(v: float) -> int
+    return math.round(v * 1000.0)
+end
+
+from_milli(m: int) -> float
+    return float(m) / 1000.0
+end
+
+public get_var(state: ScriptState, name: string, fallback: float) -> float
+    const n: int = lists.len(state.var_names)
+    var i: int = 0
+    while i < n
+        if state.var_names[i] == name
+            return from_milli(state.var_millis[i])
+        end
+        i = i + 1
+    end
+    return fallback
+end
+
+public get_var_milli(state: ScriptState, name: string, fallback: int) -> int
+    const n: int = lists.len(state.var_names)
+    var i: int = 0
+    while i < n
+        if state.var_names[i] == name
+            return state.var_millis[i]
+        end
+        i = i + 1
+    end
+    return fallback
+end
+
+public set_var(state: ScriptState, name: string, value: float) -> ScriptState
+    return set_var_milli(state, name, to_milli(value))
+end
+
+public set_var_milli(state: ScriptState, name: string, milli: int) -> ScriptState
+    var out: ScriptState = state
+    const n: int = lists.len(out.var_names)
+    var i: int = 0
+    while i < n
+        if out.var_names[i] == name
+            lists.set(out.var_millis, i, milli)
+            return out
+        end
+        i = i + 1
+    end
+    lists.push(out.var_names, name)
+    lists.push(out.var_millis, milli)
+    return out
+end
+
+public print_count(state: ScriptState) -> int
+    return lists.len(state.print_log)
+end
+
+const MARK_PRINT: string = "ogs:print "
+const MARK_COMMENT: string = "ogs:comment "
+const MARK_PASS: string = "ogs:pass"
+const MARK_SET: string = "ogs:set_var "
+const MARK_IF: string = "ogs:if "
+const MARK_WAIT: string = "ogs:wait "
+const MARK_ALARM: string = "ogs:alarm "
+const MARK_CALL: string = "ogs:call "
+
+strip_comment_prefix(line: string) -> string
+    var s: string = ori.string.trim(line)
+    if str.has_prefix(s, "--")
+        s = ori.string.trim(ori.string.slice(s, 2, ori.string.len(s)))
+    end
+    return s
+end
+
+public parse_ogs_line(line: string) -> optional[ScriptAction]
+    const rest: string = strip_comment_prefix(line)
+    if rest == ""
+        return none
+    end
+    if str.has_prefix(rest, MARK_PRINT)
+        return some(action_print(ori.string.slice(rest, ori.string.len(MARK_PRINT), ori.string.len(rest))))
+    end
+    if str.has_prefix(rest, MARK_COMMENT)
+        return some(action_comment(ori.string.slice(rest, ori.string.len(MARK_COMMENT), ori.string.len(rest))))
+    end
+    if rest == MARK_PASS or str.has_prefix(rest, MARK_PASS)
+        return some(action_pass())
+    end
+    if str.has_prefix(rest, MARK_SET)
+        const expr: string = ori.string.slice(rest, ori.string.len(MARK_SET), ori.string.len(rest))
+        const eq: int = ori.string.index_of(expr, "=")
+        if eq < 0
+            return none
+        end
+        const name: string = ori.string.trim(ori.string.slice(expr, 0, eq))
+        const value: string = ori.string.trim(ori.string.slice(expr, eq + 1, ori.string.len(expr)))
+        return some(action_set_var(name, value))
+    end
+    if str.has_prefix(rest, MARK_IF)
+        return some(action_if(ori.string.slice(rest, ori.string.len(MARK_IF), ori.string.len(rest))))
+    end
+    if str.has_prefix(rest, MARK_WAIT)
+        return some(action_wait(ori.string.slice(rest, ori.string.len(MARK_WAIT), ori.string.len(rest))))
+    end
+    if str.has_prefix(rest, MARK_ALARM)
+        const body: string = ori.string.trim(ori.string.slice(rest, ori.string.len(MARK_ALARM), ori.string.len(rest)))
+        const parts: list[string] = str.words(body)
+        var idx: string = "0"
+        var delay: string = "1.0"
+        if lists.len(parts) >= 1
+            idx = parts[0]
+        end
+        if lists.len(parts) >= 2
+            delay = parts[1]
+        end
+        return some(action_alarm(idx, delay))
+    end
+    if str.has_prefix(rest, MARK_CALL)
+        return some(action_call(ori.string.trim(ori.string.slice(rest, ori.string.len(MARK_CALL), ori.string.len(rest)))))
+    end
+    return none
+end
+
+public parse_ogs_body(body: string) -> list[ScriptAction]
+    var out: list[ScriptAction] = []
+    const lines: list[string] = str.lines(body)
+    const n: int = lists.len(lines)
+    var i: int = 0
+    while i < n
+        match parse_ogs_line(lines[i])
+            case some(a):
+                lists.push(out, a)
+            case none:
+        end
+        i = i + 1
+    end
+    return out
+end
+
+parse_milli(raw: string) -> int
+    const s: string = ori.string.trim(raw)
+    return to_milli(conv.parse_float_or(s, 0.0))
+end
+
+eval_condition(state: ScriptState, cond_raw: string) -> bool
+    const cond: string = ori.string.trim(cond_raw)
+    if cond == "" or cond == "true" or cond == "1"
+        return true
+    end
+    if cond == "false" or cond == "0"
+        return false
+    end
+    if ori.string.index_of(cond, " ") < 0 and ori.string.index_of(cond, ">") < 0 and ori.string.index_of(cond, "<") < 0 and ori.string.index_of(cond, "=") < 0
+        return get_var_milli(state, cond, 0) != 0
+    end
+    const gt: int = ori.string.index_of(cond, ">")
+    if gt >= 0
+        const left: string = ori.string.trim(ori.string.slice(cond, 0, gt))
+        const right: string = ori.string.trim(ori.string.slice(cond, gt + 1, ori.string.len(cond)))
+        return get_var_milli(state, left, 0) > parse_milli(right)
+    end
+    const lt: int = ori.string.index_of(cond, "<")
+    if lt >= 0
+        const left2: string = ori.string.trim(ori.string.slice(cond, 0, lt))
+        const right2: string = ori.string.trim(ori.string.slice(cond, lt + 1, ori.string.len(cond)))
+        return get_var_milli(state, left2, 0) < parse_milli(right2)
+    end
+    const eq: int = ori.string.index_of(cond, "==")
+    if eq >= 0
+        const left3: string = ori.string.trim(ori.string.slice(cond, 0, eq))
+        const right3: string = ori.string.trim(ori.string.slice(cond, eq + 2, ori.string.len(cond)))
+        return get_var_milli(state, left3, 0) == parse_milli(right3)
+    end
+    return true
+end
+
+resolve_milli(state: ScriptState, raw: string) -> int
+    const s: string = ori.string.trim(raw)
+    if str.is_digits(s) or ori.string.index_of(s, ".") >= 0 or str.has_prefix(s, "-")
+        return parse_milli(s)
+    end
+    return get_var_milli(state, s, parse_milli(s))
+end
+
+exec_one(state: ScriptState, a: ScriptAction) -> ScriptState
+    var out: ScriptState = state
+    if a.kind == KIND_PRINT
+        out.last_print = a.text
+        lists.push(out.print_log, a.text)
+        log.info(a.text)
+        return out
+    end
+    if a.kind == KIND_COMMENT or a.kind == KIND_PASS
+        return out
+    end
+    if a.kind == KIND_SET_VAR
+        return set_var_milli(out, a.text, resolve_milli(out, a.arg))
+    end
+    if a.kind == KIND_IF
+        out.skip_next = not eval_condition(out, a.text)
+        return out
+    end
+    if a.kind == KIND_WAIT
+        out.wait_ms = parse_milli(a.arg)
+        return out
+    end
+    if a.kind == KIND_ALARM
+        const slot: int = conv.parse_int_or(a.arg2, 0)
+        const ms: int = parse_milli(a.arg)
+        out.alarms = alarms.set_alarm(out.alarms, slot, ms)
+        return out
+    end
+    if a.kind == KIND_CALL
+        out.last_call = a.text
+        log.info(ori.string.concat("ogs:call ", a.text))
+        return out
+    end
+    return out
+end
+
+public step_program(state: ScriptState) -> ScriptState
+    var out: ScriptState = state
+    if out.finished
+        return out
+    end
+    if out.wait_ms > 0
+        return out
+    end
+    const n: int = lists.len(out.actions)
+    while out.pc < n
+        if out.wait_ms > 0
+            return out
+        end
+        const a: ScriptAction = out.actions[out.pc]
+        out.pc = out.pc + 1
+        if out.skip_next
+            out.skip_next = false
+            continue
+        end
+        out = exec_one(out, a)
+        if out.wait_ms > 0
+            return out
+        end
+    end
+    out.finished = true
+    return out
+end
+
+public tick(state: ScriptState, dt: float) -> ScriptState
+    var out: ScriptState = state
+    if out.finished and out.wait_ms <= 0
+        return out
+    end
+    if out.wait_ms > 0
+        const dt_ms: int = to_milli(dt)
+        out.wait_ms = out.wait_ms - dt_ms
+        if out.wait_ms > 0
+            return out
+        end
+        out.wait_ms = 0
+    end
+    out.alarms = alarms.tick_bank(out.alarms, to_milli(dt))
+    return step_program(out)
+end
+
+public run_ogs_body(state: ScriptState, body: string) -> ScriptState
+    const actions: list[ScriptAction] = parse_ogs_body(body)
+    var out: ScriptState = load_program(state, actions)
+    return step_program(out)
+end
+
+public is_waiting(state: ScriptState) -> bool
+    return state.wait_ms > 0
+end
+
+public is_finished(state: ScriptState) -> bool
+    return state.finished and state.wait_ms <= 0
+end

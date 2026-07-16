@@ -1,0 +1,39 @@
+# Compiled binaries (except vendored libraries)
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+
+# Allow raylib.lib in lib/
+!lib/**/*.lib
+
+# Build directories
+target/
+build/
+dist/
+raylib_source/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+
+# Placeholder files
+*.placeholder
+
+# Wavefront OBJ fixtures used by unit tests (not compiled objects)
+!tests/fixtures/**/*.obj
+
+# Agent workspaces
+.grok/

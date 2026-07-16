@@ -1,0 +1,94 @@
+module test.dialogue_inv_combat
+
+imports
+    game.dialogue = dlg
+    game.inventory = inv
+    game.mechanics.combat = combat
+    game.mechanics.ai = ai
+    game.cutscene = cut
+    game.net_predict = net
+    game.marching_cubes = mc
+    ori.math.vec2 = vec2
+    ori.test = test
+    ori.list = lists
+end
+
+@test
+dialogue_branch()
+    var d: dlg.Dialogue = dlg.create()
+    d = dlg.add_line(d, "npc", "Hello")
+    d = dlg.add_line(d, "npc", "Bye")
+    d = dlg.add_line(d, "npc", "Secret")
+    d = dlg.add_choice(d, 0, "leave", 1)
+    d = dlg.add_choice(d, 0, "secret", 2)
+    d = dlg.start(d, 0)
+    test.equal_int(dlg.choice_count(d), 2)
+    d = dlg.choose(d, 1)
+    test.equal_text(dlg.current_text(d), "Secret")
+end
+
+@test
+inventory_remove_use()
+    var bag: inv.Inventory = inv.create(4)
+    const potion: inv.Item = inv.Item { id: "potion", name: "Potion", stackable: true, max_stack: 10 }
+    bag = inv.add(bag, potion, 3)
+    bag = inv.remove(bag, "potion", 1)
+    test.equal_int(inv.count_of(bag, "potion"), 2)
+    bag = inv.try_use(bag, "potion")
+    test.equal_int(inv.count_of(bag, "potion"), 1)
+    test.assert(inv.to_compact(bag) != "", "compact")
+end
+
+@test
+combat_i_frames()
+    var h: combat.Health = combat.create_health(10)
+    h = combat.damage_with_i_frames(h, 3, 1000)
+    test.equal_int(h.current, 7)
+    test.assert(combat.is_invulnerable(h), "i-frame")
+    h = combat.damage(h, 5)
+    test.equal_int(h.current, 7)
+    h = combat.tick_i_frames(h, 2000)
+    test.assert(not combat.is_invulnerable(h), "expired")
+end
+
+@test
+ai_patrol_and_aggro()
+    const a: vec2.Vec2 = vec2.Vec2 { x: 0.0, y: 0.0 }
+    const b: vec2.Vec2 = vec2.Vec2 { x: 10.0, y: 0.0 }
+    var p: ai.Patrol = ai.create_patrol(a, b)
+    test.assert(ai.in_aggro(a, b, 20.0), "aggro")
+    test.assert(not ai.in_aggro(a, b, 1.0), "no aggro")
+    p = ai.patrol_step(p, a, 1.0, 0.016, 0.1)
+    test.assert(ai.patrol_target(p).x == 10.0, "target b")
+end
+
+@test
+cutscene_wait()
+    var r: cut.Runner = cut.create()
+    r = cut.add_wait(r, 0.1)
+    r = cut.add_marker(r, "done")
+    r = cut.start(r)
+    r = cut.tick(r, 0.05)
+    test.assert(cut.is_active(r), "still active")
+    r = cut.tick(r, 0.1)
+    test.equal_text(r.last_marker, "done")
+end
+
+@test
+net_predict_reconcile()
+    var s: net.Snapshot = net.create_snapshot(0, 0, 0, 0, 0)
+    const cmd: net.InputCmd = net.InputCmd { tick: 1, ax_m: 1000, ay_m: 0 }
+    s = net.predict_move(s, cmd, 1000)
+    test.equal_int(s.x_m, 1000)
+    const auth: net.Snapshot = net.create_snapshot(1, 900, 0, 1000, 0)
+    const soft: net.Snapshot = net.reconcile_soft(s, auth, 500)
+    test.assert(soft.x_m > 900 and soft.x_m < 1000, "blend")
+end
+
+@test
+mc_export_obj()
+    const d: list[int] = mc.fill_box(6, 6, 6, 2, 2, 2, 4, 4, 4, 1000, 0)
+    const m: mc.Mesh = mc.isosurface(d, 6, 6, 6, 500, 1000)
+    test.assert(mc.tri_count(m) > 0, "tris")
+    test.assert(mc.export_obj(m, "/tmp/ori_mc_test.obj"), "export")
+end

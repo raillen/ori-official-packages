@@ -1,0 +1,68 @@
+module test.world_physics
+
+imports
+    game.world = world
+    game.world_physics = wphys
+    game.world_systems = systems
+    game.ogame_level = level
+    ori.list = lists
+    ori.test = test
+end
+
+@test
+physics_gravity_moves_entity()
+    var w: world.World = world.empty_world()
+    var t: world.Transform = world.empty_transform()
+    t.y = 100.0
+    const meta: world.EntityMeta = world.EntityMeta {
+        instance_id: "phys1",
+        entity_type: "crate",
+        primary_tag: "crate"
+    }
+    w = world.spawn_entity(w, meta, t)
+    const id: world.EntityId = world.get_entity(w, 0).id
+    var host: wphys.PhysicsHost = wphys.empty_host()
+    host = wphys.attach(host, id, wphys.PhysicsBodyComp {
+        mass: 1.0,
+        use_gravity: true,
+        gravity_scale: 1.0,
+        body_handle: 0
+    })
+    test.equal_int(wphys.body_count(host), 1)
+    w = systems.physics_system(w, host, -980.0, 0.016)
+    w = systems.move_system(w, 0.016)
+    const e: world.Entity = world.get_entity(w, 0)
+    test.assert(e.has_velocity, "has velocity")
+    test.assert(e.velocity.vy < 0.0, "falling")
+    test.assert(e.transform.y < 100.0, "moved down")
+end
+
+@test
+tick_world_physics_order()
+    var w: world.World = world.empty_world()
+    var t: world.Transform = world.empty_transform()
+    t.y = 50.0
+    w = world.spawn_entity(
+        w,
+        world.EntityMeta {
+            instance_id: "p2",
+            entity_type: "crate",
+            primary_tag: "crate"
+        },
+        t
+    )
+    const id: world.EntityId = world.get_entity(w, 0).id
+    var host: wphys.PhysicsHost = wphys.empty_host()
+    host = wphys.attach(host, id, wphys.empty_body())
+    var solids: list[level.SolidPiece] = []
+    w = systems.tick_world_physics(
+        w,
+        systems.empty_input(),
+        solids,
+        host,
+        -100.0,
+        0.1
+    )
+    const e: world.Entity = world.get_entity(w, 0)
+    test.assert(e.transform.y < 50.0, "tick physics fell")
+end

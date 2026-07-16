@@ -1,0 +1,104 @@
+module jolt.vehicle_arcade
+
+-- Arcade vehicles: land (default), plane (flight), boat (water plane).
+-- Modes are L1 behaviour on top of chassis body + input.
+
+import jolt.dynamics = jolt
+
+public const MODE_LAND: int = 0
+public const MODE_PLANE: int = 1
+public const MODE_BOAT: int = 2
+
+public struct ArcadeVehicle
+    vehicle: jolt.Vehicle
+    mode: int
+    water_y_m: int
+    yaw_mdeg: int
+    pitch_mdeg: int
+    speed_m: int
+end
+
+public create_land(
+    s: jolt.System, x_m: int, y_m: int, z_m: int, hx: int, hy: int, hz: int
+) -> ArcadeVehicle
+    return ArcadeVehicle {
+        vehicle: jolt.create_vehicle(s, x_m, y_m, z_m, hx, hy, hz),
+        mode: MODE_LAND,
+        water_y_m: 0,
+        yaw_mdeg: 0,
+        pitch_mdeg: 0,
+        speed_m: 0
+    }
+end
+
+public create_plane(
+    s: jolt.System, x_m: int, y_m: int, z_m: int, hx: int, hy: int, hz: int
+) -> ArcadeVehicle
+    var v: ArcadeVehicle = create_land(s, x_m, y_m, z_m, hx, hy, hz)
+    v.mode = MODE_PLANE
+    return v
+end
+
+public create_boat(
+    s: jolt.System, x_m: int, y_m: int, z_m: int, hx: int, hy: int, hz: int, water_y_m: int
+) -> ArcadeVehicle
+    var v: ArcadeVehicle = create_land(s, x_m, y_m, z_m, hx, hy, hz)
+    v.mode = MODE_BOAT
+    v.water_y_m = water_y_m
+    return v
+end
+
+-- throttle/steer/brake in milli (-1000..1000). For plane: throttle=thrust, steer=yaw, brake=pitch down.
+public set_input(v: ArcadeVehicle, throttle_m: int, steer_m: int, brake_m: int) -> ArcadeVehicle
+    var out: ArcadeVehicle = v
+    jolt.vehicle_set_input(out.vehicle, throttle_m, steer_m, brake_m)
+    out.yaw_mdeg = out.yaw_mdeg + steer_m / 20
+    if out.mode == MODE_PLANE
+        out.pitch_mdeg = out.pitch_mdeg + brake_m / 30
+        out.speed_m = out.speed_m + throttle_m / 50
+        if out.speed_m < 0
+            out.speed_m = 0
+        end
+        if out.speed_m > 8000
+            out.speed_m = 8000
+        end
+    end
+    if out.mode == MODE_BOAT
+        out.speed_m = throttle_m
+    end
+    if out.mode == MODE_LAND
+        out.speed_m = throttle_m
+    end
+    return out
+end
+
+public tick(v: ArcadeVehicle, s: jolt.System, dt_micros: int) -> ArcadeVehicle
+    var out: ArcadeVehicle = v
+    jolt.step(s, dt_micros)
+    const chassis: jolt.Body = jolt.vehicle_chassis(out.vehicle)
+    if out.mode == MODE_PLANE
+        -- Arcade flight: integrate position from speed + yaw (milli-deg rough)
+        const x0: int = jolt.body_x_m(chassis)
+        const y0: int = jolt.body_y_m(chassis)
+        const z0: int = jolt.body_z_m(chassis)
+        const dt: int = dt_micros / 1000
+        const dx: int = out.speed_m * dt / 1000
+        -- crude forward Z negative
+        jolt.set_position(chassis, x0 + out.yaw_mdeg / 100, y0 + out.pitch_mdeg / 50, z0 - dx)
+    end
+    if out.mode == MODE_BOAT
+        const chassis2: jolt.Body = jolt.vehicle_chassis(out.vehicle)
+        const x1: int = jolt.body_x_m(chassis2)
+        const z1: int = jolt.body_z_m(chassis2)
+        jolt.set_position(chassis2, x1, out.water_y_m + 400, z1)
+    end
+    return out
+end
+
+public chassis(v: ArcadeVehicle) -> jolt.Body
+    return jolt.vehicle_chassis(v.vehicle)
+end
+
+public destroy(v: ArcadeVehicle) -> void
+    jolt.destroy_vehicle(v.vehicle)
+end

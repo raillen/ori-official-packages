@@ -1,0 +1,90 @@
+module app.game_tf_sync
+
+-- R7: host + client exchange transform-like text (session helper).
+
+imports
+    enet.session = net
+    enet.host = enet
+    enet.tf_codec = tf
+    ori.io = io
+end
+
+const PORT: int = 27782
+const MAX_ITERS: int = 600
+
+main()
+    var host: net.NetSession = net.start_host(PORT)
+    if host.ready == false
+        io.print("fail")
+        return
+    end
+    var client: net.NetSession = net.start_client("127.0.0.1", PORT)
+    if client.ready == false
+        io.print("fail")
+        host = net.shutdown(host)
+        net.deinit_global()
+        return
+    end
+
+    var server_connected: bool = false
+    var client_connected: bool = false
+    var got_tf: bool = false
+    var got_ack: bool = false
+    var sent: bool = false
+
+    var i: int = 0
+    while i < MAX_ITERS
+        const se: int = enet.service(host.host, 5)
+        if se == enet.EVENT_CONNECT
+            server_connected = true
+            host.connected = true
+            host.peer = enet.event_peer()
+        end
+        if se == enet.EVENT_RECEIVE
+            const msg: string = enet.packet_text()
+            enet.destroy_packet()
+            if tf.is_tf_message(msg)
+                const pose: tf.TfPose = tf.decode_tf(msg)
+                if pose.ok
+                    got_tf = true
+                    const _r: int = enet.send_text(host.peer, tf.encode_ack(), 0, true)
+                    enet.flush(host.host)
+                end
+            end
+        end
+
+        const ce: int = enet.service(client.host, 5)
+        if ce == enet.EVENT_CONNECT
+            client_connected = true
+            client.connected = true
+            if sent == false
+                const payload: string = tf.encode_tf(0.0, 1.0, 8.0)
+                const _s: int = enet.send_text(client.remote, payload, 0, true)
+                enet.flush(client.host)
+                sent = true
+            end
+        end
+        if ce == enet.EVENT_RECEIVE
+            const msg2: string = enet.packet_text()
+            enet.destroy_packet()
+            if tf.is_ack_message(msg2)
+                got_ack = true
+            end
+        end
+
+        if server_connected and client_connected and got_tf and got_ack
+            break
+        end
+        i = i + 1
+    end
+
+    if got_tf and got_ack
+        io.print("ok")
+    else
+        io.print("fail")
+    end
+
+    client = net.shutdown(client)
+    host = net.shutdown(host)
+    net.deinit_global()
+end

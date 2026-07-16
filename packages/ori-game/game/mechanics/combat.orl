@@ -1,0 +1,85 @@
+module game.mechanics.combat
+
+public struct Health
+    current: int
+    maximum: int
+    i_frame_milli: int
+end
+
+public create_health(maximum: int) -> Health
+    return Health { current: maximum, maximum: maximum, i_frame_milli: 0 }
+end
+
+public damage(h: Health, amount: int) -> Health
+    var out: Health = h
+    if out.i_frame_milli > 0
+        return out
+    end
+    out.current = out.current - amount
+    if out.current < 0
+        out.current = 0
+    end
+    return out
+end
+
+public damage_with_i_frames(h: Health, amount: int, i_frames_milli: int) -> Health
+    var out: Health = h
+    if out.i_frame_milli > 0
+        return out
+    end
+    out.current = out.current - amount
+    if out.current < 0
+        out.current = 0
+    end
+    out.i_frame_milli = i_frames_milli
+    return out
+end
+
+public heal(h: Health, amount: int) -> Health
+    var out: Health = h
+    out.current = out.current + amount
+    if out.current > out.maximum
+        out.current = out.maximum
+    end
+    return out
+end
+
+public tick_i_frames(h: Health, dt_milli: int) -> Health
+    var out: Health = h
+    if out.i_frame_milli > 0
+        out.i_frame_milli = out.i_frame_milli - dt_milli
+        if out.i_frame_milli < 0
+            out.i_frame_milli = 0
+        end
+    end
+    return out
+end
+
+public is_invulnerable(h: Health) -> bool
+    return h.i_frame_milli > 0
+end
+
+public is_dead(h: Health) -> bool
+    return h.current <= 0
+end
+
+public struct Hitbox
+    x: float
+    y: float
+    half_w: float
+    half_h: float
+end
+
+public struct Hurtbox
+    x: float
+    y: float
+    half_w: float
+    half_h: float
+end
+
+public hitbox_overlaps(a: Hitbox, b: Hurtbox) -> bool
+    return a.x + a.half_w >= b.x - b.half_w
+        and a.x - a.half_w <= b.x + b.half_w
+        and a.y + a.half_h >= b.y - b.half_h
+        and a.y - a.half_h <= b.y + b.half_h
+end

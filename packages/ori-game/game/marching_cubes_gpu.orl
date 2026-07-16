@@ -1,0 +1,45 @@
+module game.marching_cubes_gpu
+
+-- Bake MC mesh to Wavefront OBJ then load as raylib Model (GPU path).
+-- Unit tests cover export; load_model needs a windowed raylib context.
+
+import game.marching_cubes = mc
+import game.draw3d = draw3d
+import ori.os = os
+
+public struct BakedMesh
+    model: draw3d.ModelId
+    path: string
+    tri_count: int
+end
+
+public empty_baked() -> BakedMesh
+    return BakedMesh { model: 0, path: "", tri_count: 0 }
+end
+
+-- Export OBJ to path and load model. path empty → /tmp/ori_mc_bake.obj
+public bake_to_model(m: mc.Mesh, path: string) -> BakedMesh
+    var out_path: string = path
+    if out_path == ""
+        out_path = "/tmp/ori_mc_bake.obj"
+    end
+    if not mc.export_obj(m, out_path)
+        return empty_baked()
+    end
+    const mid: draw3d.ModelId = draw3d.load_model(out_path)
+    return BakedMesh {
+        model: mid,
+        path: out_path,
+        tri_count: mc.tri_count(m)
+    }
+end
+
+public unload_baked(b: BakedMesh) -> void
+    if b.model != 0
+        draw3d.unload_model(b.model)
+    end
+end
+
+public is_valid(b: BakedMesh) -> bool
+    return b.model != 0 and b.tri_count > 0
+end

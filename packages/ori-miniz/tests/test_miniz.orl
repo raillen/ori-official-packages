@@ -1,0 +1,48 @@
+module test.miniz
+
+imports
+    miniz.deflate = mz
+    ori.test = test
+end
+
+@test
+compress_roundtrip_len()
+    const s: string = "abcdefghij"
+    test.assert(mz.compress_text(s, 5) > 0, "compress")
+    test.equal_int(mz.roundtrip_len(s), 10)
+end
+
+@test
+crc32_stable()
+    const a: int = mz.crc32_text("ori")
+    const b: int = mz.crc32_text("ori")
+    test.equal_int(a, b)
+    test.assert(a != 0, "nonzero")
+end
+
+@test
+crc32_empty_and_distinct()
+    -- empty string CRC is 0 (mz_crc32 init over zero bytes)
+    test.equal_int(mz.crc32_text(""), 0)
+    test.assert(mz.crc32_text("a") != mz.crc32_text("b"), "distinct")
+end
+
+@test
+zip_create_extract_one()
+    const name: string = "hello.txt"
+    const body: string = "zip-body-ori"
+    const zlen: int = mz.zip_create_entry(name, body, 6)
+    test.assert(zlen > 0, "zip create")
+    const ulen: int = mz.zip_extract_last(name)
+    test.equal_int(ulen, 12)
+    test.equal_int(mz.zip_roundtrip_len(name, body), 12)
+end
+
+@test
+decompress_garbage_fails()
+    const clen: int = mz.compress_text("payload-xx", 6)
+    test.assert(clen > 4, "need compress")
+    -- length 1 of compressed stream is not a valid zlib stream
+    const bad: int = mz.decompress(mz.out_ptr(), 1, 64)
+    test.assert(bad < 0, "garbage should fail")
+end

@@ -1,0 +1,11 @@
+[package]
+name = "widgets"
+version = "0.1.0"
+entry = "widgets/knob.orl"
+ori_version = "0.3.0"
+description = "ImGui accessory widgets for Ori: rotary knob, toggle, spinner, spectrum theme helpers (pure Ori)"
+license = "MIT"
+# Pure Ori state machines — no native shim. Product draw path-deps sibling ori-imgui.
+
+[dependencies]
+imgui = { path = "../ori-imgui", version = "0.5.1" }

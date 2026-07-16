@@ -1,0 +1,259 @@
+module test.ogame
+
+imports
+    game.ogame = ogame
+    game.ogame_level = game_level
+    game.engine = engine
+    ori.test = test
+    ori.list = lists
+end
+
+const PLAYER_JSON: string = "{\"format_version\":1,\"id\":\"player\",\"name\":\"Player\",\"script\":\"player.orl\",\"tags\":[\"player\"],\"events\":[\"create\",\"step\",\"destroy\"],\"vars\":[{\"name\":\"move_speed\",\"type\":\"float\",\"default\":5.0}],\"parent\":null}"
+
+const SCENE_JSON: string = "{\"format_version\":1,\"name\":\"room1\",\"instances\":[{\"id\":\"inst_player_01\",\"entity\":\"player\",\"x\":64.0,\"y\":128.0,\"var_overrides\":{\"move_speed\":8.0}},{\"id\":\"inst_enemy_01\",\"entity\":\"enemy\",\"x\":200.0,\"y\":128.0,\"var_overrides\":{\"hp\":5.0}}]}"
+
+@test
+parse_player_entity()
+    match ogame.parse_entity(PLAYER_JSON)
+        case ok(e):
+            test.assert(e.id == "player", "id")
+            test.assert(e.name == "Player", "name")
+            test.assert(e.script == "player.orl", "script")
+            test.assert(ogame.has_tag(e, "player"), "tag player")
+            test.assert(ogame.has_event(e, "step"), "event step")
+            test.equal_int(ogame.var_count(e), 1)
+            test.assert(e.vars[0].name == "move_speed", "var name")
+            test.assert(e.vars[0].default_float == 5.0, "var default")
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+parse_scene_instances()
+    match ogame.parse_scene(SCENE_JSON)
+        case ok(s):
+            test.assert(s.name == "room1", "scene name")
+            test.equal_int(ogame.instance_count(s), 2)
+            const players: list[ogame.SceneInstance] = ogame.instances_of_entity(s, "player")
+            test.equal_int(lists.len(players), 1)
+            const p: ogame.SceneInstance = players[0]
+            test.assert(p.id == "inst_player_01", "inst id")
+            test.assert(p.x == 64.0, "x")
+            -- JSON legado sem z: y chão → z, altura y=0
+            test.assert(p.y == 0.0, "y height")
+            test.assert(p.z == 128.0, "z ground")
+            test.equal_int(lists.len(p.var_overrides), 1)
+            test.assert(p.var_overrides[0].name == "move_speed", "ov name")
+            test.assert(p.var_overrides[0].float_value == 8.0, "ov value")
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+load_entity_fixture()
+    match ogame.load_entity("assets/sample_project/entities/player/entity.json")
+        case ok(e):
+            test.assert(e.id == "player", "load id")
+            test.assert(ogame.has_tag(e, "player"), "load tag")
+            const sp: string = ogame.script_path(
+                "assets/sample_project/entities/player",
+                e
+            )
+            test.assert(sp == "assets/sample_project/entities/player/player.orl", "script path")
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+load_scene_fixture()
+    match ogame.load_scene("assets/sample_project/scenes/room1.scene.json")
+        case ok(s):
+            test.equal_int(ogame.instance_count(s), 3)
+            const enemies: list[ogame.SceneInstance] = ogame.instances_of_entity(s, "enemy")
+            test.equal_int(lists.len(enemies), 1)
+            -- room1 playable layout: enemy at (28, 1, 32)
+            test.assert(enemies[0].x == 28.0, "enemy x")
+            test.assert(enemies[0].z == 32.0, "enemy z")
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+load_enemy_and_solid()
+    match ogame.load_entity("assets/sample_project/entities/enemy/entity.json")
+        case ok(e):
+            test.assert(e.id == "enemy", "enemy id")
+            test.assert(ogame.has_tag(e, "enemy"), "enemy tag")
+            test.equal_int(ogame.var_count(e), 1)
+        case err(msg):
+            test.assert(false, msg)
+    end
+    match ogame.load_entity("assets/sample_project/entities/solid/entity.json")
+        case ok(e):
+            test.assert(e.id == "solid", "solid id")
+            test.assert(ogame.has_tag(e, "solid"), "solid tag")
+            test.assert(ogame.has_event(e, "create"), "solid create")
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+catalog_and_spawn_scene()
+    match ogame.load_sample_catalog()
+        case ok(cat):
+            test.equal_int(ogame.catalog_count(cat), 4)
+            match ogame.catalog_find(cat, "player")
+                case some(p):
+                    test.assert(p.id == "player", "find player")
+                case none:
+                    test.assert(false, "player missing from catalog")
+            end
+            match ogame.load_scene(ogame.sample_scene_path())
+                case ok(scene):
+                    match ogame.spawn_scene(cat, scene)
+                        case ok(spawned):
+                            test.equal_int(ogame.spawned_count(spawned), 3)
+                            match ogame.find_spawned(spawned, "inst_player_01")
+                                case some(sp):
+                                    test.assert(sp.entity_id == "player", "spawned entity")
+                                    -- room1 playable: player at (0, 1, 8), speed 48
+                                    test.assert(sp.x == 0.0, "spawned x")
+                                    test.assert(sp.primary_tag == "player", "primary tag")
+                                    test.assert(
+                                        ogame.float_var_value(sp, "move_speed", 0.0) == 48.0,
+                                        "merged move_speed"
+                                    )
+                                case none:
+                                    test.assert(false, "inst_player_01 missing")
+                            end
+                        case err(msg):
+                            test.assert(false, msg)
+                    end
+                case err(msg):
+                    test.assert(false, msg)
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+scene_override_helpers()
+    match ogame.parse_scene(SCENE_JSON)
+        case ok(s):
+            match ogame.first_of_entity(s, "player")
+                case some(p):
+                    test.assert(ogame.override_float(p, "move_speed", 0.0) == 8.0, "ov float")
+                    test.assert(ogame.override_float(p, "missing", 3.5) == 3.5, "ov fallback")
+                    test.assert(ogame.override_string(p, "mesh_path", "none") == "none", "ov str fb")
+                case none:
+                    test.assert(false, "player missing")
+            end
+            match ogame.first_of_entity(s, "nope")
+                case some(_):
+                    test.assert(false, "should be none")
+                case none:
+                    test.assert(true, "none ok")
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+spawn_unknown_entity_fails()
+    match ogame.load_sample_catalog()
+        case ok(cat):
+            const bad: string = "{\"name\":\"x\",\"instances\":[{\"id\":\"i\",\"entity\":\"nope\",\"x\":0.0,\"y\":0.0,\"var_overrides\":{}}]}"
+            match ogame.parse_scene(bad)
+                case ok(scene):
+                    match ogame.spawn_scene(cat, scene)
+                        case ok(_):
+                            test.assert(false, "should fail unknown entity")
+                        case err(msg):
+                            test.assert(true, msg)
+                    end
+                case err(msg):
+                    test.assert(false, msg)
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+spawn_into_engine_sample()
+    match ogame.load_and_spawn_sample()
+        case ok(eng):
+            test.equal_int(engine.entity_count(eng), 3)
+            const e0: engine.Entity = engine.get_entity(eng, 0)
+            test.assert(e0.alive, "alive")
+            test.assert(e0.tag == "player", "first tag player")
+            -- room1 player x
+            test.assert(e0.pos.x == 0.0, "pos x")
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+serialize_scene_roundtrip_instances()
+    match ogame.load_scene("assets/sample_project/scenes/engine_test.scene.json")
+        case ok(sc0):
+            test.assert(ogame.instance_count(sc0) >= 1, "has instances")
+            var sc: ogame.SceneFile = sc0
+            var inst: ogame.SceneInstance = sc.instances[0]
+            inst.x = 12.5
+            inst.y = 3.0
+            inst.z = 9.0
+            sc.instances[0] = inst
+            const path: string = "/tmp/ori_studio_shell_scene_rt.json"
+            match ogame.write_scene(path, sc)
+                case ok(_):
+                    match ogame.load_scene(path)
+                        case ok(sc2):
+                            test.equal_int(ogame.instance_count(sc2), ogame.instance_count(sc0))
+                            test.assert(sc2.instances[0].x == 12.5, "x roundtrip")
+                            test.assert(sc2.instances[0].y == 3.0, "y roundtrip")
+                            test.assert(sc2.instances[0].z == 9.0, "z roundtrip")
+                            test.assert(sc2.instances[0].entity == "player", "entity")
+                        case err(msg):
+                            test.assert(false, msg)
+                    end
+                case err(msg):
+                    test.assert(false, msg)
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+
+@test
+serialize_scene_with_level_keeps_brushes()
+    const scene_path: string = "assets/sample_project/scenes/engine_test.scene.json"
+    match ogame.load_scene(scene_path)
+        case ok(sc0):
+            const lvl0: game_level.LevelGeometry = game_level.load_level(scene_path)
+            test.assert(game_level.brush_count(lvl0) >= 1, "has brushes")
+            const path: string = "/tmp/ori_scene_with_level_rt.json"
+            match ogame.write_scene_with_level(path, sc0, lvl0)
+                case ok(_):
+                    const lvl2: game_level.LevelGeometry = game_level.load_level(path)
+                    test.equal_int(game_level.brush_count(lvl2), game_level.brush_count(lvl0))
+                    const b0: game_level.BrushBox = lvl0.brushes[0]
+                    const b2: game_level.BrushBox = lvl2.brushes[0]
+                    test.assert(b2.id == b0.id, "brush id")
+                    test.assert(b2.sx == b0.sx, "brush sx")
+                case err(msg):
+                    test.assert(false, msg)
+            end
+        case err(msg):
+            test.assert(false, msg)
+    end
+end
+

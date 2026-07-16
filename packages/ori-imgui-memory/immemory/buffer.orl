@@ -1,0 +1,283 @@
+module immemory.buffer
+
+-- Hex memory editor buffer (headless product surface).
+-- Choice: pure Ori byte view/edit, not C++ imgui_club memory_editor.
+-- G1: bind buffer; read/write cell; hex helpers live in immemory.hex.
+
+import ori.list = lists
+import ori.bytes = by
+
+public const DEFAULT_COLS: int = 16
+public const MAX_COLS: int = 64
+
+public struct Editor
+    cells: list[int]
+    base_addr: int
+    cols: int
+    cursor: int
+    read_only: bool
+    open: bool
+    title: string
+end
+
+clamp_byte(value: int) -> int
+    if value < 0
+        return 0
+    end
+    if value > 255
+        return 255
+    end
+    return value
+end
+
+clamp_cols(cols: int) -> int
+    if cols < 1
+        return 1
+    end
+    if cols > MAX_COLS
+        return MAX_COLS
+    end
+    return cols
+end
+
+clamp_cursor(cursor: int, nbytes: int) -> int
+    if nbytes <= 0
+        return 0
+    end
+    if cursor < 0
+        return 0
+    end
+    if cursor >= nbytes
+        return nbytes - 1
+    end
+    return cursor
+end
+
+zero_cells(nbytes: int) -> list[int]
+    var out: list[int] = []
+    var i: int = 0
+    var n: int = nbytes
+    if n < 0
+        n = 0
+    end
+    while i < n
+        lists.push(out, 0)
+        i = i + 1
+    end
+    return out
+end
+
+copy_cells(src: list[int]) -> list[int]
+    var out: list[int] = []
+    const n: int = lists.len(src)
+    var i: int = 0
+    while i < n
+        lists.push(out, clamp_byte(src[i]))
+        i = i + 1
+    end
+    return out
+end
+
+public create() -> Editor
+    var empty: list[int] = []
+    return Editor {
+        cells: empty,
+        base_addr: 0,
+        cols: DEFAULT_COLS,
+        cursor: 0,
+        read_only: false,
+        open: false,
+        title: "Memory Editor"
+    }
+end
+
+public create_with_size(nbytes: int) -> Editor
+    var out: Editor = create()
+    out.cells = zero_cells(nbytes)
+    out.cursor = 0
+    return out
+end
+
+-- Bind a mutable working copy of cell values (0–255 clamped).
+public bind_list(cells: list[int]) -> Editor
+    var out: Editor = create()
+    out.cells = copy_cells(cells)
+    out.cursor = clamp_cursor(0, lists.len(out.cells))
+    return out
+end
+
+-- Bind from stdlib bytes (copy into cells).
+public bind_bytes(data: bytes) -> Editor
+    return bind_list(by.to_list(data))
+end
+
+-- Headless helper: bind + set base address in one step.
+public bind_for_test(cells: list[int], base_addr: int) -> Editor
+    var out: Editor = bind_list(cells)
+    out.base_addr = base_addr
+    return out
+end
+
+public nbytes(e: Editor) -> int
+    return lists.len(e.cells)
+end
+
+public is_empty(e: Editor) -> bool
+    return lists.len(e.cells) == 0
+end
+
+public cells_of(e: Editor) -> list[int]
+    return copy_cells(e.cells)
+end
+
+public to_bytes(e: Editor) -> bytes
+    return by.from_list(e.cells)
+end
+
+public read_cell(e: Editor, offset: int) -> int
+    const n: int = lists.len(e.cells)
+    if offset < 0
+        return 0
+    end
+    if offset >= n
+        return 0
+    end
+    return clamp_byte(e.cells[offset])
+end
+
+public write_cell(e: Editor, offset: int, value: int) -> Editor
+    var out: Editor = e
+    if out.read_only
+        return out
+    end
+    const n: int = lists.len(out.cells)
+    if offset < 0
+        return out
+    end
+    if offset >= n
+        return out
+    end
+    out.cells[offset] = clamp_byte(value)
+    out.cursor = offset
+    return out
+end
+
+public set_base_addr(e: Editor, base_addr: int) -> Editor
+    var out: Editor = e
+    out.base_addr = base_addr
+    return out
+end
+
+public base_addr_of(e: Editor) -> int
+    return e.base_addr
+end
+
+public set_cols(e: Editor, cols: int) -> Editor
+    var out: Editor = e
+    out.cols = clamp_cols(cols)
+    return out
+end
+
+public cols_of(e: Editor) -> int
+    return e.cols
+end
+
+public set_cursor(e: Editor, cursor: int) -> Editor
+    var out: Editor = e
+    out.cursor = clamp_cursor(cursor, lists.len(out.cells))
+    return out
+end
+
+public cursor_of(e: Editor) -> int
+    return e.cursor
+end
+
+public set_read_only(e: Editor, read_only: bool) -> Editor
+    var out: Editor = e
+    out.read_only = read_only
+    return out
+end
+
+public is_read_only(e: Editor) -> bool
+    return e.read_only
+end
+
+public set_title(e: Editor, title: string) -> Editor
+    var out: Editor = e
+    out.title = title
+    return out
+end
+
+public title_of(e: Editor) -> string
+    return e.title
+end
+
+public open_ui(e: Editor) -> Editor
+    var out: Editor = e
+    out.open = true
+    return out
+end
+
+public close(e: Editor) -> Editor
+    var out: Editor = e
+    out.open = false
+    return out
+end
+
+public is_open(e: Editor) -> bool
+    return e.open
+end
+
+-- Resize buffer (grow with zeros / shrink). Cursor reclamped.
+public resize(e: Editor, nbytes: int) -> Editor
+    var out: Editor = e
+    if out.read_only
+        return out
+    end
+    var n: int = nbytes
+    if n < 0
+        n = 0
+    end
+    const old_n: int = lists.len(out.cells)
+    if n == old_n
+        return out
+    end
+    if n < old_n
+        var shrunk: list[int] = []
+        var i: int = 0
+        while i < n
+            lists.push(shrunk, clamp_byte(out.cells[i]))
+            i = i + 1
+        end
+        out.cells = shrunk
+    else
+        var grown: list[int] = copy_cells(out.cells)
+        var j: int = old_n
+        while j < n
+            lists.push(grown, 0)
+            j = j + 1
+        end
+        out.cells = grown
+    end
+    out.cursor = clamp_cursor(out.cursor, lists.len(out.cells))
+    return out
+end
+
+public fill(e: Editor, value: int) -> Editor
+    var out: Editor = e
+    if out.read_only
+        return out
+    end
+    const n: int = lists.len(out.cells)
+    const v: int = clamp_byte(value)
+    var i: int = 0
+    while i < n
+        out.cells[i] = v
+        i = i + 1
+    end
+    return out
+end
+
+public clear_to_zero(e: Editor) -> Editor
+    return fill(e, 0)
+end

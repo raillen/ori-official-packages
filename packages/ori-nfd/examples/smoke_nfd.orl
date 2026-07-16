@@ -1,0 +1,53 @@
+module app.smoke_nfd
+
+imports
+    nfd.dialog = nfd
+    ori.io = io
+end
+
+-- Headless smoke: never opens a real dialog (uses set_path / multi / clear).
+-- Interactive GUI is skipped when NFD_SMOKE_SKIP_UI=1 (also default in smoke_linux.sh).
+main()
+    if not nfd.set_path_for_test("/tmp/ori_nfd_test.txt")
+        io.println("set_fail")
+        return
+    end
+    if not nfd.is_ok()
+        io.println("ok_fail")
+        return
+    end
+    if nfd.path_len() < 5
+        io.println("len_fail")
+        return
+    end
+    -- first byte must be '/'
+    if nfd.path_byte(0) != 47
+        io.println("byte_fail")
+        return
+    end
+    if nfd.path_sum() <= 0
+        io.println("sum_fail")
+        return
+    end
+
+    if not nfd.set_paths_for_test("/tmp/a.txt;/tmp/b.txt")
+        io.println("multi_fail")
+        return
+    end
+    if nfd.path_count() != 2
+        io.println("count_fail")
+        return
+    end
+
+    nfd.clear()
+    if nfd.is_ok()
+        io.println("clear_fail")
+        return
+    end
+    if nfd.path_len() != 0
+        io.println("clear_len_fail")
+        return
+    end
+
+    io.println("ok")
+end

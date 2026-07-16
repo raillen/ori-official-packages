@@ -1,0 +1,164 @@
+module raygui.ui
+
+import ori.mem = mem
+import ori.fs = fs
+
+-- Scalarized raygui FFI (bounds as x,y,w,h). Call inside BeginDrawing/EndDrawing.
+
+extern c
+    public ori_gui_button(x: float, y: float, w: float, h: float, text: int) -> bool
+    public ori_gui_label(x: float, y: float, w: float, h: float, text: int) -> void
+    public ori_gui_checkbox(x: float, y: float, w: float, h: float, text: int, checked: bool) -> bool
+    public ori_gui_slider(x: float, y: float, w: float, h: float, text_left: int, text_right: int, value: float, min_v: float, max_v: float) -> float
+    public ori_gui_window_box(x: float, y: float, w: float, h: float, title: int) -> int
+    public ori_gui_group_box(x: float, y: float, w: float, h: float, text: int) -> void
+    public ori_gui_status_bar(x: float, y: float, w: float, h: float, text: int) -> void
+    public ori_gui_panel(x: float, y: float, w: float, h: float, text: int) -> void
+    public ori_gui_line(x: float, y: float, w: float, h: float, text: int) -> void
+    public ori_gui_toggle(x: float, y: float, w: float, h: float, text: int, active: bool) -> bool
+    public ori_gui_progress_bar(x: float, y: float, w: float, h: float, text_left: int, text_right: int, value: float, min_v: float, max_v: float) -> float
+    public ori_gui_spinner(x: float, y: float, w: float, h: float, text: int, value: int, min_v: int, max_v: int, edit_mode: int) -> int
+    public ori_gui_value_box(x: float, y: float, w: float, h: float, text: int, value: int, min_v: int, max_v: int, edit_mode: int) -> int
+    public ori_gui_textbox(x: float, y: float, w: float, h: float, edit_mode: int) -> int
+    public ori_gui_textbox_set(text: int) -> void
+    public ori_gui_textbox_to_path(path: int) -> int
+    public ori_gui_dropdown(x: float, y: float, w: float, h: float, items: int, active: int, edit_mode: int) -> int
+    public ori_gui_list_view(x: float, y: float, w: float, h: float, items: int, active: int) -> int
+    public ori_gui_set_style(control: int, property: int, value: int) -> void
+    public ori_gui_get_style(control: int, property: int) -> int
+    public ori_gui_enable() -> void
+    public ori_gui_disable() -> void
+    public ori_gui_lock() -> void
+    public ori_gui_unlock() -> void
+end
+
+-- Common GuiControl / GuiControlProperty ids (subset of raygui.h)
+public const STYLE_DEFAULT: int = 0
+public const STYLE_BUTTON: int = 2
+public const STYLE_TEXTBOX: int = 9
+public const STYLE_PROGRESSBAR: int = 10
+public const STYLE_LISTVIEW: int = 13
+public const PROP_BORDER_COLOR_NORMAL: int = 5
+public const PROP_BASE_COLOR_NORMAL: int = 6
+public const PROP_TEXT_COLOR_NORMAL: int = 7
+public const PROP_BORDER_WIDTH: int = 16
+public const PROP_TEXT_SIZE: int = 18
+
+public button(x: float, y: float, w: float, h: float, label: string) -> bool
+    return ori_gui_button(x, y, w, h, mem.string_as_ptr(label))
+end
+
+public label(x: float, y: float, w: float, h: float, text: string) -> void
+    ori_gui_label(x, y, w, h, mem.string_as_ptr(text))
+end
+
+public checkbox(x: float, y: float, w: float, h: float, text: string, checked: bool) -> bool
+    return ori_gui_checkbox(x, y, w, h, mem.string_as_ptr(text), checked)
+end
+
+public slider(x: float, y: float, w: float, h: float, value: float, min_v: float, max_v: float) -> float
+    const empty: int = mem.string_as_ptr("")
+    return ori_gui_slider(x, y, w, h, empty, empty, value, min_v, max_v)
+end
+
+public status_bar(x: float, y: float, w: float, h: float, text: string) -> void
+    ori_gui_status_bar(x, y, w, h, mem.string_as_ptr(text))
+end
+
+public group_box(x: float, y: float, w: float, h: float, text: string) -> void
+    ori_gui_group_box(x, y, w, h, mem.string_as_ptr(text))
+end
+
+public window_box(x: float, y: float, w: float, h: float, title: string) -> int
+    return ori_gui_window_box(x, y, w, h, mem.string_as_ptr(title))
+end
+
+public panel(x: float, y: float, w: float, h: float, text: string) -> void
+    ori_gui_panel(x, y, w, h, mem.string_as_ptr(text))
+end
+
+public line(x: float, y: float, w: float, h: float, text: string) -> void
+    ori_gui_line(x, y, w, h, mem.string_as_ptr(text))
+end
+
+public toggle(x: float, y: float, w: float, h: float, text: string, active: bool) -> bool
+    return ori_gui_toggle(x, y, w, h, mem.string_as_ptr(text), active)
+end
+
+public progress_bar(x: float, y: float, w: float, h: float, value: float, min_v: float, max_v: float) -> float
+    const empty: int = mem.string_as_ptr("")
+    return ori_gui_progress_bar(x, y, w, h, empty, empty, value, min_v, max_v)
+end
+
+public spinner(x: float, y: float, w: float, h: float, text: string, value: int, min_v: int, max_v: int, edit_mode: bool) -> int
+    var em: int = 0
+    if edit_mode
+        em = 1
+    end
+    return ori_gui_spinner(x, y, w, h, mem.string_as_ptr(text), value, min_v, max_v, em)
+end
+
+public value_box(x: float, y: float, w: float, h: float, text: string, value: int, min_v: int, max_v: int, edit_mode: bool) -> int
+    var em: int = 0
+    if edit_mode
+        em = 1
+    end
+    return ori_gui_value_box(x, y, w, h, mem.string_as_ptr(text), value, min_v, max_v, em)
+end
+
+public textbox_set(value: string) -> void
+    ori_gui_textbox_set(mem.string_as_ptr(value))
+end
+
+public textbox(x: float, y: float, w: float, h: float, edit_mode: bool) -> bool
+    var em: int = 0
+    if edit_mode
+        em = 1
+    end
+    return ori_gui_textbox(x, y, w, h, em) != 0
+end
+
+public textbox_value() -> string
+    const path: string = "/tmp/ori_raygui_textbox.tmp"
+    if ori_gui_textbox_to_path(mem.string_as_ptr(path)) != 0
+        return ""
+    end
+    return fs.read_text_or(path, "")
+end
+
+-- items: semicolon-separated labels (raygui convention), e.g. "One;Two;Three"
+public dropdown(x: float, y: float, w: float, h: float, items: string, active: int, edit_mode: bool) -> int
+    var em: int = 0
+    if edit_mode
+        em = 1
+    end
+    return ori_gui_dropdown(x, y, w, h, mem.string_as_ptr(items), active, em)
+end
+
+public list_view(x: float, y: float, w: float, h: float, items: string, active: int) -> int
+    return ori_gui_list_view(x, y, w, h, mem.string_as_ptr(items), active)
+end
+
+public set_style(control: int, property: int, value: int) -> void
+    ori_gui_set_style(control, property, value)
+end
+
+public get_style(control: int, property: int) -> int
+    return ori_gui_get_style(control, property)
+end
+
+public enable() -> void
+    ori_gui_enable()
+end
+
+public disable() -> void
+    ori_gui_disable()
+end
+
+public lock() -> void
+    ori_gui_lock()
+end
+
+public unlock() -> void
+    ori_gui_unlock()
+end

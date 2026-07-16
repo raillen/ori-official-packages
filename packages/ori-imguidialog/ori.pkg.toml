@@ -1,0 +1,11 @@
+[package]
+name = "imguidialog"
+version = "0.1.0"
+entry = "imguidialog/dialog.orl"
+ori_version = "0.3.0"
+description = "In-ImGui open/save file dialog for Ori (pure Ori + optional imgui.ui draw)"
+license = "MIT"
+# Pure Ori state machine — no native shim. Product draw path-deps sibling ori-imgui.
+
+[dependencies]
+imgui = { path = "../ori-imgui", version = "0.5.1" }

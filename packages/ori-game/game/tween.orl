@@ -1,0 +1,89 @@
+module game.tween
+
+-- Easing and scalar interpolation (no C deps).
+
+public linear(t: float) -> float
+    if t <= 0.0
+        return 0.0
+    end
+    if t >= 1.0
+        return 1.0
+    end
+    return t
+end
+
+public smoothstep(t: float) -> float
+    var x: float = linear(t)
+    return x * x * (3.0 - 2.0 * x)
+end
+
+public ease_in_quad(t: float) -> float
+    var x: float = linear(t)
+    return x * x
+end
+
+public ease_out_quad(t: float) -> float
+    var x: float = linear(t)
+    return 1.0 - (1.0 - x) * (1.0 - x)
+end
+
+public ease_in_out_quad(t: float) -> float
+    var x: float = linear(t)
+    if x < 0.5
+        return 2.0 * x * x
+    end
+    return 1.0 - 2.0 * (1.0 - x) * (1.0 - x)
+end
+
+public lerp(from_v: float, to_v: float, t: float) -> float
+    const u: float = linear(t)
+    return from_v + (to_v - from_v) * u
+end
+
+public tween_float(from_v: float, to_v: float, t: float) -> float
+    return lerp(from_v, to_v, smoothstep(t))
+end
+
+public struct Tween
+    from_v: float
+    to_v: float
+    duration: float
+    elapsed: float
+    active: bool
+end
+
+public create(from_v: float, to_v: float, duration: float) -> Tween
+    var d: float = duration
+    if d <= 0.0
+        d = 0.001
+    end
+    return Tween {
+        from_v: from_v,
+        to_v: to_v,
+        duration: d,
+        elapsed: 0.0,
+        active: true
+    }
+end
+
+public update(tw: Tween, dt: float) -> Tween
+    if not tw.active
+        return tw
+    end
+    var out: Tween = tw
+    out.elapsed = out.elapsed + dt
+    if out.elapsed >= out.duration
+        out.elapsed = out.duration
+        out.active = false
+    end
+    return out
+end
+
+public value(tw: Tween) -> float
+    const t: float = tw.elapsed / tw.duration
+    return tween_float(tw.from_v, tw.to_v, t)
+end
+
+public finished(tw: Tween) -> bool
+    return not tw.active
+end

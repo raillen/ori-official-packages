@@ -1,0 +1,85 @@
+module test.imtextedit
+
+imports
+    imtextedit.buffer = buf
+    imtextedit.lang = lang
+    ori.list = lists
+    ori.test = test
+end
+
+@test
+set_get_text_and_clear()
+    var e: buf.Editor = buf.create()
+    test.assert(buf.is_empty(e), "start empty")
+    e = buf.set_text(e, "hello\nworld")
+    test.equal_text(buf.text_of(e), "hello\nworld")
+    test.equal_int(buf.text_nbytes(e), 11)
+    test.equal_int(buf.line_count(e), 2)
+    test.equal_text(buf.line_at(e, 1), "world")
+    e = buf.clear(e)
+    test.assert(buf.is_empty(e), "cleared")
+    test.equal_int(buf.cursor_of(e), 0)
+end
+
+@test
+insert_append_and_cursor()
+    var e: buf.Editor = buf.create_with_text("ab")
+    test.equal_int(buf.cursor_of(e), 2)
+    e = buf.set_cursor(e, 1)
+    e = buf.insert_at_cursor(e, "X")
+    test.equal_text(buf.text_of(e), "aXb")
+    test.equal_int(buf.cursor_of(e), 2)
+    e = buf.append(e, "!")
+    test.equal_text(buf.text_of(e), "aXb!")
+    test.equal_int(buf.cursor_of(e), 4)
+    e = buf.set_cursor(e, 100)
+    test.equal_int(buf.cursor_of(e), 4)
+end
+
+@test
+language_stub_and_highlight_ori()
+    var e: buf.Editor = buf.create_with_text("module m\n// c\nvar x = 42\n\"s\"")
+    e = buf.set_language(e, buf.LANG_ORI)
+    test.equal_int(buf.language_of(e), buf.LANG_ORI)
+    test.equal_text(lang.language_name(buf.LANG_ORI), "ori")
+    test.equal_text(lang.token_kind_name(lang.KIND_KEYWORD), "keyword")
+
+    const spans: list[lang.TokenSpan] = lang.highlight_spans(e)
+    test.assert(lists.len(spans) >= 4, "enough spans")
+    test.assert(lang.count_kind(spans, lang.KIND_KEYWORD) >= 2, "module+var keywords")
+    test.assert(lang.count_kind(spans, lang.KIND_COMMENT) >= 1, "comment")
+    test.assert(lang.count_kind(spans, lang.KIND_NUMBER) >= 1, "number")
+    test.assert(lang.count_kind(spans, lang.KIND_STRING) >= 1, "string")
+
+    -- plain language is single span
+    e = buf.set_language(e, buf.LANG_PLAIN)
+    const plain: list[lang.TokenSpan] = lang.highlight_spans(e)
+    test.equal_int(lists.len(plain), 1)
+    test.equal_int(plain[0].kind, lang.KIND_PLAIN)
+end
+
+@test
+read_only_blocks_mutation()
+    var e: buf.Editor = buf.create_with_text("keep")
+    e = buf.set_read_only(e, true)
+    test.assert(buf.is_read_only(e), "ro")
+    e = buf.set_text(e, "nope")
+    test.equal_text(buf.text_of(e), "keep")
+    e = buf.append(e, "x")
+    test.equal_text(buf.text_of(e), "keep")
+    e = buf.insert_at_cursor(e, "y")
+    test.equal_text(buf.text_of(e), "keep")
+    e = buf.clear(e)
+    test.equal_text(buf.text_of(e), "keep")
+end
+
+@test
+c_language_keywords_stub()
+    var e: buf.Editor = buf.create_with_text("int main(void) { return 0; }")
+    e = buf.set_language(e, buf.LANG_C)
+    const spans: list[lang.TokenSpan] = lang.highlight_spans(e)
+    test.assert(lang.count_kind(spans, lang.KIND_KEYWORD) >= 3, "int void return")
+    test.assert(lang.count_kind(spans, lang.KIND_NUMBER) >= 1, "zero")
+    const slice0: string = lang.span_slice(buf.text_of(e), spans[0])
+    test.equal_text(slice0, "int")
+end
