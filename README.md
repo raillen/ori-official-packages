@@ -2,11 +2,16 @@
 
 Official **Ori** libraries and packages maintained by the language team.
 
+> **This is the only home for packages we ship.**  
+> Policy: [`docs/PACKAGE-HOME.md`](docs/PACKAGE-HOME.md)  
+> Do **not** keep package trees under `ori-lang/packages/` or loose clones in `~/Projetos`.
+
 | | |
 |--|--|
 | **Language** | [ori-lang](https://github.com/raillen/ori-lang) |
 | **Public registry (OriLamp)** | [ori-lamp](https://github.com/raillen/ori-lamp) |
 | **Web stack (Lantern)** | [ori-web-framework](https://github.com/raillen/ori-web-framework) |
+| **Game/FFI lab** | `game-engine-full` (local) — promote here before release |
 
 ## Layout
 
