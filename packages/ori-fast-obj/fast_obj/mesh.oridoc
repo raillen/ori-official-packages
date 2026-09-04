@@ -1,0 +1,53 @@
+oridoc 1
+
+namespace fast_obj.mesh
+
+doc module self
+    summary:
+        Fast Wavefront OBJ 3D mesh loader for Ori.
+    details:
+        Parses OBJ geometric files, vertex positions, normals, texture coordinates,
+        and face materials. ObjMesh implements core.Disposable for deterministic cleanup.
+end
+
+doc func load
+    summary:
+        Loads and parses a Wavefront OBJ file from disk.
+    param path:
+        Filesystem path to the .obj model file.
+    returns:
+        True if the file was parsed successfully.
+end
+
+doc func free
+    summary:
+        Frees memory associated with the currently parsed OBJ mesh.
+end
+
+doc func position_count
+    summary:
+        Returns the total number of vertex positions in the loaded mesh.
+    returns:
+        Position count integer.
+end
+
+doc func face_count
+    summary:
+        Returns the total number of polygon faces in the mesh.
+    returns:
+        Face count integer.
+end
+
+doc func normal_count
+    summary:
+        Returns the total number of normal vectors parsed from the file.
+    returns:
+        Normal vector count.
+end
+
+doc func texcoord_count
+    summary:
+        Returns the total number of UV texture coordinates parsed.
+    returns:
+        UV coordinate count.
+end

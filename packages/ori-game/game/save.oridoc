@@ -24,9 +24,9 @@ struct SaveData
     health: int
     score: int
     level: int
-    inventory: list<string>
-    activated_checkpoints: list<string>
-    defeated_bosses: list<string>
+    inventory: list[string]
+    activated_checkpoints: list[string]
+    defeated_bosses: list[string]
     timestamp: double = 0.0
 end
 ```
@@ -37,7 +37,7 @@ Gerenciador de saves.
 
 ```ori
 struct SaveSystem
-    checkpoints: list<Checkpoint>
+    checkpoints: list[Checkpoint]
     last_checkpoint: Checkpoint = nil
     save_slots: int = 3
 end
@@ -50,7 +50,7 @@ end
 Cria um novo sistema de save.
 
 ```ori
-func create_save_system() -> SaveSystem
+create_save_system() -> SaveSystem
 ```
 
 ### add_checkpoint
@@ -58,7 +58,7 @@ func create_save_system() -> SaveSystem
 Adiciona um checkpoint.
 
 ```ori
-func add_checkpoint(system: SaveSystem, cp: Checkpoint) -> void
+add_checkpoint(system: SaveSystem, cp: Checkpoint) -> void
 ```
 
 ### activate_checkpoint
@@ -66,7 +66,7 @@ func add_checkpoint(system: SaveSystem, cp: Checkpoint) -> void
 Ativa um checkpoint.
 
 ```ori
-func activate_checkpoint(system: SaveSystem, cp_id: string) -> void
+activate_checkpoint(system: SaveSystem, cp_id: string) -> void
 ```
 
 ### get_last_checkpoint
@@ -74,7 +74,7 @@ func activate_checkpoint(system: SaveSystem, cp_id: string) -> void
 Retorna o último checkpoint ativo.
 
 ```ori
-func get_last_checkpoint(system: SaveSystem) -> optional<Checkpoint>
+get_last_checkpoint(system: SaveSystem) -> optional[Checkpoint]
 ```
 
 ### respawn_position
@@ -82,7 +82,7 @@ func get_last_checkpoint(system: SaveSystem) -> optional<Checkpoint>
 Retorna a posição de respawn.
 
 ```ori
-func respawn_position(system: SaveSystem) -> Vec2
+respawn_position(system: SaveSystem) -> Vec2
 ```
 
 ### save_game
@@ -90,7 +90,7 @@ func respawn_position(system: SaveSystem) -> Vec2
 Salva o jogo.
 
 ```ori
-func save_game(data: SaveData, slot: int) -> bool
+save_game(data: SaveData, slot: int) -> bool
 ```
 
 ### load_game
@@ -98,7 +98,7 @@ func save_game(data: SaveData, slot: int) -> bool
 Carrega o jogo.
 
 ```ori
-func load_game(slot: int) -> optional<SaveData>
+load_game(slot: int) -> optional[SaveData]
 ```
 
 ### delete_save
@@ -106,7 +106,7 @@ func load_game(slot: int) -> optional<SaveData>
 Deleta um save.
 
 ```ori
-func delete_save(slot: int) -> bool
+delete_save(slot: int) -> bool
 ```
 
 ### has_save
@@ -114,7 +114,7 @@ func delete_save(slot: int) -> bool
 Verifica se existe um save.
 
 ```ori
-func has_save(slot: int) -> bool
+has_save(slot: int) -> bool
 ```
 
 **Exemplo:**
@@ -123,7 +123,7 @@ var save_system = save.create_save_system()
 
 -- Adicionar checkpoint
 save.add_checkpoint(save_system, save.Checkpoint(
-    pos: vec2.Vec2(x: 100.0, y: 200.0),
+    pos: vec2.Vec2 { x: 100.0, y: 200.0 },
     id: "level_1_start"
 ))
 
@@ -139,9 +139,9 @@ var data = save.SaveData(
     health: player.hp.current,
     score: score,
     level: 1,
-    inventory: list<string>(),
-    activated_checkpoints: list<string>(),
-    defeated_bosses: list<string>()
+    inventory: list[string](),
+    activated_checkpoints: list[string](),
+    defeated_bosses: list[string]()
 )
 save.save_game(data, 1)
 ```

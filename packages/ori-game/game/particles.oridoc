@@ -47,8 +47,8 @@ Sistema de partículas.
 
 ```ori
 struct ParticleSystem
-    particles: list<Particle>
-    emitters: list<ParticleEmitter>
+    particles: list[Particle]
+    emitters: list[ParticleEmitter]
     max_particles: int = 1000
 end
 ```
@@ -60,7 +60,7 @@ end
 Cria um novo sistema de partículas.
 
 ```ori
-func create_particle_system(max_particles: int) -> ParticleSystem
+create_particle_system(max_particles: int) -> ParticleSystem
 ```
 
 ### add_emitter
@@ -68,7 +68,7 @@ func create_particle_system(max_particles: int) -> ParticleSystem
 Adiciona um emissor ao sistema.
 
 ```ori
-func add_emitter(system: ParticleSystem, emitter: ParticleEmitter) -> void
+add_emitter(system: ParticleSystem, emitter: ParticleEmitter) -> void
 ```
 
 ### emit
@@ -76,7 +76,7 @@ func add_emitter(system: ParticleSystem, emitter: ParticleEmitter) -> void
 Emite partículas de um emissor.
 
 ```ori
-func emit(system: ParticleSystem, emitter: ParticleEmitter, count: int) -> void
+emit(system: ParticleSystem, emitter: ParticleEmitter, count: int) -> void
 ```
 
 ### emit_at
@@ -84,7 +84,7 @@ func emit(system: ParticleSystem, emitter: ParticleEmitter, count: int) -> void
 Emite partículas em uma posição específica.
 
 ```ori
-func emit_at(system: ParticleSystem, pos: Vec2, count: int, config: ParticleEmitter) -> void
+emit_at(system: ParticleSystem, pos: Vec2, count: int, config: ParticleEmitter) -> void
 ```
 
 ### update_particles
@@ -92,7 +92,7 @@ func emit_at(system: ParticleSystem, pos: Vec2, count: int, config: ParticleEmit
 Atualiza todas as partículas.
 
 ```ori
-func update_particles(system: ParticleSystem, dt: float) -> void
+update_particles(system: ParticleSystem, dt: float) -> void
 ```
 
 ### draw_particles
@@ -100,7 +100,7 @@ func update_particles(system: ParticleSystem, dt: float) -> void
 Desenha todas as partículas.
 
 ```ori
-func draw_particles(system: ParticleSystem) -> void
+draw_particles(system: ParticleSystem) -> void
 ```
 
 ### clear_particles
@@ -108,7 +108,7 @@ func draw_particles(system: ParticleSystem) -> void
 Remove todas as partículas.
 
 ```ori
-func clear_particles(system: ParticleSystem) -> void
+clear_particles(system: ParticleSystem) -> void
 ```
 
 ### particle_count
@@ -116,7 +116,7 @@ func clear_particles(system: ParticleSystem) -> void
 Retorna o número de partículas.
 
 ```ori
-func particle_count(system: ParticleSystem) -> int
+particle_count(system: ParticleSystem) -> int
 ```
 
 **Exemplo — Explosão:**
@@ -124,7 +124,7 @@ func particle_count(system: ParticleSystem) -> int
 var system = particles.create_particle_system(200)
 
 var explosion = particles.ParticleEmitter(
-    pos: vec2.Vec2(x: 320.0, y: 240.0),
+    pos: vec2.Vec2 { x: 320.0, y: 240.0 },
     rate: 0.0,
     speed: 200.0,
     spread: 360.0,
@@ -144,7 +144,7 @@ particles.draw_particles(system)
 **Exemplo — Fumaça:**
 ```ori
 var smoke = particles.ParticleEmitter(
-    pos: vec2.Vec2(x: 320.0, y: 400.0),
+    pos: vec2.Vec2 { x: 320.0, y: 400.0 },
     rate: 10.0,
     speed: 50.0,
     spread: 30.0,

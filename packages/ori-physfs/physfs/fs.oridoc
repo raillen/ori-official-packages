@@ -1,0 +1,51 @@
+oridoc 1
+
+namespace physfs.fs
+
+doc module self
+    summary:
+        PhysicsFS virtual filesystem and archive abstraction for game asset packaging.
+end
+
+doc func init
+    summary:
+        Initializes the PhysicsFS virtual filesystem.
+    returns:
+        True if initialization succeeded.
+end
+
+doc func deinit
+    summary:
+        Shuts down PhysicsFS and closes all active archives.
+    returns:
+        True if deinitialization succeeded.
+end
+
+doc func mount
+    summary:
+        Mounts an archive or directory into the virtual filesystem search path.
+    param path:
+        Filesystem archive or folder path.
+    param mount_point:
+        Virtual root to mount at (e.g. "/" or "assets").
+    returns:
+        True on successful mount.
+end
+
+doc func exists
+    summary:
+        Reports whether a file exists in the virtual filesystem.
+    param path:
+        Virtual path to test.
+    returns:
+        True if the file exists.
+end
+
+doc func read
+    summary:
+        Reads the full contents of a virtual file into the global read buffer.
+    param path:
+        Virtual file path.
+    returns:
+        Byte count read, or -1 on error.
+end

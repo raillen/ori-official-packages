@@ -1,0 +1,44 @@
+oridoc 1
+
+namespace noise.fnl
+
+doc module self
+    summary:
+        FastNoiseLite procedural noise generation for terrain and textures in Ori.
+end
+
+doc func init
+    summary:
+        Initializes the FastNoiseLite generator with default settings.
+end
+
+doc func set_seed
+    summary:
+        Updates the random seed for procedural noise sampling.
+    param seed:
+        Integer seed value.
+end
+
+doc func get2_m
+    summary:
+        Samples 2D coherent noise at given milli-coordinates (coord * 1000).
+    param x_m:
+        X coordinate in milli-units.
+    param y_m:
+        Y coordinate in milli-units.
+    returns:
+        Sampled noise value normalized in milli-units (-1000 to 1000).
+end
+
+doc func get3_m
+    summary:
+        Samples 3D volumetric coherent noise at given milli-coordinates (coord * 1000).
+    param x_m:
+        X coordinate in milli-units.
+    param y_m:
+        Y coordinate in milli-units.
+    param z_m:
+        Z coordinate in milli-units.
+    returns:
+        Sampled noise value normalized in milli-units (-1000 to 1000).
+end

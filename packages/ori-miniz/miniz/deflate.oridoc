@@ -1,0 +1,35 @@
+oridoc 1
+
+namespace miniz.deflate
+
+doc module self
+    summary:
+        Miniz DEFLATE, zlib, and gzip compression and decompression bindings for Ori.
+end
+
+doc func compress_text
+    summary:
+        Compresses an input text string into a zlib buffer.
+    param text:
+        Source string to compress.
+    param level:
+        Compression level from 0 to 9.
+    returns:
+        Zero on success, or non-zero error code.
+end
+
+doc func out_len
+    summary:
+        Returns the byte length of the most recently compressed output buffer.
+    returns:
+        Output length integer.
+end
+
+doc func crc32_text
+    summary:
+        Computes the CRC32 checksum of a text string.
+    param text:
+        Input string.
+    returns:
+        Computed 32-bit CRC checksum integer.
+end

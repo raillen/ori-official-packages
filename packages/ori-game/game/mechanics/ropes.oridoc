@@ -27,7 +27,7 @@ end
 Cria uma nova corda.
 
 ```ori
-func create_rope(anchor: Vec2, length: float) -> Rope
+create_rope(anchor: Vec2, length: float) -> Rope
 ```
 
 ### attach_to_rope
@@ -35,7 +35,7 @@ func create_rope(anchor: Vec2, length: float) -> Rope
 Agrupa uma entidade à corda.
 
 ```ori
-func attach_to_rope(e: Entity, rope: Rope) -> void
+attach_to_rope(e: Entity, rope: Rope) -> void
 ```
 
 ### detach_from_rope
@@ -43,7 +43,7 @@ func attach_to_rope(e: Entity, rope: Rope) -> void
 Solta a entidade da corda (aplica impulso).
 
 ```ori
-func detach_from_rope(e: Entity, rope: Rope) -> void
+detach_from_rope(e: Entity, rope: Rope) -> void
 ```
 
 ### swing_rope
@@ -51,7 +51,7 @@ func detach_from_rope(e: Entity, rope: Rope) -> void
 Faz a entidade balançar na corda.
 
 ```ori
-func swing_rope(e: Entity, rope: Rope, input_dir: float, dt: float) -> void
+swing_rope(e: Entity, rope: Rope, input_dir: float, dt: float) -> void
 ```
 
 **Parâmetros:**
@@ -62,7 +62,7 @@ func swing_rope(e: Entity, rope: Rope, input_dir: float, dt: float) -> void
 Retorna a posição final da corda.
 
 ```ori
-func get_rope_end(rope: Rope) -> Vec2
+get_rope_end(rope: Rope) -> Vec2
 ```
 
 ### get_rope_points
@@ -70,12 +70,12 @@ func get_rope_end(rope: Rope) -> Vec2
 Retorna os pontos da corda para desenho.
 
 ```ori
-func get_rope_points(rope: Rope) -> list<Vec2>
+get_rope_points(rope: Rope) -> list[Vec2]
 ```
 
 **Exemplo — Corda com balanço:**
 ```ori
-var rope = ropes.create_rope(vec2.Vec2(x: 400.0, y: 50.0), 200.0)
+var rope = ropes.create_rope(vec2.Vec2 { x: 400.0, y: 50.0 }, 200.0)
 
 -- No update:
 var swing_input = 0.0

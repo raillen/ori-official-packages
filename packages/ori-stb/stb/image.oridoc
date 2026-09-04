@@ -1,0 +1,48 @@
+oridoc 1
+
+namespace stb.image
+
+doc module self
+    summary:
+        stb_image image decoding and writing bindings for PNG, JPEG, TGA, and BMP in Ori.
+end
+
+doc func load
+    summary:
+        Loads and decodes an image file into an RGBA raw pixel buffer.
+    param path:
+        Filesystem path to the image file.
+    param desired_channels:
+        Desired number of color channels (0 for source default).
+    returns:
+        True if the image decoded successfully.
+end
+
+doc func width
+    summary:
+        Returns the pixel width of the most recently loaded image.
+    returns:
+        Width in pixels.
+end
+
+doc func height
+    summary:
+        Returns the pixel height of the most recently loaded image.
+    returns:
+        Height in pixels.
+end
+
+doc func write_png_gray
+    summary:
+        Encodes and saves a grayscale pixel buffer as a PNG image.
+    param path:
+        Destination filesystem path.
+    param w:
+        Image width in pixels.
+    param h:
+        Image height in pixels.
+    param data_ptr:
+        Byte pointer to the source row buffer.
+    returns:
+        True on successful write.
+end

@@ -1,0 +1,53 @@
+oridoc 1
+
+namespace cgltf.loader
+
+doc module self
+    summary:
+        glTF 2.0 3D model loader bindings for Ori.
+    details:
+        Parses glTF and binary GLB assets, extracting meshes, primitives, nodes,
+        materials, and skinning animations. GltfScene implements core.Disposable.
+end
+
+doc func load_file
+    summary:
+        Loads and parses a glTF or binary GLB file from disk.
+    param path:
+        Filesystem path to the .gltf or .glb model.
+    returns:
+        True if the file was loaded and parsed successfully.
+end
+
+doc func free
+    summary:
+        Releases memory allocated by the active glTF parser instance.
+end
+
+doc func mesh_count
+    summary:
+        Returns the total number of meshes in the loaded glTF scene.
+    returns:
+        Mesh count integer.
+end
+
+doc func node_count
+    summary:
+        Returns the total number of transform hierarchy nodes in the scene.
+    returns:
+        Node count integer.
+end
+
+doc func material_count
+    summary:
+        Returns the number of PBR materials defined in the model.
+    returns:
+        Material count integer.
+end
+
+doc func animation_count
+    summary:
+        Returns the number of skeletal or transform animation tracks.
+    returns:
+        Animation count integer.
+end

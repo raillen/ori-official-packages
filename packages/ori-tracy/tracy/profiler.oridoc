@@ -1,0 +1,25 @@
+oridoc 1
+
+namespace tracy.profiler
+
+doc module self
+    summary:
+        Tracy real-time frame profiler instrumentation and zone markers for Ori.
+end
+
+doc func frame_mark
+    summary:
+        Marks the boundary of a new profiler frame in the timeline view.
+end
+
+doc func zone_begin
+    summary:
+        Opens a scoped performance zone region in the current thread.
+    param name:
+        Zone label string shown in the timeline.
+end
+
+doc func zone_end
+    summary:
+        Closes the currently open scoped performance zone.
+end

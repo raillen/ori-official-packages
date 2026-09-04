@@ -20,7 +20,7 @@ end
 Aplica dano à entidade.
 
 ```ori
-func take_damage(h: Health, amount: int) -> bool
+take_damage(h: Health, amount: int) -> bool
 ```
 
 **Retorna:** `true` se o dano foi aplicado, `false` se invencível.
@@ -30,7 +30,7 @@ func take_damage(h: Health, amount: int) -> bool
 Cura a entidade.
 
 ```ori
-func heal(h: Health, amount: int) -> void
+heal(h: Health, amount: int) -> void
 ```
 
 ### is_alive
@@ -38,7 +38,7 @@ func heal(h: Health, amount: int) -> void
 Verifica se a entidade está viva.
 
 ```ori
-func is_alive(h: Health) -> bool
+is_alive(h: Health) -> bool
 ```
 
 ### set_invincible
@@ -46,7 +46,7 @@ func is_alive(h: Health) -> bool
 Torna a entidade invencível por um tempo.
 
 ```ori
-func set_invincible(h: Health, duration: float) -> void
+set_invincible(h: Health, duration: float) -> void
 ```
 
 ## KnockbackConfig
@@ -66,7 +66,7 @@ end
 Aplica knockback a uma entidade.
 
 ```ori
-func apply_knockback(e: Entity, dir: Vec2, config: KnockbackConfig) -> void
+apply_knockback(e: Entity, dir: Vec2, config: KnockbackConfig) -> void
 ```
 
 ## KnockdownState
@@ -86,7 +86,7 @@ end
 Aplica knockdown a uma entidade.
 
 ```ori
-func apply_knockdown(state: KnockdownState, duration: float) -> void
+apply_knockdown(state: KnockdownState, duration: float) -> void
 ```
 
 ### is_knocked_down
@@ -94,7 +94,7 @@ func apply_knockdown(state: KnockdownState, duration: float) -> void
 Verifica se a entidade está no chão.
 
 ```ori
-func is_knocked_down(state: KnockdownState) -> bool
+is_knocked_down(state: KnockdownState) -> bool
 ```
 
 ## Cooldown
@@ -114,7 +114,7 @@ end
 Usa o cooldown (retorna false se não disponível).
 
 ```ori
-func use_cooldown(c: Cooldown) -> bool
+use_cooldown(c: Cooldown) -> bool
 ```
 
 ### tick_cooldown
@@ -122,12 +122,12 @@ func use_cooldown(c: Cooldown) -> bool
 Atualiza o cooldown.
 
 ```ori
-func tick_cooldown(c: Cooldown, dt: float) -> void
+tick_cooldown(c: Cooldown, dt: float) -> void
 ```
 
 **Exemplo — Ataque com Cooldown:**
 ```ori
-var attack_cd = combat.Cooldown(duration: 0.5)
+var attack_cd = combat.Cooldown { duration: 0.5 }
 
 -- No update:
 if input.key_pressed(32) and combat.use_cooldown(attack_cd)
@@ -139,7 +139,7 @@ combat.tick_cooldown(attack_cd, dt)
 
 **Exemplo — Sistema de Vida:**
 ```ori
-var hp = combat.Health(current: 100, maximum: 100)
+var hp = combat.Health { current: 100, maximum: 100 }
 
 combat.take_damage(hp, 25)
 if not combat.is_alive(hp)

@@ -1,0 +1,40 @@
+oridoc 1
+
+namespace freetype.face
+
+doc module self
+    summary:
+        FreeType 2 font rasterization and glyph outline metrics bindings for Ori.
+end
+
+doc func init
+    summary:
+        Initializes the FreeType 2 font engine library.
+    returns:
+        True if library initialization succeeded.
+end
+
+doc func done
+    summary:
+        Releases the global FreeType library handle.
+end
+
+doc func new_face
+    summary:
+        Loads a font face file into a reusable glyph rasterizer instance.
+    param path:
+        Filesystem path to the TTF or OTF font file.
+    returns:
+        A FaceId handle representing the loaded font face.
+end
+
+doc func char_index
+    summary:
+        Looks up the glyph index for a given Unicode codepoint.
+    param face:
+        The loaded font face handle.
+    param codepoint:
+        Unicode scalar character code.
+    returns:
+        Glyph index integer.
+end

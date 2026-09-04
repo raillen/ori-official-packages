@@ -22,7 +22,7 @@ Máquina de estados.
 ```ori
 struct StateMachine
     current: State = nil
-    states: map<string, State>
+    states: map[string, State]
     previous_name: string = ""
 end
 ```
@@ -34,7 +34,7 @@ end
 Cria uma nova máquina de estados.
 
 ```ori
-func create_state_machine() -> StateMachine
+create_state_machine() -> StateMachine
 ```
 
 ### add_state
@@ -42,7 +42,7 @@ func create_state_machine() -> StateMachine
 Adiciona um estado à máquina.
 
 ```ori
-func add_state(sm: StateMachine, state: State) -> void
+add_state(sm: StateMachine, state: State) -> void
 ```
 
 ### change_state
@@ -50,7 +50,7 @@ func add_state(sm: StateMachine, state: State) -> void
 Muda para um novo estado.
 
 ```ori
-func change_state(sm: StateMachine, name: string) -> void
+change_state(sm: StateMachine, name: string) -> void
 ```
 
 ### update_state
@@ -58,7 +58,7 @@ func change_state(sm: StateMachine, name: string) -> void
 Atualiza o estado atual.
 
 ```ori
-func update_state(sm: StateMachine, dt: float) -> void
+update_state(sm: StateMachine, dt: float) -> void
 ```
 
 ### get_current_state_name
@@ -66,7 +66,7 @@ func update_state(sm: StateMachine, dt: float) -> void
 Retorna o nome do estado atual.
 
 ```ori
-func get_current_state_name(sm: StateMachine) -> string
+get_current_state_name(sm: StateMachine) -> string
 ```
 
 ### get_previous_state_name
@@ -74,7 +74,7 @@ func get_current_state_name(sm: StateMachine) -> string
 Retorna o nome do estado anterior.
 
 ```ori
-func get_previous_state_name(sm: StateMachine) -> string
+get_previous_state_name(sm: StateMachine) -> string
 ```
 
 ### is_in_state
@@ -82,7 +82,7 @@ func get_previous_state_name(sm: StateMachine) -> string
 Verifica se está em um estado específico.
 
 ```ori
-func is_in_state(sm: StateMachine, name: string) -> bool
+is_in_state(sm: StateMachine, name: string) -> bool
 ```
 
 **Exemplo — States de personagem:**

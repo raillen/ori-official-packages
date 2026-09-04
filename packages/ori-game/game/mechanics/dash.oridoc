@@ -31,7 +31,7 @@ Estado do dash.
 struct DashState
     is_dashing: bool = false
     dash_timer: float = 0.0
-    dash_dir: Vec2 = Vec2(x: 0.0, y: 0.0)
+    dash_dir: Vec2 = Vec2 { x: 0.0, y: 0.0 }
     dash_speed: float = 0.0
     cooldown_timer: Timer = nil
     can_dash: bool = true
@@ -45,7 +45,7 @@ end
 Verifica se a entidade pode fazer dash.
 
 ```ori
-func can_dash(state: DashState, config: DashConfig, on_ground: bool) -> bool
+can_dash(state: DashState, config: DashConfig, on_ground: bool) -> bool
 ```
 
 ### start_dash
@@ -53,7 +53,7 @@ func can_dash(state: DashState, config: DashConfig, on_ground: bool) -> bool
 Inicia o dash.
 
 ```ori
-func start_dash(e: Entity, state: DashState, config: DashConfig, dir: Vec2) -> void
+start_dash(e: Entity, state: DashState, config: DashConfig, dir: Vec2) -> void
 ```
 
 ### update_dash
@@ -61,17 +61,17 @@ func start_dash(e: Entity, state: DashState, config: DashConfig, dir: Vec2) -> v
 Atualiza o dash.
 
 ```ori
-func update_dash(e: Entity, state: DashState, dt: float) -> void
+update_dash(e: Entity, state: DashState, dt: float) -> void
 ```
 
 **Exemplo:**
 ```ori
-const config = dash.DashConfig(distance: 150.0, cooldown: 0.8)
+const config = dash.DashConfig { distance: 150.0, cooldown: 0.8 }
 var state = dash.DashState()
 
 -- No update:
 if input.key_pressed(67) and dash.can_dash(state, config, true)  -- C key
-    var dir = vec2.Vec2(x: 1.0, y: 0.0)
+    var dir = vec2.Vec2 { x: 1.0, y: 0.0 }
     if input.key_down(37)
         dir.x = -1.0
     end

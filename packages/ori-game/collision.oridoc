@@ -9,13 +9,13 @@ Módulo com funções de colisão entre formas geométricas.
 Verifica se um ponto está dentro de um retângulo.
 
 ```ori
-func point_in_rect(point: Vec2, rect: Rectangle) -> bool
+point_in_rect(point: Vec2, rect: Rectangle) -> bool
 ```
 
 **Exemplo:**
 ```ori
-const p = vec2.Vec2(x: 50.0, y: 50.0)
-const rect = shape.Rectangle(x: 0.0, y: 0.0, width: 100.0, height: 100.0)
+const p = vec2.Vec2 { x: 50.0, y: 50.0 }
+const rect = shape.Rectangle { x: 0.0, y: 0.0, width: 100.0, height: 100.0 }
 if collision.point_in_rect(p, rect)
     io.print("Ponto dentro do retangulo")
 end
@@ -26,7 +26,7 @@ end
 Verifica se um ponto está dentro de um círculo.
 
 ```ori
-func point_in_circle(point: Vec2, circle: Circle) -> bool
+point_in_circle(point: Vec2, circle: Circle) -> bool
 ```
 
 ### point_in_triangle
@@ -34,7 +34,7 @@ func point_in_circle(point: Vec2, circle: Circle) -> bool
 Verifica se um ponto está dentro de um triângulo.
 
 ```ori
-func point_in_triangle(point: Vec2, tri: Triangle) -> bool
+point_in_triangle(point: Vec2, tri: Triangle) -> bool
 ```
 
 ## Colisões entre Formas
@@ -44,7 +44,7 @@ func point_in_triangle(point: Vec2, tri: Triangle) -> bool
 Verifica se dois retângulos colidem (AABB).
 
 ```ori
-func rects_collide(a: Rectangle, b: Rectangle) -> bool
+rects_collide(a: Rectangle, b: Rectangle) -> bool
 ```
 
 **Retorna:** `true` se há sobreposição.
@@ -54,7 +54,7 @@ func rects_collide(a: Rectangle, b: Rectangle) -> bool
 Verifica a relação entre dois retângulos.
 
 ```ori
-func rect_in_rect(a: Rectangle, b: Rectangle) -> int
+rect_in_rect(a: Rectangle, b: Rectangle) -> int
 ```
 
 **Retorna:**
@@ -67,7 +67,7 @@ func rect_in_rect(a: Rectangle, b: Rectangle) -> int
 Verifica se dois círculos colidem.
 
 ```ori
-func circles_collide(a: Circle, b: Circle) -> bool
+circles_collide(a: Circle, b: Circle) -> bool
 ```
 
 ### rect_circle_collide
@@ -75,7 +75,7 @@ func circles_collide(a: Circle, b: Circle) -> bool
 Verifica se um retângulo e um círculo colidem.
 
 ```ori
-func rect_circle_collide(rect: Rectangle, circle: Circle) -> bool
+rect_circle_collide(rect: Rectangle, circle: Circle) -> bool
 ```
 
 ## Colisões entre Linhas
@@ -85,7 +85,7 @@ func rect_circle_collide(rect: Rectangle, circle: Circle) -> bool
 Verifica se duas linhas se cruzam.
 
 ```ori
-func lines_intersect(a: Line, b: Line) -> bool
+lines_intersect(a: Line, b: Line) -> bool
 ```
 
 ### line_rect_intersect
@@ -93,7 +93,7 @@ func lines_intersect(a: Line, b: Line) -> bool
 Verifica se uma linha cruza um retângulo.
 
 ```ori
-func line_rect_intersect(line: Line, rect: Rectangle) -> bool
+line_rect_intersect(line: Line, rect: Rectangle) -> bool
 ```
 
 ## Colisão com Polígonos (SAT)
@@ -103,7 +103,7 @@ func line_rect_intersect(line: Line, rect: Rectangle) -> bool
 Verifica se dois polígonos colidem usando o teorema do eixo separador.
 
 ```ori
-func polygons_collide(a: list<Vec2>, b: list<Vec2>) -> bool
+polygons_collide(a: list[Vec2], b: list[Vec2]) -> bool
 ```
 
 ### point_in_polygon
@@ -111,5 +111,5 @@ func polygons_collide(a: list<Vec2>, b: list<Vec2>) -> bool
 Verifica se um ponto está dentro de um polígono.
 
 ```ori
-func point_in_polygon(point: Vec2, poly: list<Vec2>) -> bool
+point_in_polygon(point: Vec2, poly: list[Vec2]) -> bool
 ```

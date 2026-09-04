@@ -8,7 +8,7 @@ Estado de patrulha.
 
 ```ori
 struct PatrolState
-    points: list<Vec2>
+    points: list[Vec2]
     current_index: int = 0
     speed: float = 100.0
     wait_time: float = 0.0
@@ -23,7 +23,7 @@ end
 Atualiza o comportamento de patrulha.
 
 ```ori
-func update_patrol(e: Entity, state: PatrolState, dt: float) -> void
+update_patrol(e: Entity, state: PatrolState, dt: float) -> void
 ```
 
 **Comportamento:**
@@ -33,12 +33,12 @@ func update_patrol(e: Entity, state: PatrolState, dt: float) -> void
 
 **Exemplo:**
 ```ori
-var points = list<vec2.Vec2>()
-points.add(vec2.Vec2(x: 100.0, y: 100.0))
-points.add(vec2.Vec2(x: 300.0, y: 100.0))
-points.add(vec2.Vec2(x: 300.0, y: 300.0))
+var points = list[vec2.Vec2]()
+points.add(vec2.Vec2 { x: 100.0, y: 100.0 })
+points.add(vec2.Vec2 { x: 300.0, y: 100.0 })
+points.add(vec2.Vec2 { x: 300.0, y: 300.0 })
 
-var patrol = ai.PatrolState(points: points, speed: 80.0)
+var patrol = ai.PatrolState { points: points, speed: 80.0 }
 
 -- No update:
 ai.update_patrol(enemy, patrol, dt)
@@ -51,7 +51,7 @@ ai.update_patrol(enemy, patrol, dt)
 Faz a entidade perseguir um alvo.
 
 ```ori
-func update_chase(e: Entity, target: Vec2, speed: float, dt: float) -> void
+update_chase(e: Entity, target: Vec2, speed: float, dt: float) -> void
 ```
 
 ### update_flee
@@ -59,7 +59,7 @@ func update_chase(e: Entity, target: Vec2, speed: float, dt: float) -> void
 Faz a entidade fugir de uma ameaça.
 
 ```ori
-func update_flee(e: Entity, threat: Vec2, speed: float, dt: float) -> void
+update_flee(e: Entity, threat: Vec2, speed: float, dt: float) -> void
 ```
 
 ## Funções de Percepção
@@ -69,7 +69,7 @@ func update_flee(e: Entity, threat: Vec2, speed: float, dt: float) -> void
 Verifica se a entidade pode ver o alvo (distância máxima).
 
 ```ori
-func can_see(e: Entity, target: Vec2, max_dist: float) -> bool
+can_see(e: Entity, target: Vec2, max_dist: float) -> bool
 ```
 
 ### distance_to
@@ -77,7 +77,7 @@ func can_see(e: Entity, target: Vec2, max_dist: float) -> bool
 Calcula a distância até um alvo.
 
 ```ori
-func distance_to(e: Entity, target: Vec2) -> float
+distance_to(e: Entity, target: Vec2) -> float
 ```
 
 **Exemplo — Perseguição com detecção:**
@@ -110,7 +110,7 @@ end
 Atualiza o comportamento de vagueio.
 
 ```ori
-func update_wander(e: Entity, state: WanderState, dt: float) -> void
+update_wander(e: Entity, state: WanderState, dt: float) -> void
 ```
 
 **Comportamento:**

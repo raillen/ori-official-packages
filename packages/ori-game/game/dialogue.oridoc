@@ -10,7 +10,7 @@ Linha de diálogo.
 struct DialogueLine
     speaker: string
     text: string
-    choices: list<DialogueChoice> = nil
+    choices: list[DialogueChoice] = nil
     auto_advance: bool = false
     auto_advance_time: float = 2.0
 end
@@ -34,7 +34,7 @@ Estado do diálogo.
 
 ```ori
 struct DialogueState
-    lines: list<DialogueLine>
+    lines: list[DialogueLine]
     current_index: int = 0
     active: bool = false
     char_index: int = 0
@@ -53,7 +53,7 @@ end
 Inicia um diálogo.
 
 ```ori
-func start_dialogue(state: DialogueState, lines: list<DialogueLine>) -> void
+start_dialogue(state: DialogueState, lines: list[DialogueLine]) -> void
 ```
 
 ### advance_dialogue
@@ -61,7 +61,7 @@ func start_dialogue(state: DialogueState, lines: list<DialogueLine>) -> void
 Avança para a próxima linha.
 
 ```ori
-func advance_dialogue(state: DialogueState) -> void
+advance_dialogue(state: DialogueState) -> void
 ```
 
 ### select_choice
@@ -69,7 +69,7 @@ func advance_dialogue(state: DialogueState) -> void
 Seleciona uma escolha.
 
 ```ori
-func select_choice(state: DialogueState, index: int) -> void
+select_choice(state: DialogueState, index: int) -> void
 ```
 
 ### update_dialogue
@@ -77,7 +77,7 @@ func select_choice(state: DialogueState, index: int) -> void
 Atualiza o diálogo (efeito typewriter).
 
 ```ori
-func update_dialogue(state: DialogueState, dt: float) -> void
+update_dialogue(state: DialogueState, dt: float) -> void
 ```
 
 ### get_display_text
@@ -85,7 +85,7 @@ func update_dialogue(state: DialogueState, dt: float) -> void
 Retorna o texto atual sendo exibido.
 
 ```ori
-func get_display_text(state: DialogueState) -> string
+get_display_text(state: DialogueState) -> string
 ```
 
 ### get_current_speaker
@@ -93,7 +93,7 @@ func get_display_text(state: DialogueState) -> string
 Retorna o nome do falante atual.
 
 ```ori
-func get_current_speaker(state: DialogueState) -> string
+get_current_speaker(state: DialogueState) -> string
 ```
 
 ### has_choices
@@ -101,7 +101,7 @@ func get_current_speaker(state: DialogueState) -> string
 Verifica se a linha atual tem escolhas.
 
 ```ori
-func has_choices(state: DialogueState) -> bool
+has_choices(state: DialogueState) -> bool
 ```
 
 ### get_choices
@@ -109,7 +109,7 @@ func has_choices(state: DialogueState) -> bool
 Retorna as escolhas disponíveis.
 
 ```ori
-func get_choices(state: DialogueState) -> list<DialogueChoice>
+get_choices(state: DialogueState) -> list[DialogueChoice]
 ```
 
 ### end_dialogue
@@ -117,16 +117,16 @@ func get_choices(state: DialogueState) -> list<DialogueChoice>
 Finaliza o diálogo.
 
 ```ori
-func end_dialogue(state: DialogueState) -> void
+end_dialogue(state: DialogueState) -> void
 ```
 
 **Exemplo:**
 ```ori
-var lines = list<dialogue.DialogueLine>()
-lines.add(dialogue.DialogueLine(speaker: "NPC", text: "Olá!"))
-lines.add(dialogue.DialogueLine(speaker: "NPC", text: "Como posso ajudar?"))
+var lines = list[dialogue.DialogueLine]()
+lines.add(dialogue.DialogueLine { speaker: "NPC", text: "Olá!" })
+lines.add(dialogue.DialogueLine { speaker: "NPC", text: "Como posso ajudar?" })
 
-var state = dialogue.DialogueState(lines: lines)
+var state = dialogue.DialogueState { lines: lines }
 dialogue.start_dialogue(state, lines)
 
 -- No update:

@@ -1,0 +1,145 @@
+oridoc 1
+
+namespace box2d.dynamics
+
+doc module self
+    summary:
+        Box2D 3.x rigid body dynamics and 2D physics simulation for Ori.
+    details:
+        Operates on milli-units (integer millimeters and microsecond timesteps)
+        to maintain cross-platform deterministic simulation.
+        World, Body, and Joint handles implement core.Disposable for deterministic teardown.
+end
+
+doc func create_world
+    summary:
+        Creates a new 2D physics simulation world with given gravity vector.
+    param gravity_x_m:
+        Horizontal gravity in milli-units (meters * 1000).
+    param gravity_y_m:
+        Vertical gravity in milli-units (meters * 1000).
+    returns:
+        A World simulation handle.
+end
+
+doc func destroy_world
+    summary:
+        Destroys a physics world and all associated bodies and joints.
+    param w:
+        The world handle to destroy.
+end
+
+doc func is_valid
+    summary:
+        Reports whether a physics world handle is valid and active.
+    param w:
+        The world handle to check.
+    returns:
+        True if the world handle is valid.
+end
+
+doc func set_gravity
+    summary:
+        Updates the global gravity vector for an existing world.
+    param w:
+        The world simulation handle.
+    param gravity_x_m:
+        Horizontal gravity in milli-units.
+    param gravity_y_m:
+        Vertical gravity in milli-units.
+end
+
+doc func step
+    summary:
+        Advances the physics simulation by dt microseconds using default 4 substeps.
+    param w:
+        The world simulation handle.
+    param dt_micros:
+        Timestep duration in microseconds.
+end
+
+doc func step_substeps
+    summary:
+        Advances the simulation with explicit substep precision.
+    param w:
+        The world simulation handle.
+    param dt_micros:
+        Timestep duration in microseconds.
+    param substeps:
+        Number of substeps to compute within the timestep.
+end
+
+doc func create_static_box
+    summary:
+        Spawns a static non-movable box collider body in the simulation world.
+    param w:
+        The world simulation handle.
+    param x_m:
+        Initial X coordinate in milli-units.
+    param y_m:
+        Initial Y coordinate in milli-units.
+    param half_w_m:
+        Half-width of the box in milli-units.
+    param half_h_m:
+        Half-height of the box in milli-units.
+    returns:
+        The spawned Body handle.
+end
+
+doc func create_dynamic_box
+    summary:
+        Spawns a dynamic movable box body subject to forces and collisions.
+    param w:
+        The world simulation handle.
+    param x_m:
+        Initial X coordinate in milli-units.
+    param y_m:
+        Initial Y coordinate in milli-units.
+    param half_w_m:
+        Half-width of the box in milli-units.
+    param half_h_m:
+        Half-height of the box in milli-units.
+    param density_m:
+        Material density in milli-units.
+    returns:
+        The spawned Body handle.
+end
+
+doc func create_static_circle
+    summary:
+        Spawns a static circular collider in the world.
+    param w:
+        The world simulation handle.
+    param x_m:
+        Center X in milli-units.
+    param y_m:
+        Center Y in milli-units.
+    param radius_m:
+        Radius in milli-units.
+    returns:
+        The spawned Body handle.
+end
+
+doc func create_dynamic_circle
+    summary:
+        Spawns a dynamic circular body subject to gravity and collisions.
+    param w:
+        The world simulation handle.
+    param x_m:
+        Center X in milli-units.
+    param y_m:
+        Center Y in milli-units.
+    param radius_m:
+        Radius in milli-units.
+    param density_m:
+        Material density in milli-units.
+    returns:
+        The spawned Body handle.
+end
+
+doc func destroy_body
+    summary:
+        Destroys a body and removes it from its simulation world.
+    param b:
+        The body handle to destroy.
+end

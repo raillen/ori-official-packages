@@ -36,7 +36,7 @@ Inventário.
 
 ```ori
 struct Inventory
-    slots: list<InventorySlot>
+    slots: list[InventorySlot]
     max_slots: int = 20
 end
 ```
@@ -48,7 +48,7 @@ end
 Cria um novo inventário.
 
 ```ori
-func create_inventory(max_slots: int) -> Inventory
+create_inventory(max_slots: int) -> Inventory
 ```
 
 ### add_item
@@ -56,7 +56,7 @@ func create_inventory(max_slots: int) -> Inventory
 Adiciona um item ao inventário.
 
 ```ori
-func add_item(inv: Inventory, item: Item, count: int) -> bool
+add_item(inv: Inventory, item: Item, count: int) -> bool
 ```
 
 **Retorna:** `true` se o item foi adicionado.
@@ -66,7 +66,7 @@ func add_item(inv: Inventory, item: Item, count: int) -> bool
 Remove um item do inventário.
 
 ```ori
-func remove_item(inv: Inventory, item_id: string, count: int) -> bool
+remove_item(inv: Inventory, item_id: string, count: int) -> bool
 ```
 
 ### has_item
@@ -74,7 +74,7 @@ func remove_item(inv: Inventory, item_id: string, count: int) -> bool
 Verifica se o inventário tem um item.
 
 ```ori
-func has_item(inv: Inventory, item_id: string) -> bool
+has_item(inv: Inventory, item_id: string) -> bool
 ```
 
 ### get_item_count
@@ -82,7 +82,7 @@ func has_item(inv: Inventory, item_id: string) -> bool
 Retorna a quantidade de um item.
 
 ```ori
-func get_item_count(inv: Inventory, item_id: string) -> int
+get_item_count(inv: Inventory, item_id: string) -> int
 ```
 
 ### use_item
@@ -90,7 +90,7 @@ func get_item_count(inv: Inventory, item_id: string) -> int
 Usa um item em um slot.
 
 ```ori
-func use_item(inv: Inventory, slot: int) -> bool
+use_item(inv: Inventory, slot: int) -> bool
 ```
 
 ### clear_inventory
@@ -98,7 +98,7 @@ func use_item(inv: Inventory, slot: int) -> bool
 Limpa o inventário.
 
 ```ori
-func clear_inventory(inv: Inventory) -> void
+clear_inventory(inv: Inventory) -> void
 ```
 
 ### get_slot
@@ -106,7 +106,7 @@ func clear_inventory(inv: Inventory) -> void
 Retorna um slot específico.
 
 ```ori
-func get_slot(inv: Inventory, index: int) -> InventorySlot
+get_slot(inv: Inventory, index: int) -> InventorySlot
 ```
 
 **Exemplo:**

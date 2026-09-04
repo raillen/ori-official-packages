@@ -9,7 +9,7 @@ Módulo com funções de movimentação por eixos e grid.
 Movimentação nos 4 eixos (cima, baixo, esquerda, direita).
 
 ```ori
-func move_4axis(e: Entity, speed: float, dt: float, up: int, down: int, left: int, right: int) -> void
+move_4axis(e: Entity, speed: float, dt: float, up: int, down: int, left: int, right: int) -> void
 ```
 
 **Parâmetros:**
@@ -32,7 +32,7 @@ movement.move_4axis(player, 200.0, dt, 38, 40, 37, 39)
 Movimentação nos 8 eixos (incluindo diagonais normalizadas).
 
 ```ori
-func move_8axis(e: Entity, speed: float, dt: float, up: int, down: int, left: int, right: int) -> void
+move_8axis(e: Entity, speed: float, dt: float, up: int, down: int, left: int, right: int) -> void
 ```
 
 ### move_grid
@@ -40,7 +40,7 @@ func move_8axis(e: Entity, speed: float, dt: float, up: int, down: int, left: in
 Movimentação em grid (snap para posições de grid).
 
 ```ori
-func move_grid(e: Entity, grid_size: int, dir: Vec2) -> Vec2
+move_grid(e: Entity, grid_size: int, dir: Vec2) -> Vec2
 ```
 
 ### snap_to_grid
@@ -48,7 +48,7 @@ func move_grid(e: Entity, grid_size: int, dir: Vec2) -> Vec2
 Snap uma posição para o grid mais próximo.
 
 ```ori
-func snap_to_grid(pos: Vec2, grid_size: int) -> Vec2
+snap_to_grid(pos: Vec2, grid_size: int) -> Vec2
 ```
 
 **Exemplo — Grid Movement:**
@@ -56,6 +56,6 @@ func snap_to_grid(pos: Vec2, grid_size: int) -> Vec2
 const grid_size = 32
 
 -- Mover para direita
-var target = movement.move_grid(player, grid_size, vec2.Vec2(x: 1.0, y: 0.0))
+var target = movement.move_grid(player, grid_size, vec2.Vec2 { x: 1.0, y: 0.0 })
 player.pos = target
 ```

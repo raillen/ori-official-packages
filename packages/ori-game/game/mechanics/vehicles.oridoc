@@ -38,7 +38,7 @@ end
 Cria um novo veículo.
 
 ```ori
-func create_vehicle(config: VehicleConfig) -> VehicleState
+create_vehicle(config: VehicleConfig) -> VehicleState
 ```
 
 ### enter_vehicle
@@ -46,7 +46,7 @@ func create_vehicle(config: VehicleConfig) -> VehicleState
 Entra no veículo.
 
 ```ori
-func enter_vehicle(vehicle: VehicleState, driver: Entity) -> bool
+enter_vehicle(vehicle: VehicleState, driver: Entity) -> bool
 ```
 
 ### exit_vehicle
@@ -54,7 +54,7 @@ func enter_vehicle(vehicle: VehicleState, driver: Entity) -> bool
 Sai do veículo.
 
 ```ori
-func exit_vehicle(vehicle: VehicleState) -> void
+exit_vehicle(vehicle: VehicleState) -> void
 ```
 
 ### drive_vehicle
@@ -62,7 +62,7 @@ func exit_vehicle(vehicle: VehicleState) -> void
 Dirige o veículo.
 
 ```ori
-func drive_vehicle(vehicle: VehicleState, config: VehicleConfig, accel_input: float, turn_input: float, dt: float) -> void
+drive_vehicle(vehicle: VehicleState, config: VehicleConfig, accel_input: float, turn_input: float, dt: float) -> void
 ```
 
 **Parâmetros:**
@@ -74,7 +74,7 @@ func drive_vehicle(vehicle: VehicleState, config: VehicleConfig, accel_input: fl
 Retorna a direção frontal do veículo.
 
 ```ori
-func get_vehicle_forward(vehicle: VehicleState) -> Vec2
+get_vehicle_forward(vehicle: VehicleState) -> Vec2
 ```
 
 ### get_vehicle_speed
@@ -82,7 +82,7 @@ func get_vehicle_forward(vehicle: VehicleState) -> Vec2
 Retorna a velocidade atual.
 
 ```ori
-func get_vehicle_speed(vehicle: VehicleState) -> float
+get_vehicle_speed(vehicle: VehicleState) -> float
 ```
 
 ### is_vehicle_moving
@@ -90,7 +90,7 @@ func get_vehicle_speed(vehicle: VehicleState) -> float
 Verifica se o veículo está em movimento.
 
 ```ori
-func is_vehicle_moving(vehicle: VehicleState) -> bool
+is_vehicle_moving(vehicle: VehicleState) -> bool
 ```
 
 **Exemplo — Carro simples:**

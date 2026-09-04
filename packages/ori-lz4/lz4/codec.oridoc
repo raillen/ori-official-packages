@@ -1,0 +1,33 @@
+oridoc 1
+
+namespace lz4.codec
+
+doc module self
+    summary:
+        Extremely fast lossless block compression codec bindings for Ori.
+end
+
+doc func compress_bound
+    summary:
+        Calculates the maximum output size in bytes needed for a given uncompressed input size.
+    param src_nbytes:
+        Uncompressed source buffer size in bytes.
+    returns:
+        Maximum compressed buffer size needed.
+end
+
+doc func compress_text
+    summary:
+        Compresses an input text string with LZ4 block compression.
+    param text:
+        Raw source text string.
+    returns:
+        Zero on success, or non-zero error code.
+end
+
+doc func out_len
+    summary:
+        Returns the byte length of the most recently compressed output buffer.
+    returns:
+        Output buffer length integer.
+end

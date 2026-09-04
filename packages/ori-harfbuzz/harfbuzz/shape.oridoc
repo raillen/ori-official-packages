@@ -1,0 +1,28 @@
+oridoc 1
+
+namespace harfbuzz.shape
+
+doc module self
+    summary:
+        HarfBuzz text shaping engine bindings for complex script typography in Ori.
+end
+
+doc func shape
+    summary:
+        Shapes a UTF-8 text string into a list of positioned glyph metrics and offsets.
+    param face:
+        FreeType FaceId handle.
+    param text:
+        String text to shape.
+    returns:
+        List of ShapedGlyph structs containing glyph ids, clusters, and advances.
+end
+
+doc func glyph_count
+    summary:
+        Returns the number of shaped glyphs in the resulting glyph list.
+    param glyphs:
+        List of ShapedGlyph structs.
+    returns:
+        Number of glyphs integer.
+end

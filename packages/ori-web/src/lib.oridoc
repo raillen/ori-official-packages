@@ -1,0 +1,89 @@
+oridoc 1
+
+namespace web
+
+doc module self
+    summary:
+        Lightweight, asynchronous HTTP web framework for Ori.
+    details:
+        Provides router matching, onion middleware composition, session management,
+        cookie encoding, multipart forms, and typed Request/Response helpers.
+end
+
+doc func app
+    summary:
+        Creates a new empty web application instance.
+    returns:
+        An initialized App struct.
+end
+
+doc func get
+    summary:
+        Registers a route handler for HTTP GET requests at pattern.
+    param a:
+        The App instance to modify.
+    param pattern:
+        URL path pattern (e.g. "/users/:id").
+    param handler:
+        The action handler function to execute.
+end
+
+doc func post
+    summary:
+        Registers a route handler for HTTP POST requests at pattern.
+    param a:
+        The App instance to modify.
+    param pattern:
+        URL path pattern.
+    param handler:
+        The action handler function.
+end
+
+doc func put
+    summary:
+        Registers a route handler for HTTP PUT requests at pattern.
+    param a:
+        The App instance to modify.
+    param pattern:
+        URL path pattern.
+    param handler:
+        The action handler function.
+end
+
+doc func delete
+    summary:
+        Registers a route handler for HTTP DELETE requests at pattern.
+    param a:
+        The App instance to modify.
+    param pattern:
+        URL path pattern.
+    param handler:
+        The action handler function.
+end
+
+doc func use_middleware
+    summary:
+        Registers an onion middleware wrapper for request/response pipelines.
+    param a:
+        The App instance to modify.
+    param mw:
+        The middleware function.
+    returns:
+        The App instance with middleware registered.
+end
+
+doc func not_found
+    summary:
+        Constructs a 404 Not Found HTTP response.
+    returns:
+        A Response struct with status 404.
+end
+
+doc func bad_request
+    summary:
+        Constructs a 400 Bad Request HTTP response with given message.
+    param msg:
+        Client error message text.
+    returns:
+        A Response struct with status 400.
+end

@@ -19,7 +19,7 @@ end
 
 **Uso:**
 ```ori
-const rect = shape.Rectangle(x: 10.0, y: 20.0, width: 100.0, height: 50.0)
+const rect = shape.Rectangle { x: 10.0, y: 20.0, width: 100.0, height: 50.0 }
 ```
 
 ### Circle
@@ -68,6 +68,6 @@ Polígono definido por uma lista de vértices.
 
 ```ori
 struct Polygon
-    points: list<Vec2>
+    points: list[Vec2]
 end
 ```

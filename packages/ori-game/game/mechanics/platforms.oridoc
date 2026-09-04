@@ -8,7 +8,7 @@ Plataforma que se move entre pontos.
 
 ```ori
 struct MovingPlatform
-    path: list<Vec2>
+    path: list[Vec2]
     speed: float = 50.0
     current_idx: int = 0
     next_idx: int = 1
@@ -36,7 +36,7 @@ end
 Cria uma nova plataforma.
 
 ```ori
-func create_platform(path: list<Vec2>, speed: float) -> MovingPlatform
+create_platform(path: list[Vec2], speed: float) -> MovingPlatform
 ```
 
 ### tick_platform
@@ -44,7 +44,7 @@ func create_platform(path: list<Vec2>, speed: float) -> MovingPlatform
 Atualiza a posição da plataforma.
 
 ```ori
-func tick_platform(p: MovingPlatform, dt: float) -> Vec2
+tick_platform(p: MovingPlatform, dt: float) -> Vec2
 ```
 
 **Retorna:** Nova posição da plataforma.
@@ -54,7 +54,7 @@ func tick_platform(p: MovingPlatform, dt: float) -> Vec2
 Altera a velocidade.
 
 ```ori
-func set_speed(p: MovingPlatform, speed: float) -> void
+set_speed(p: MovingPlatform, speed: float) -> void
 ```
 
 ### pause_platform
@@ -62,7 +62,7 @@ func set_speed(p: MovingPlatform, speed: float) -> void
 Pausa a plataforma.
 
 ```ori
-func pause_platform(p: MovingPlatform) -> void
+pause_platform(p: MovingPlatform) -> void
 ```
 
 ### resume_platform
@@ -70,7 +70,7 @@ func pause_platform(p: MovingPlatform) -> void
 Retoma a plataforma.
 
 ```ori
-func resume_platform(p: MovingPlatform) -> void
+resume_platform(p: MovingPlatform) -> void
 ```
 
 ### reverse_platform
@@ -78,14 +78,14 @@ func resume_platform(p: MovingPlatform) -> void
 Inverte a direção.
 
 ```ori
-func reverse_platform(p: MovingPlatform) -> void
+reverse_platform(p: MovingPlatform) -> void
 ```
 
 **Exemplo — Plataforma vertical:**
 ```ori
-var path = list<vec2.Vec2>()
-path.add(vec2.Vec2(x: 200.0, y: 300.0))
-path.add(vec2.Vec2(x: 200.0, y: 100.0))
+var path = list[vec2.Vec2]()
+path.add(vec2.Vec2 { x: 200.0, y: 300.0 })
+path.add(vec2.Vec2 { x: 200.0, y: 100.0 })
 
 var platform = platforms.create_platform(path, 50.0)
 
@@ -97,11 +97,11 @@ platform_rect.y = pos.y
 
 **Exemplo — Plataforma circular:**
 ```ori
-var path = list<vec2.Vec2>()
-path.add(vec2.Vec2(x: 400.0, y: 200.0))
-path.add(vec2.Vec2(x: 500.0, y: 200.0))
-path.add(vec2.Vec2(x: 500.0, y: 300.0))
-path.add(vec2.Vec2(x: 400.0, y: 300.0))
+var path = list[vec2.Vec2]()
+path.add(vec2.Vec2 { x: 400.0, y: 200.0 })
+path.add(vec2.Vec2 { x: 500.0, y: 200.0 })
+path.add(vec2.Vec2 { x: 500.0, y: 300.0 })
+path.add(vec2.Vec2 { x: 400.0, y: 300.0 })
 
 var platform = platforms.create_platform(path, 80.0)
 platform.ping_pong = false

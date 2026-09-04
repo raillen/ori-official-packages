@@ -1,0 +1,153 @@
+oridoc 1
+
+namespace enet.host
+
+doc module self
+    summary:
+        ENet UDP network multiplayer driver and host management for Ori.
+    details:
+        Provides low-latency UDP networking with reliable and unreliable channels.
+        Handles implement core.Disposable for deterministic network socket teardown.
+end
+
+doc func initialize
+    summary:
+        Initializes the underlying ENet library.
+    returns:
+        Zero on success, or a non-zero error code.
+end
+
+doc func initialize_ok
+    summary:
+        Initializes the ENet library and returns whether it succeeded.
+    returns:
+        True if initialization returned zero.
+end
+
+doc func deinitialize
+    summary:
+        Shuts down ENet and releases global network driver resources.
+end
+
+doc func create_server
+    summary:
+        Creates an ENet server host bound to the given UDP port.
+    param port:
+        Local UDP port to listen on.
+    param max_clients:
+        Maximum number of connected peers allowed simultaneously.
+    param channels:
+        Number of logical channels per connection.
+    returns:
+        A Host handle configured to receive incoming connections.
+end
+
+doc func create_client
+    summary:
+        Creates an outbound-only ENet client host.
+    param max_peers:
+        Maximum number of outgoing peer connections allowed.
+    param channels:
+        Number of logical channels allocated per connection.
+    returns:
+        A client Host handle.
+end
+
+doc func destroy
+    summary:
+        Explicitly closes an active ENet host and tears down its socket.
+    param h:
+        The host to destroy.
+end
+
+doc func is_valid
+    summary:
+        Reports whether a host handle represents an active, valid ENet socket.
+    param h:
+        The host handle to verify.
+    returns:
+        True if the host is active.
+end
+
+doc func connect
+    summary:
+        Initiates a connection from a client host to a remote server.
+    param h:
+        The client host initiating the connection.
+    param hostname:
+        Remote hostname or IPv4 address.
+    param port:
+        Remote UDP port.
+    param channels:
+        Number of allocated logical channels.
+    returns:
+        A Peer handle representing the connection attempt.
+end
+
+doc func peer_is_valid
+    summary:
+        Reports whether a peer handle is currently valid.
+    param p:
+        The peer handle to test.
+    returns:
+        True if the peer is valid.
+end
+
+doc func service
+    summary:
+        Polls the host for queued network events within the specified timeout.
+    param h:
+        The host to poll.
+    param timeout_ms:
+        Timeout in milliseconds to wait for network activity.
+    returns:
+        Event kind (EVENT_NONE, EVENT_CONNECT, EVENT_DISCONNECT, EVENT_RECEIVE).
+end
+
+doc func event_peer
+    summary:
+        Returns the peer handle associated with the most recently polled event.
+    returns:
+        The integer peer ID.
+end
+
+doc func event_channel
+    summary:
+        Returns the channel index of the most recently polled event.
+    returns:
+        The channel number.
+end
+
+doc func event_data
+    summary:
+        Returns the payload integer data of the most recently polled event.
+    returns:
+        The data integer.
+end
+
+doc func packet_size
+    summary:
+        Returns the byte length of the incoming packet in the current receive event.
+    returns:
+        Packet length in bytes.
+end
+
+doc func destroy_packet
+    summary:
+        Frees the packet associated with the current receive event.
+end
+
+doc func broadcast_text
+    summary:
+        Broadcasts a text payload across all connected peers on the given channel.
+    param h:
+        The host whose peers will receive the broadcast.
+    param text:
+        String payload to transmit.
+    param channel:
+        Logical channel index.
+    param reliable:
+        True for sequenced reliable transmission, false for unordered UDP delivery.
+    returns:
+        Zero on success.
+end

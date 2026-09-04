@@ -26,7 +26,7 @@ end
 Cria um novo gerenciador de áudio.
 
 ```ori
-func create_audio_manager() -> AudioManager
+create_audio_manager() -> AudioManager
 ```
 
 ### init_audio
@@ -34,7 +34,7 @@ func create_audio_manager() -> AudioManager
 Inicializa o dispositivo de áudio.
 
 ```ori
-func init_audio() -> void
+init_audio() -> void
 ```
 
 ### close_audio
@@ -42,7 +42,7 @@ func init_audio() -> void
 Fecha o dispositivo de áudio.
 
 ```ori
-func close_audio() -> void
+close_audio() -> void
 ```
 
 ### play_sfx
@@ -50,7 +50,7 @@ func close_audio() -> void
 Toca um efeito sonoro.
 
 ```ori
-func play_sfx(mgr: AudioManager, sound: Sound) -> void
+play_sfx(mgr: AudioManager, sound: Sound) -> void
 ```
 
 ### play_music
@@ -58,7 +58,7 @@ func play_sfx(mgr: AudioManager, sound: Sound) -> void
 Toca uma música.
 
 ```ori
-func play_music(mgr: AudioManager, music: Music) -> void
+play_music(mgr: AudioManager, music: Music) -> void
 ```
 
 ### stop_music
@@ -66,7 +66,7 @@ func play_music(mgr: AudioManager, music: Music) -> void
 Para a música.
 
 ```ori
-func stop_music(mgr: AudioManager) -> void
+stop_music(mgr: AudioManager) -> void
 ```
 
 ### pause_music
@@ -74,7 +74,7 @@ func stop_music(mgr: AudioManager) -> void
 Pausa a música.
 
 ```ori
-func pause_music(mgr: AudioManager) -> void
+pause_music(mgr: AudioManager) -> void
 ```
 
 ### resume_music
@@ -82,7 +82,7 @@ func pause_music(mgr: AudioManager) -> void
 Retoma a música.
 
 ```ori
-func resume_music(mgr: AudioManager) -> void
+resume_music(mgr: AudioManager) -> void
 ```
 
 ### set_master_volume
@@ -90,7 +90,7 @@ func resume_music(mgr: AudioManager) -> void
 Define o volume master.
 
 ```ori
-func set_master_volume(mgr: AudioManager, volume: float) -> void
+set_master_volume(mgr: AudioManager, volume: float) -> void
 ```
 
 ### set_music_volume
@@ -98,7 +98,7 @@ func set_master_volume(mgr: AudioManager, volume: float) -> void
 Define o volume da música.
 
 ```ori
-func set_music_volume(mgr: AudioManager, volume: float) -> void
+set_music_volume(mgr: AudioManager, volume: float) -> void
 ```
 
 ### set_sfx_volume
@@ -106,7 +106,7 @@ func set_music_volume(mgr: AudioManager, volume: float) -> void
 Define o volume dos efeitos sonoros.
 
 ```ori
-func set_sfx_volume(mgr: AudioManager, volume: float) -> void
+set_sfx_volume(mgr: AudioManager, volume: float) -> void
 ```
 
 ### fade_music
@@ -114,7 +114,7 @@ func set_sfx_volume(mgr: AudioManager, volume: float) -> void
 Faz fade na música.
 
 ```ori
-func fade_music(mgr: AudioManager, target_volume: float, duration: float) -> void
+fade_music(mgr: AudioManager, target_volume: float, duration: float) -> void
 ```
 
 ### update_audio
@@ -122,7 +122,7 @@ func fade_music(mgr: AudioManager, target_volume: float, duration: float) -> voi
 Atualiza o áudio (deve ser chamado no update).
 
 ```ori
-func update_audio(mgr: AudioManager, dt: float) -> void
+update_audio(mgr: AudioManager, dt: float) -> void
 ```
 
 ### is_music_playing
@@ -130,7 +130,7 @@ func update_audio(mgr: AudioManager, dt: float) -> void
 Verifica se a música está tocando.
 
 ```ori
-func is_music_playing(mgr: AudioManager) -> bool
+is_music_playing(mgr: AudioManager) -> bool
 ```
 
 **Exemplo — Gerenciamento de áudio:**

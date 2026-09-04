@@ -49,7 +49,7 @@ end
 Verifica se a entidade pode pular.
 
 ```ori
-func can_jump(state: JumpState, config: JumpConfig) -> bool
+can_jump(state: JumpState, config: JumpConfig) -> bool
 ```
 
 ### apply_jump
@@ -57,7 +57,7 @@ func can_jump(state: JumpState, config: JumpConfig) -> bool
 Aplica o pulo na entidade.
 
 ```ori
-func apply_jump(e: Entity, state: JumpState, config: JumpConfig) -> void
+apply_jump(e: Entity, state: JumpState, config: JumpConfig) -> void
 ```
 
 ### update_jump_state
@@ -65,12 +65,12 @@ func apply_jump(e: Entity, state: JumpState, config: JumpConfig) -> void
 Atualiza o estado do pulo.
 
 ```ori
-func update_jump_state(state: JumpState, config: JumpConfig, dt: float) -> void
+update_jump_state(state: JumpState, config: JumpConfig, dt: float) -> void
 ```
 
 **Exemplo — Double Jump:**
 ```ori
-const config = jumps.JumpConfig(height: 300.0, max_air_jumps: 1)
+const config = jumps.JumpConfig { height: 300.0, max_air_jumps: 1 }
 var state = jumps.JumpState()
 
 -- No update:
@@ -82,6 +82,6 @@ jumps.update_jump_state(state, config, dt)
 
 **Exemplo — Coyote Time:**
 ```ori
-const config = jumps.JumpConfig(height: 200.0, coyote_time: 0.15)
+const config = jumps.JumpConfig { height: 200.0, coyote_time: 0.15 }
 -- Permite pular 0.15s após sair da plataforma
 ```
