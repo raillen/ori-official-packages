@@ -5,6 +5,7 @@ module cgltf.loader
 -- Milli-float: physical value * 1000 as int.
 
 import ori.mem as mem
+import ori.core as core
 
 extern c
     public ori_cgltf_load_file(path_ptr: int) -> int
@@ -37,6 +38,36 @@ extern c
     public ori_cgltf_export_floats_ptr() -> int
     public ori_cgltf_export_indices_ptr() -> int
     public ori_cgltf_export_sum_m() -> int
+end
+
+public struct GltfScene
+    is_loaded: bool
+
+    mesh_count(self) -> int
+        return ori_cgltf_mesh_count()
+    end
+
+    node_count(self) -> int
+        return ori_cgltf_node_count()
+    end
+
+    material_count(self) -> int
+        return ori_cgltf_material_count()
+    end
+
+    animation_count(self) -> int
+        return ori_cgltf_animation_count()
+    end
+
+    free(self) -> void
+        ori_cgltf_free()
+    end
+end
+
+apply GltfScene: core.Disposable
+    mut dispose(self) -> void
+        self.free()
+    end
 end
 
 -- Load a .gltf / .glb path. Returns true on parse success.

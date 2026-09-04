@@ -5,6 +5,7 @@ module fast_obj.mesh
 -- Milli-float: physical value * 1000 as int.
 
 import ori.mem as mem
+import ori.core as core
 
 extern c
     public ori_fast_obj_load(path_ptr: int) -> int
@@ -35,6 +36,32 @@ extern c
     public ori_fast_obj_export_floats_ptr() -> int
     public ori_fast_obj_export_indices_ptr() -> int
     public ori_fast_obj_export_sum_m() -> int
+end
+
+public struct ObjMesh
+    is_loaded: bool
+
+    position_count(self) -> int
+        return ori_fast_obj_position_count()
+    end
+
+    face_count(self) -> int
+        return ori_fast_obj_face_count()
+    end
+
+    normal_count(self) -> int
+        return ori_fast_obj_normal_count()
+    end
+
+    free(self) -> void
+        ori_fast_obj_free()
+    end
+end
+
+apply ObjMesh: core.Disposable
+    mut dispose(self) -> void
+        self.free()
+    end
 end
 
 -- Load Wavefront OBJ from path. Returns true on success.

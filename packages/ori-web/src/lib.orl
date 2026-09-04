@@ -30,12 +30,81 @@ public struct Request
     body: string
     params: map[string, string]
     session_id: string
+
+    is_get(self) -> bool
+        return self.method == "GET"
+    end
+
+    is_post(self) -> bool
+        return self.method == "POST"
+    end
+
+    is_delete(self) -> bool
+        return self.method == "DELETE"
+    end
+
+    param(self, name: string) -> string
+        if some(value) = ori.map.try_get(self.params, name)
+            return value
+        end
+        return ""
+    end
+
+    query_param(self, name: string) -> string
+        if some(value) = ori.map.try_get(self.query, name)
+            return value
+        end
+        return ""
+    end
+
+    header(self, name: string) -> string
+        if some(value) = ori.map.try_get(self.headers, name)
+            return value
+        end
+        return ""
+    end
 end
 
 public struct Response
     status: int
     headers: map[string, string]
     body: string
+
+    is_success(self) -> bool
+        return self.status >= 200 and self.status < 300
+    end
+
+    is_error(self) -> bool
+        return self.status >= 400
+    end
+
+    header(self, name: string) -> string
+        if some(value) = ori.map.try_get(self.headers, name)
+            return value
+        end
+        return ""
+    end
+end
+
+public enum HttpMethod
+    Get
+    Post
+    Put
+    Patch
+    Delete
+    Head
+    Options
+end
+
+public enum HttpStatus
+    Ok
+    Created
+    NoContent
+    BadRequest
+    Unauthorized
+    Forbidden
+    NotFound
+    InternalServerError
 end
 
 -- Config lives in module globals: copying App structs that embed lists

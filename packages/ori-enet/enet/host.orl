@@ -4,6 +4,7 @@ module enet.host
 
 import ori.mem as mem
 import ori.fs as fs
+import ori.core as core
 
 extern c
     public ori_enet_initialize() -> int
@@ -42,6 +43,13 @@ public const EVENT_CONNECT: int = 1
 public const EVENT_DISCONNECT: int = 2
 public const EVENT_RECEIVE: int = 3
 
+public enum EventKind
+    None
+    Connect
+    Disconnect
+    Receive
+end
+
 -- Recommended channel layout for games (convention, not enforced by ENet).
 public const CHANNEL_RELIABLE: int = 0
 public const CHANNEL_UNRELIABLE: int = 1
@@ -58,6 +66,19 @@ public const PEER_DISCONNECTING: int = 7
 public const PEER_ACKNOWLEDGING_DISCONNECT: int = 8
 public const PEER_ZOMBIE: int = 9
 
+public enum PeerState
+    Disconnected
+    Connecting
+    AcknowledgingConnect
+    ConnectionPending
+    ConnectionSucceeded
+    Connected
+    DisconnectLater
+    Disconnecting
+    AcknowledgingDisconnect
+    Zombie
+end
+
 -- Cwd-relative temps (work on Linux + Windows without /tmp).
 const tmp_packet: string = "ori_enet_packet.tmp"
 const tmp_err: string = "ori_enet_errmsg.tmp"
@@ -65,10 +86,60 @@ const tmp_addr: string = "ori_enet_peer_addr.tmp"
 
 public struct Host
     id: int
+
+    is_valid(self) -> bool
+        return ori_enet_host_is_valid(self.id) != 0
+    end
+
+    destroy(self) -> void
+        ori_enet_host_destroy(self.id)
+    end
+
+    flush(self) -> void
+        ori_enet_host_flush(self.id)
+    end
+
+    total_sent(self) -> int
+        return ori_enet_host_total_sent(self.id)
+    end
+
+    total_received(self) -> int
+        return ori_enet_host_total_received(self.id)
+    end
+
+    peer_count(self) -> int
+        return ori_enet_host_peer_count(self.id)
+    end
+end
+
+apply Host: core.Disposable
+    mut dispose(self) -> void
+        self.destroy()
+    end
 end
 
 public struct Peer
     id: int
+
+    is_valid(self) -> bool
+        return ori_enet_peer_is_valid(self.id) != 0
+    end
+
+    disconnect(self) -> void
+        ori_enet_peer_disconnect(self.id)
+    end
+
+    disconnect_now(self) -> void
+        ori_enet_peer_disconnect_now(self.id)
+    end
+
+    rtt(self) -> int
+        return ori_enet_peer_rtt_ms(self.id)
+    end
+
+    state(self) -> int
+        return ori_enet_peer_state(self.id)
+    end
 end
 
 public initialize() -> int

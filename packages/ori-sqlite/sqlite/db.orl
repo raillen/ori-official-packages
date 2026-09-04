@@ -2,6 +2,7 @@ module sqlite.db
 
 import ori.mem as mem
 import ori.fs as fs
+import ori.core as core
 
 -- SQLite for Ori. Handles are int slots; SQL/paths via mem.string_as_ptr.
 
@@ -32,12 +33,116 @@ end
 public const STEP_ROW: int = 100
 public const STEP_DONE: int = 101
 
+public enum StepResult
+    Row
+    Done
+    Error(code: int)
+end
+
 public struct Db
     id: int
+
+    is_open(self) -> bool
+        return self.id >= 0
+    end
+
+    close(self) -> void
+        if self.id >= 0
+            ori_sqlite_close(self.id)
+        end
+    end
+
+    exec(self, sql: string) -> int
+        return ori_sqlite_exec(self.id, mem.string_as_ptr(sql))
+    end
+
+    exec_ok(self, sql: string) -> bool
+        return self.exec(sql) == 0
+    end
+
+    query_int(self, sql: string) -> int
+        return ori_sqlite_query_int(self.id, mem.string_as_ptr(sql))
+    end
+
+    last_insert_rowid(self) -> int
+        return ori_sqlite_last_insert_rowid(self.id)
+    end
+
+    changes(self) -> int
+        return ori_sqlite_changes(self.id)
+    end
+
+    begin(self) -> bool
+        return self.exec_ok("BEGIN")
+    end
+
+    commit(self) -> bool
+        return self.exec_ok("COMMIT")
+    end
+
+    rollback(self) -> bool
+        return self.exec_ok("ROLLBACK")
+    end
+end
+
+apply Db: core.Disposable
+    mut dispose(self) -> void
+        self.close()
+    end
 end
 
 public struct Stmt
     id: int
+
+    is_prepared(self) -> bool
+        return self.id >= 0
+    end
+
+    bind_int(self, idx: int, value: int) -> int
+        return ori_sqlite_bind_int(self.id, idx, value)
+    end
+
+    bind_text(self, idx: int, value: string) -> int
+        return ori_sqlite_bind_text(self.id, idx, mem.string_as_ptr(value))
+    end
+
+    step(self) -> int
+        return ori_sqlite_step(self.id)
+    end
+
+    step_row(self) -> bool
+        return self.step() == STEP_ROW
+    end
+
+    step_done(self) -> bool
+        return self.step() == STEP_DONE
+    end
+
+    column_int(self, col: int) -> int
+        return ori_sqlite_column_int(self.id, col)
+    end
+
+    column_count(self) -> int
+        return ori_sqlite_column_count(self.id)
+    end
+
+    reset(self) -> int
+        return ori_sqlite_reset(self.id)
+    end
+
+    clear_bindings(self) -> int
+        return ori_sqlite_clear_bindings(self.id)
+    end
+
+    finalize(self) -> void
+        ori_sqlite_finalize(self.id)
+    end
+end
+
+apply Stmt: core.Disposable
+    mut dispose(self) -> void
+        self.finalize()
+    end
 end
 
 public open(path: string) -> Db

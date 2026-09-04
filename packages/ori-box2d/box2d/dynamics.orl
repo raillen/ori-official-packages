@@ -1,5 +1,7 @@
 module box2d.dynamics
 
+import ori.core as core
+
 -- Box2D 3.x for Ori. Boundary uses milli-units (int): meters×1000, µs for dt,
 -- millidegrees / milli-deg/s for angles, material coeffs ×1000.
 -- See `box2d.units` for float helpers.
@@ -53,16 +55,112 @@ extern c
     public ori_b2_contact_body_b(index: int) -> int
 end
 
+public enum BodyType
+    Static
+    Dynamic
+    Kinematic
+end
+
 public struct World
     id: int
+
+    is_valid(self) -> bool
+        return ori_b2_world_is_valid(self.id) != 0
+    end
+
+    destroy(self) -> void
+        ori_b2_destroy_world(self.id)
+    end
+
+    set_gravity(self, gravity_x_m: int, gravity_y_m: int) -> void
+        ori_b2_set_gravity(self.id, gravity_x_m, gravity_y_m)
+    end
+
+    step(self, dt_micros: int) -> void
+        ori_b2_step(self.id, dt_micros, 4)
+    end
+
+    step_substeps(self, dt_micros: int, substeps: int) -> void
+        ori_b2_step(self.id, dt_micros, substeps)
+    end
+end
+
+apply World: core.Disposable
+    mut dispose(self) -> void
+        self.destroy()
+    end
 end
 
 public struct Body
     id: int
+
+    is_valid(self) -> bool
+        return ori_b2_body_is_valid(self.id) != 0
+    end
+
+    destroy(self) -> void
+        ori_b2_destroy_body(self.id)
+    end
+
+    x(self) -> int
+        return ori_b2_body_x_m(self.id)
+    end
+
+    y(self) -> int
+        return ori_b2_body_y_m(self.id)
+    end
+
+    angle(self) -> int
+        return ori_b2_body_angle_mdeg(self.id)
+    end
+
+    vx(self) -> int
+        return ori_b2_body_vx_m(self.id)
+    end
+
+    vy(self) -> int
+        return ori_b2_body_vy_m(self.id)
+    end
+
+    set_position(self, x_m: int, y_m: int) -> void
+        ori_b2_set_position(self.id, x_m, y_m)
+    end
+
+    set_velocity(self, vx_m: int, vy_m: int) -> void
+        ori_b2_set_linear_velocity(self.id, vx_m, vy_m)
+    end
+
+    apply_force(self, fx_m: int, fy_m: int) -> void
+        ori_b2_apply_force_to_center(self.id, fx_m, fy_m)
+    end
+
+    apply_impulse(self, ix_m: int, iy_m: int) -> void
+        ori_b2_apply_linear_impulse_to_center(self.id, ix_m, iy_m)
+    end
+end
+
+apply Body: core.Disposable
+    mut dispose(self) -> void
+        self.destroy()
+    end
 end
 
 public struct Joint
     id: int
+
+    is_valid(self) -> bool
+        return ori_b2_joint_is_valid(self.id) != 0
+    end
+
+    destroy(self) -> void
+        ori_b2_destroy_joint(self.id)
+    end
+end
+
+apply Joint: core.Disposable
+    mut dispose(self) -> void
+        self.destroy()
+    end
 end
 
 public create_world(gravity_x_m: int, gravity_y_m: int) -> World
