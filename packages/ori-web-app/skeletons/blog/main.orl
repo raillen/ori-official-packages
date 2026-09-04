@@ -1,13 +1,13 @@
 module app.main
 
-import web_app = wa
-import web = web
-import config.app = cfg
-import config.routes = routes
-import ori.io = io
-import ori.string = str
-import ori.os = os
-import ori.convert = conv
+import web_app as wa
+import web as web
+import config.app as cfg
+import config.routes as routes
+import ori.io as io
+import ori.string as str
+import ori.os as os
+import ori.convert as conv
 
 main()
     const host: string = os.env_or("ORI_HOST", cfg.host())

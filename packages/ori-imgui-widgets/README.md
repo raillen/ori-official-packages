@@ -42,7 +42,7 @@ export ORI_USE_SYSTEM_LINKER=1
 ### knob
 
 ```ori
-import widgets.knob = knob
+import widgets.knob as knob
 var k = knob.create_unit(250)          -- min=0 max=1000
 k = knob.set_value_milli(k, 500)
 k = knob.nudge_value_milli(k, 50)
@@ -52,7 +52,7 @@ k = knob.nudge_value_milli(k, 50)
 ### toggle
 
 ```ori
-import widgets.toggle = toggle
+import widgets.toggle as toggle
 var t = toggle.create_labeled("Mute", false)
 t = toggle.toggle(t)
 -- toggle.is_on(t); disabled blocks toggle/set_on
@@ -61,7 +61,7 @@ t = toggle.toggle(t)
 ### spinner
 
 ```ori
-import widgets.spinner = spinner
+import widgets.spinner as spinner
 var s = spinner.create_with_speed(1000)  -- milli-turns / second
 s = spinner.tick(s, 16)
 -- spinner.phase_milli_of(s) in 0..999; phase_angle_milli_deg_of for draw
@@ -70,7 +70,7 @@ s = spinner.tick(s, 16)
 ### spectrum
 
 ```ori
-import widgets.spectrum = spectrum
+import widgets.spectrum as spectrum
 var th = spectrum.load_style(spectrum.STYLE_DARK)
 -- spectrum.primary_of(th), accent_of, pack_rgba / unpack_rgba
 -- spectrum.spectrum_color_at(t_milli), lerp_color(a, b, t_milli)

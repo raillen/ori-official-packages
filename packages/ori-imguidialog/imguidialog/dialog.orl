@@ -4,10 +4,10 @@ module imguidialog.dialog
 -- Headless-safe: confirm/cancel/test hooks need no window or native shim.
 -- Product draw lives in imguidialog.draw (path-dep imgui.ui).
 
-import ori.list = lists
-import ori.os = os
-import ori.path = path
-import ori.string = str
+import ori.list as lists
+import ori.os as os
+import ori.path as path
+import ori.string as str
 
 public const MODE_OPEN: int = 0
 public const MODE_SAVE: int = 1

@@ -2,9 +2,9 @@ module game.shader
 
 -- Custom shaders (raylib LoadShader / uniforms). Paths are filesystem strings.
 
-import raylib = rl
-import ori.mem = mem
-import ori.math.vec3 = vec3
+import raylib as rl
+import ori.mem as mem
+import ori.math.vec3 as vec3
 
 public alias ShaderId = int
 public alias LocationId = int

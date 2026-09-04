@@ -41,7 +41,7 @@ ori_game = { path = "../ori-game", version = "0.3.0" }
 ```
 
 ```ori
-import raylib = rl
+import raylib as rl
 -- rl.ori_rl_InitWindow(...)
 ```
 

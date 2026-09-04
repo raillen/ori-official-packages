@@ -3,11 +3,11 @@ module game.play_freshness
 -- R2.3: detect when Play sources diverge from last compile stamp.
 -- No OS mtime in ori.fs — content fingerprint (djb2) vs stamp file.
 
-import ori.list = lists
-import ori.fs = fs
-import ori.string = str
-import ori.bytes = by
-import ori.format = fmt
+import ori.list as lists
+import ori.fs as fs
+import ori.string as str
+import ori.bytes as by
+import ori.format as fmt
 
 public const STATUS_FRESH: int = 0
 public const STATUS_STALE: int = 1

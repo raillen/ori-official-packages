@@ -3,8 +3,8 @@ module game.world_triggers
 -- R3.3: AABB trigger volumes with enter/exit edge detection.
 -- Host stores volumes; tick compares entity positions against volumes.
 
-import ori.list = lists
-import game.world = world
+import ori.list as lists
+import game.world as world
 
 public struct TriggerVolume
     id: string

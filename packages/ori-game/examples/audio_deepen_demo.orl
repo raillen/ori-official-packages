@@ -4,12 +4,12 @@ module app.audio_deepen_demo
 -- Space bumps master volume; 1/2 pitch; 3/4 pan.
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.input = input
-    game.audio = audio
-    ori.math.vec2 = vec2
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.input as input
+    game.audio as audio
+    ori.math.vec2 as vec2
 end
 
 var master: float = 0.8

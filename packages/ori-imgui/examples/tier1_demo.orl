@@ -3,12 +3,12 @@ module app.imgui_tier1
 -- Tier 1: file browser, inspector, plot, simple nodes.
 
 imports
-    imgui.ui = ui
-    imgui.file_browser = browser
-    imgui.inspector = insp
-    imgui.plot = plot
-    imgui.nodes = nodes
-    ori.io = io
+    imgui.ui as ui
+    imgui.file_browser as browser
+    imgui.inspector as insp
+    imgui.plot as plot
+    imgui.nodes as nodes
+    ori.io as io
 end
 
 var quit: bool = false

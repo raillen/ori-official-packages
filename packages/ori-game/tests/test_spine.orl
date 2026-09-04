@@ -1,9 +1,9 @@
 module test.spine
 
 imports
-    game.spine = spine
-    ori.test = test
-    ori.list = lists
+    game.spine as spine
+    ori.test as test
+    ori.list as lists
 end
 
 const SAMPLE: string = "{\"skeleton\":{\"spine\":\"4.1.00\"},\"bones\":[{\"name\":\"root\"},{\"name\":\"hip\",\"parent\":\"root\",\"y\":40.0},{\"name\":\"chest\",\"parent\":\"hip\",\"y\":24.0}],\"animations\":{\"idle\":{\"bones\":{\"chest\":{\"rotate\":[{\"time\":0.0,\"value\":0.0},{\"time\":1.0,\"value\":10.0}]}}}}}"

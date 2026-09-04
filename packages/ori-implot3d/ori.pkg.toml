@@ -2,7 +2,7 @@
 name = "implot3d"
 version = "0.1.0"
 entry = "implot3d/charts.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "ImPlot3D for Ori (3D Dear ImGui plots)"
 license = "MIT"
 native_libs = ["ori_implot3d_shim"]

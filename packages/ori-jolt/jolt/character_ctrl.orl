@@ -2,7 +2,7 @@ module jolt.character_ctrl
 
 -- Frame-oriented character: wish direction + jump, not raw velocity only.
 
-import jolt.dynamics = jolt
+import jolt.dynamics as jolt
 
 public struct Controller
     character: jolt.Character

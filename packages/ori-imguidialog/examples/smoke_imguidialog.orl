@@ -1,8 +1,8 @@
 module app.smoke_imguidialog
 
 imports
-    imguidialog.dialog = dlg
-    ori.io = io
+    imguidialog.dialog as dlg
+    ori.io as io
 end
 
 -- Headless smoke: open/save path result, filter, cancel — no GUI.

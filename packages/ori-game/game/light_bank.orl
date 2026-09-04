@@ -2,10 +2,10 @@ module game.light_bank
 
 -- Up to 4 lights with fixed uniform names for assets/shaders/lit_bank.fs
 
-import game.shader = shader
-import game.light = light
-import game.color = color
-import ori.math.vec3 = vec3
+import game.shader as shader
+import game.light as light
+import game.color as color
+import ori.math.vec3 as vec3
 
 public const MAX_LIGHTS: int = 4
 

@@ -2,7 +2,7 @@
 name = "physfs"
 version = "0.2.0"
 entry = "physfs/fs.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "PhysicsFS virtual filesystem bindings for Ori"
 license = "Zlib"
 native_libs = ["ori_physfs_shim"]

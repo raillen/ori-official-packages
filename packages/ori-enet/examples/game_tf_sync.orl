@@ -3,10 +3,10 @@ module app.game_tf_sync
 -- R7: host + client exchange transform-like text (session helper).
 
 imports
-    enet.session = net
-    enet.host = enet
-    enet.tf_codec = tf
-    ori.io = io
+    enet.session as net
+    enet.host as enet
+    enet.tf_codec as tf
+    ori.io as io
 end
 
 const PORT: int = 27782

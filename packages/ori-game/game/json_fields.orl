@@ -3,10 +3,10 @@ module game.json_fields
 -- Domain helpers for reading fields from ori.json Object maps.
 -- Shared by game.ogame_*, game.tiled, game.aseprite (Rule of Three).
 
-import ori.json = json
-import ori.map = maps
-import ori.list = lists
-import ori.math = math
+import ori.json as json
+import ori.map as maps
+import ori.list as lists
+import ori.math as math
 
 public as_object(val: json.Value) -> optional[map[string, json.Value]]
     match val

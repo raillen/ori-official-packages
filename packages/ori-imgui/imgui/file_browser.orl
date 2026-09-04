@@ -3,11 +3,11 @@ module imgui.file_browser
 -- Tier 1 file browser: pure Ori + ori.fs + imgui.ui (no native NFD).
 -- Usage: open → draw each frame → if confirmed, take path and close.
 
-import imgui.ui = ui
-import ori.fs = fs
-import ori.list = lists
-import ori.path = path
-import ori.os = os
+import imgui.ui as ui
+import ori.fs as fs
+import ori.list as lists
+import ori.path as path
+import ori.os as os
 public struct Browser
     open: bool
     dir: string

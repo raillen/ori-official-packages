@@ -5,7 +5,7 @@ module game.sample.player
 -- collider_radius, collision_layer.
 -- N1 markers: host game.ogame_script interprets ogs:* (see main.orl).
 
-import ori.log = log
+import ori.log as log
 
 public const DEFAULT_MESH_PATH: string = "assets/models/brazilian-cowboy.glb"
 public const DEFAULT_MOVE_SPEED: float = 48.0

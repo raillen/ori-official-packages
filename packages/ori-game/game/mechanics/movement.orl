@@ -1,6 +1,6 @@
 module game.mechanics.movement
 
-import ori.math.vec2 = vec2
+import ori.math.vec2 as vec2
 
 public apply_axis(vel: vec2.Vec2, axis_x: float, speed: float) -> vec2.Vec2
     return vec2.Vec2 { x: axis_x * speed, y: vel.y }

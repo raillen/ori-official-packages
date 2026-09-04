@@ -4,7 +4,7 @@ module cgltf.loader
 -- so path-dep + `game.gltf` do not collide on last segment.
 -- Milli-float: physical value * 1000 as int.
 
-import ori.mem = mem
+import ori.mem as mem
 
 extern c
     public ori_cgltf_load_file(path_ptr: int) -> int

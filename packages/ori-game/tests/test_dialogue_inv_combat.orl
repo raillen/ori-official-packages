@@ -1,16 +1,16 @@
 module test.dialogue_inv_combat
 
 imports
-    game.dialogue = dlg
-    game.inventory = inv
-    game.mechanics.combat = combat
-    game.mechanics.ai = ai
-    game.cutscene = cut
-    game.net_predict = net
-    game.marching_cubes = mc
-    ori.math.vec2 = vec2
-    ori.test = test
-    ori.list = lists
+    game.dialogue as dlg
+    game.inventory as inv
+    game.mechanics.combat as combat
+    game.mechanics.ai as ai
+    game.cutscene as cut
+    game.net_predict as net
+    game.marching_cubes as mc
+    ori.math.vec2 as vec2
+    ori.test as test
+    ori.list as lists
 end
 
 @test

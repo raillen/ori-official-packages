@@ -1,6 +1,6 @@
 module game.dialogue
 
-import ori.list = lists
+import ori.list as lists
 
 public struct DialogueChoice
     label: string

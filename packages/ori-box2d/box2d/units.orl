@@ -1,6 +1,6 @@
 module box2d.units
 
-import ori.math = math
+import ori.math as math
 
 -- Pure Ori unit helpers (meters / seconds / degrees ↔ milli-int boundary used by FFI).
 

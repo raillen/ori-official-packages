@@ -3,12 +3,12 @@ module game.nav_bake
 -- GP4 residual: bake navmesh from level SolidPiece tops (XZ quads).
 -- Uses game.navmesh staging → recast build_mesh. Milli-units for native.
 
-import ori.list = lists
-import game.navmesh = nav
-import game.nav_bake_geom = geom
-import game.ogame_level = level
-import game.path_follow = pfollow
-import game.nav_path = npath
+import ori.list as lists
+import game.navmesh as nav
+import game.nav_bake_geom as geom
+import game.ogame_level as level
+import game.path_follow as pfollow
+import game.nav_path as npath
 
 public struct BakeResult
     ok: bool

@@ -52,8 +52,8 @@ Smoke **never** opens a window. Draw is only `ori check`'d when `../ori-imgui` e
 ### Draw (`imguidialog.draw`)
 
 ```ori
-import imguidialog.dialog = dlg
-import imguidialog.draw = draw
+import imguidialog.dialog as dlg
+import imguidialog.draw as draw
 -- inside ImGui frame:
 d = draw.draw(d)
 if dlg.is_confirmed(d)

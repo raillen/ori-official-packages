@@ -3,8 +3,8 @@ module imgui.nodes
 -- Tier 1 simple node canvas (not full imnodes).
 -- Nodes are cards on a dummy canvas; links are draw_list lines between centers.
 
-import imgui.ui = ui
-import ori.list = lists
+import imgui.ui as ui
+import ori.list as lists
 
 public struct Node
     id: int

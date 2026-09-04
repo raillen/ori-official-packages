@@ -1,13 +1,13 @@
 module app.dialogue_demo
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.input = input
-    game.dialogue = dialogue
-    game.shape = shape
-    ori.math.vec2 = vec2
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.input as input
+    game.dialogue as dialogue
+    game.shape as shape
+    ori.math.vec2 as vec2
 end
 
 var dlg: dialogue.Dialogue = dialogue.create()

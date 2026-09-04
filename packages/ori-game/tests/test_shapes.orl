@@ -1,10 +1,10 @@
 module test.shapes
 
 imports
-    ori.test = test
-    game.color = color
-    game.shape = shape
-    game.collision = collision
+    ori.test as test
+    game.color as color
+    game.shape as shape
+    game.collision as collision
 end
 
 @test

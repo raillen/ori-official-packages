@@ -1,8 +1,8 @@
 module test.physfs
 
 imports
-    physfs.fs = pfs
-    ori.test = test
+    physfs.fs as pfs
+    ori.test as test
 end
 
 -- Fixtures prepared by tools/smoke_linux.sh:

@@ -3,9 +3,9 @@ module game.camera_matrix
 -- V2.2: look-at + perspective as milli-float 4x4 (column-major OpenGL order).
 -- Pure Ori (no raylib link) so unit tests stay headless.
 
-import ori.math = math
-import ori.math.vec3 = vec3
-import ori.list = lists
+import ori.math as math
+import ori.math.vec3 as vec3
+import ori.list as lists
 
 public struct CamPose
     eye_x: float

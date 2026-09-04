@@ -2,7 +2,7 @@
 name = "stb"
 version = "0.2.0"
 entry = "stb/image.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "stb single-header bindings for Ori (image, perlin, rect_pack)"
 license = "MIT"
 native_libs = ["ori_stb_shim"]

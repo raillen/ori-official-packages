@@ -1,8 +1,8 @@
 module test.inventory
 
 imports
-    ori.test = test
-    game.inventory = inv
+    ori.test as test
+    game.inventory as inv
 end
 
 @test

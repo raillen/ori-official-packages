@@ -1,8 +1,8 @@
 module game.mechanics.platforms
 
-import game.shape = shape
-import game.collision = collision
-import ori.math.vec2 = vec2
+import game.shape as shape
+import game.collision as collision
+import ori.math.vec2 as vec2
 
 public struct Platform
     rect: shape.Rectangle

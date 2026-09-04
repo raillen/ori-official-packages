@@ -1,8 +1,8 @@
 module app.smoke_enkits
 
 imports
-    enkits.tasks = enki
-    ori.io = io
+    enkits.tasks as enki
+    ori.io as io
 end
 
 main()

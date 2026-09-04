@@ -1,8 +1,8 @@
 module test.clay
 
 imports
-    clay.layout = layout
-    ori.test = test
+    clay.layout as layout
+    ori.test as test
 end
 
 @test

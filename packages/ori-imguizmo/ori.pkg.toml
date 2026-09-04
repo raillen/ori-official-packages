@@ -2,7 +2,7 @@
 name = "imguizmo"
 version = "0.3.0"
 entry = "imguizmo/gizmo.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "ImGuizmo suite for Ori (TRS + CurveEdit + Gradient + ZoomSlider)"
 license = "MIT"
 native_libs = ["ori_imguizmo_shim"]

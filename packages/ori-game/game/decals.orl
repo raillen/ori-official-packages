@@ -2,9 +2,9 @@ module game.decals
 
 -- X4: simple decal pool (XZ ground stamps). Draw via draw_all when host has draw3d.
 
-import ori.list = lists
-import game.color = color
-import ori.math.vec3 = vec3
+import ori.list as lists
+import game.color as color
+import ori.math.vec3 as vec3
 
 public struct Decal
     x: float

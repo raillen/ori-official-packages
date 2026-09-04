@@ -2,7 +2,7 @@
 name = "lz4"
 version = "0.2.0"
 entry = "lz4/codec.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "LZ4 block + OLZ1 stream frame compress/decompress for Ori"
 license = "MIT"
 native_libs = ["ori_lz4_shim"]

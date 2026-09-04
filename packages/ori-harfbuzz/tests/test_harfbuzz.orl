@@ -1,11 +1,11 @@
 module test.harfbuzz
 
 imports
-    freetype.face = ft
-    harfbuzz.shape = hb
-    ori.test = test
-    ori.os = os
-    ori.list = lists
+    freetype.face as ft
+    harfbuzz.shape as hb
+    ori.test as test
+    ori.os as os
+    ori.list as lists
 end
 
 font_path() -> string

@@ -1,8 +1,8 @@
 module test.tracy
 
 imports
-    tracy.profiler = tracy
-    ori.test = test
+    tracy.profiler as tracy
+    ori.test as test
 end
 
 @test

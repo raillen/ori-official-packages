@@ -4,9 +4,9 @@ module app.ogame_scene_smoke
 -- Run from ori-game root: ori run examples/ogame_scene_smoke.orl
 
 imports
-    game.ogame = ogame
-    game.engine = engine
-    ori.io = io
+    game.ogame as ogame
+    game.engine as engine
+    ori.io as io
 end
 
 main()

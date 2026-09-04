@@ -3,13 +3,13 @@ module game.ogame_level
 -- Level geometry: brushes, subtracts (AABB CSG), materials, colliders, mesh path, block terrain.
 -- Draw path uses game.draw3d (raylib).
 
-import ori.json = json
-import ori.map = maps
-import ori.list = lists
-import ori.fs = fs
-import ori.math = math
-import game.json_fields = jf
-import game.ogame_level_csg = csg
+import ori.json as json
+import ori.map as maps
+import ori.list as lists
+import ori.fs as fs
+import ori.math as math
+import game.json_fields as jf
+import game.ogame_level_csg as csg
 
 public struct BrushBox
     id: string

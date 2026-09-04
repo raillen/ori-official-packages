@@ -1,11 +1,11 @@
 module test.csg_l6
 
 imports
-    game.ogame_level = level
-    game.ogame_level_csg = csg
-    game.ogame_level_tools = ltools
-    ori.list = lists
-    ori.test = test
+    game.ogame_level as level
+    game.ogame_level_csg as csg
+    game.ogame_level_tools as ltools
+    ori.list as lists
+    ori.test as test
 end
 
 near(a: float, b: float) -> bool

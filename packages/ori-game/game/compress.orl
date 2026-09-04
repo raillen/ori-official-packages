@@ -4,8 +4,8 @@ module game.compress
 -- Path-deps `lz4` / `miniz` on ori_game; links shims only when this module is used.
 -- Prefixed re-exports avoid last-segment collision between packages.
 
-import lz4.codec = lz
-import miniz.deflate = mz
+import lz4.codec as lz
+import miniz.deflate as mz
 
 -- LZ4 block -------------------------------------------------------------------
 

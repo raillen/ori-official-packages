@@ -1,10 +1,10 @@
 module test.engine
 
 imports
-    ori.test = test
-    game.engine = engine
-    game.timer = timer
-    ori.math.vec2 = vec2
+    ori.test as test
+    game.engine as engine
+    game.timer as timer
+    ori.math.vec2 as vec2
 end
 
 @test

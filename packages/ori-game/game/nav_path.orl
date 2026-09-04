@@ -4,8 +4,8 @@ module game.nav_path
 -- Unit tests can use empty_host without pulling recast if they only read fields.
 -- Full find_path_m calls navmesh (requires staged recast native_libs).
 
-import game.navmesh = nav
-import ori.math = math
+import game.navmesh as nav
+import ori.math as math
 
 public struct PathResult
     ok: bool

@@ -1,12 +1,12 @@
 module test.actions_camera_save
 
 imports
-    game.actions = actions
-    game.camera = cam
-    game.save = save
-    game.input = input
-    ori.math.vec2 = vec2
-    ori.test = test
+    game.actions as actions
+    game.camera as cam
+    game.save as save
+    game.input as input
+    ori.math.vec2 as vec2
+    ori.test as test
 end
 
 @test

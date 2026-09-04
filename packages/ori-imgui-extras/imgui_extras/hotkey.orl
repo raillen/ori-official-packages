@@ -3,7 +3,7 @@ module imgui_extras.hotkey
 -- Hotkey chord capture (headless-safe).
 -- Feed key + modifiers while capturing; chord string is product-facing (e.g. "Ctrl+Shift+S").
 
-import ori.string = str
+import ori.string as str
 
 public struct HotkeyCapture
     capturing: bool

@@ -4,7 +4,7 @@ module imgui.timeline
 -- Choice: pure Ori, not C++ ImSequencer / separate ori-imsequencer package.
 -- G1: multi-track list, playhead milli, key CRUD, step + lerp sample.
 
-import ori.list = lists
+import ori.list as lists
 
 public struct Key
     time_milli: int

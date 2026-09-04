@@ -1,8 +1,8 @@
 module test.nfd
 
 imports
-    nfd.dialog = nfd
-    ori.test = test
+    nfd.dialog as nfd
+    ori.test as test
 end
 
 @test

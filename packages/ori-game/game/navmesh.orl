@@ -4,7 +4,7 @@ module game.navmesh
 -- Path-dep `recast` on ori_game; links `ori_recast_shim`.
 -- Positions and sizes use milli-units (meters × 1000).
 
-import recast.nav = nav
+import recast.nav as nav
 
 -- Staging triangle soup -------------------------------------------------------
 

@@ -1,8 +1,8 @@
 module app.smoke_implot3d
 
 imports
-    implot3d.charts = plot
-    ori.io = io
+    implot3d.charts as plot
+    ori.io as io
 end
 
 main()

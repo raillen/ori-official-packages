@@ -1,7 +1,7 @@
 module game.input
 
-import raylib = rl
-import ori.math.vec2 = vec2
+import raylib as rl
+import ori.math.vec2 as vec2
 
 public const KEY_RIGHT: int = 262
 public const KEY_LEFT: int = 263

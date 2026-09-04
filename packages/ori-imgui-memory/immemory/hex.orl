@@ -3,9 +3,9 @@ module immemory.hex
 -- Hex row / address formatting helpers for immemory.buffer (headless).
 -- Uppercase fixed-width hex without vendoring imgui_club.
 
-import immemory.buffer = buf
-import ori.list = lists
-import ori.string = str
+import immemory.buffer as buf
+import ori.list as lists
+import ori.string as str
 
 nibble_char(n: int) -> string
     var v: int = n

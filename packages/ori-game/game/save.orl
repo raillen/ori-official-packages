@@ -1,8 +1,8 @@
 module game.save
 
-import ori.list = lists
-import ori.fs = fs
-import ori.json = json
+import ori.list as lists
+import ori.fs as fs
+import ori.json as json
 
 -- In-memory checkpoints + JSON text files via stdlib.
 

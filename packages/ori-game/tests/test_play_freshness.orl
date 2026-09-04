@@ -1,10 +1,10 @@
 module test.play_freshness
 
 imports
-    game.play_freshness = fresh
-    ori.fs = fs
-    ori.list = lists
-    ori.test = test
+    game.play_freshness as fresh
+    ori.fs as fs
+    ori.list as lists
+    ori.test as test
 end
 
 @test

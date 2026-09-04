@@ -4,12 +4,12 @@ module web_app
 -- Conventions: docs/planning/web-templates-discussion-roadmap.md §12
 -- Generators: packages/ori-web-app/bin/
 
-import web = web
-import templates = tpl
-import ori.string = str
-import ori.map = maps
-import ori.list = lists
-import ori.os = os
+import web as web
+import templates as tpl
+import ori.string as str
+import ori.map as maps
+import ori.list as lists
+import ori.os as os
 
 public alias ActionResult = web.ActionResult
 public alias Request = web.Request

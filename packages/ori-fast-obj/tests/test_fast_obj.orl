@@ -1,8 +1,8 @@
 module test.fast_obj
 
 imports
-    fast_obj.mesh = obj
-    ori.test = test
+    fast_obj.mesh as obj
+    ori.test as test
 end
 
 @test

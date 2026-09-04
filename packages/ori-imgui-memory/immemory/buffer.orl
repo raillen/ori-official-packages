@@ -4,8 +4,8 @@ module immemory.buffer
 -- Choice: pure Ori byte view/edit, not C++ imgui_club memory_editor.
 -- G1: bind buffer; read/write cell; hex helpers live in immemory.hex.
 
-import ori.list = lists
-import ori.bytes = by
+import ori.list as lists
+import ori.bytes as by
 
 public const DEFAULT_COLS: int = 16
 public const MAX_COLS: int = 64

@@ -1,9 +1,9 @@
 module test.world_replicate
 
 imports
-    game.world = world
-    game.world_replicate = wr
-    ori.test = test
+    game.world as world
+    game.world_replicate as wr
+    ori.test as test
 end
 
 @test

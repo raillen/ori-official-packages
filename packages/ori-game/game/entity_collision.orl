@@ -1,8 +1,8 @@
 module game.entity_collision
 
-import game.engine = engine
-import game.shape = shape
-import game.collision = collision
+import game.engine as engine
+import game.shape as shape
+import game.collision as collision
 
 public entity_rect(e: engine.Entity, half: float) -> shape.Rectangle
     return shape.Rectangle {

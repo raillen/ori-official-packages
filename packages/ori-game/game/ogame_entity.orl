@@ -2,12 +2,12 @@ module game.ogame_entity
 
 -- Entity type definitions (Studio "Entity" = GM Object type).
 
-import ori.json = json
-import ori.map = maps
-import ori.list = lists
-import ori.math = math
-import ori.fs = fs
-import game.json_fields = jf
+import ori.json as json
+import ori.map as maps
+import ori.list as lists
+import ori.math as math
+import ori.fs as fs
+import game.json_fields as jf
 
 public struct EntityVar
     name: string

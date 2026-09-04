@@ -3,8 +3,8 @@ module game.marching_cubes
 -- Marching Cubes (classic tables) — pure Ori, milli-int coords.
 -- density: list[int] size nx*ny*nz; isolevel e.g. 500; cell_size_m edge size.
 
-import ori.list = lists
-import ori.fs = fs
+import ori.list as lists
+import ori.fs as fs
 
 public struct Vec3m
     x_m: int

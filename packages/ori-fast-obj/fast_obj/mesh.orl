@@ -4,7 +4,7 @@ module fast_obj.mesh
 -- so path-dep + `game.obj` do not collide on last segment with other loaders.
 -- Milli-float: physical value * 1000 as int.
 
-import ori.mem = mem
+import ori.mem as mem
 
 extern c
     public ori_fast_obj_load(path_ptr: int) -> int

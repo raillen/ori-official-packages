@@ -3,7 +3,7 @@ module game.pathfind
 -- Grid A* (4-neighbour). cells: 0 walkable, non-zero blocked.
 -- Returns list of linear indices from start to goal (empty if none).
 
-import ori.list = lists
+import ori.list as lists
 
 public struct Grid
     w: int

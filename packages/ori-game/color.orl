@@ -1,6 +1,6 @@
 module game.color
 
-import ori.math = math
+import ori.math as math
 
 public struct Color
     r: int

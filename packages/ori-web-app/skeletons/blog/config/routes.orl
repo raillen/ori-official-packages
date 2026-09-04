@@ -1,8 +1,8 @@
 module config.routes
 
-import web = web
-import app.controllers.home = home
-import app.controllers.posts = posts
+import web as web
+import app.controllers.home as home
+import app.controllers.posts as posts
 
 public draw(a: web.App) -> void
     web.get(a, "/", home.index)

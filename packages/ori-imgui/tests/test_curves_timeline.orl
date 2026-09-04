@@ -1,9 +1,9 @@
 module test.curves_timeline
 
 imports
-    imgui.curves = curves
-    imgui.timeline = tl
-    ori.test = test
+    imgui.curves as curves
+    imgui.timeline as tl
+    ori.test as test
 end
 
 @test

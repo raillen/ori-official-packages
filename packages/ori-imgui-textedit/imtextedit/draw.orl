@@ -4,11 +4,11 @@ module imtextedit.draw
 -- Call only inside an active ImGui frame. Headless CI uses buffer + lang only.
 -- FULL path: multiline host slot + optional colored token preview (language stub).
 
-import imtextedit.buffer = buf
-import imtextedit.lang = lang
-import imgui.ui = ui
-import ori.list = lists
-import ori.string = str
+import imtextedit.buffer as buf
+import imtextedit.lang as lang
+import imgui.ui as ui
+import ori.list as lists
+import ori.string as str
 
 -- Dedicated host input slot so textedit does not collide with dialogs/UI (slots 0–6).
 public const HOST_SLOT: int = 8

@@ -3,9 +3,9 @@ module test.world
 -- B1: game.world EntityId + components + spawn from scene JSON.
 
 imports
-    game.world = world
-    game.ogame = ogame
-    ori.test = test
+    game.world as world
+    game.ogame as ogame
+    ori.test as test
 end
 
 @test

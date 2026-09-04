@@ -3,12 +3,12 @@ module web_auth
 -- Optional 2FA layer (phase C3). Uses ori.crypto TOTP (HMAC-SHA1, 30s, 6 digits).
 -- Design: docs/planning/web-templates-discussion-roadmap.md §5.5 C3
 
-import web = web
-import ori.crypto = crypto
-import ori.string = str
-import ori.time = time
-import ori.random = rnd
-import ori.list = lists
+import web as web
+import ori.crypto as crypto
+import ori.string as str
+import ori.time as time
+import ori.random as rnd
+import ori.list as lists
 
 public alias TotpSecret = string
 

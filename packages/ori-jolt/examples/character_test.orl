@@ -1,9 +1,9 @@
 module app.jolt_character_test
 
 imports
-    jolt.dynamics = jolt
-    jolt.units = units
-    ori.io = io
+    jolt.dynamics as jolt
+    jolt.units as units
+    ori.io as io
 end
 
 main()

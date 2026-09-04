@@ -1,11 +1,11 @@
 module app.hello_game
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.input = input
-    ori.math.vec2 = vec2
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.input as input
+    ori.math.vec2 as vec2
 end
 
 var px: float = 160.0

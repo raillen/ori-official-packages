@@ -20,7 +20,7 @@
 Call widgets **inside** `BeginDrawing` / `EndDrawing` (same frame as raylib).
 
 ```ori
-import raygui.ui = ui
+import raygui.ui as ui
 -- …
 if ui.button(20.0, 60.0, 120.0, 32.0, "OK")
     -- clicked

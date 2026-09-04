@@ -4,9 +4,9 @@ module game.world_replicate
 -- Formato: "ws:<tick>|<count>|<id>:<x>,<y>,<z>|..." (máx 4 entidades).
 -- Codec puro → testes sem link de rede; enet envia a string.
 
-import ori.format = fmt
-import ori.string = str
-import game.world = world
+import ori.format as fmt
+import ori.string as str
+import game.world as world
 
 public const MAX_POSES: int = 4
 

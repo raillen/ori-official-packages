@@ -3,16 +3,16 @@ module web
 -- HTTP Library layer for Ori (phase A + B + C helpers).
 -- Design: docs/planning/web-templates-discussion-roadmap.md D14-D20 §5.5
 
-import ori.net = net
-import ori.string = str
-import ori.map = maps
-import ori.list = lists
-import ori.fs = fs
-import ori.random = rnd
-import ori.time = time
-import ori.os = os
-import ori.convert = conv
-import ori.bytes = bytemod
+import ori.net as net
+import ori.string as str
+import ori.map as maps
+import ori.list as lists
+import ori.fs as fs
+import ori.random as rnd
+import ori.time as time
+import ori.os as os
+import ori.convert as conv
+import ori.bytes as bytemod
 
 -- - Types -
 

@@ -4,7 +4,7 @@ module game.noise
 -- Path-dep `noise` on ori_game; links `ori_noise_shim`.
 -- Milli-int coordinates and samples (1000 = 1.0).
 
-import noise.fnl = fnl
+import noise.fnl as fnl
 
 public init() -> void
     fnl.init()

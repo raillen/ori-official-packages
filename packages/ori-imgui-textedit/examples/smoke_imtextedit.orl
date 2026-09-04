@@ -1,10 +1,10 @@
 module app.smoke_imtextedit
 
 imports
-    imtextedit.buffer = buf
-    imtextedit.lang = lang
-    ori.io = io
-    ori.list = lists
+    imtextedit.buffer as buf
+    imtextedit.lang as lang
+    ori.io as io
+    ori.list as lists
 end
 
 -- Headless smoke: set/get text, language stub highlight, lines — no GUI.

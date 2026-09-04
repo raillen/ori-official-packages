@@ -2,13 +2,13 @@ module app.main
 
 -- Marketing landing (SSR templates). Optional --ui=svelte overlays a SPA later.
 
-import web = web
-import templates = tpl
-import ori.io = io
-import ori.map = maps
-import ori.string = str
-import ori.os = os
-import ori.convert = conv
+import web as web
+import templates as tpl
+import ori.io as io
+import ori.map as maps
+import ori.string as str
+import ori.os as os
+import ori.convert as conv
 
 var VIEWS: tpl.Engine = tpl.open("views")
 var LEADS: int = 0

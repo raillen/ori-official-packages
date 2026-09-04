@@ -3,8 +3,8 @@ module imgui_extras.search
 -- Filterable string list (headless-safe).
 -- Query is a case-optional substring match over registered items.
 
-import ori.list = lists
-import ori.string = str
+import ori.list as lists
+import ori.string as str
 
 public struct FilterList
     items: list[string]

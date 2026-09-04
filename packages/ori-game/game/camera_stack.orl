@@ -4,9 +4,9 @@ module game.camera_stack
 -- Named slots (follow presets or fixed pose); one active.
 -- Pure data — no raylib. Host applies pose via game.camera3d.
 
-import ori.list = lists
-import ori.math.vec3 = vec3
-import ori.format = fmt
+import ori.list as lists
+import ori.math.vec3 as vec3
+import ori.format as fmt
 
 public const KIND_FOLLOW: int = 0
 public const KIND_FIXED: int = 1

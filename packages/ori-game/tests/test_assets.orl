@@ -1,8 +1,8 @@
 module test.assets
 
 imports
-    ori.test = test
-    game.assets = assets
+    ori.test as test
+    game.assets as assets
 end
 
 @test

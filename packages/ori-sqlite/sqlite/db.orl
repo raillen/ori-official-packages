@@ -1,7 +1,7 @@
 module sqlite.db
 
-import ori.mem = mem
-import ori.fs = fs
+import ori.mem as mem
+import ori.fs as fs
 
 -- SQLite for Ori. Handles are int slots; SQL/paths via mem.string_as_ptr.
 

@@ -1,6 +1,6 @@
 module game.mechanics.ai
 
-import ori.math.vec2 = vec2
+import ori.math.vec2 as vec2
 
 public chase(self_pos: vec2.Vec2, target: vec2.Vec2, speed: float, dt: float) -> vec2.Vec2
     const dx: float = target.x - self_pos.x

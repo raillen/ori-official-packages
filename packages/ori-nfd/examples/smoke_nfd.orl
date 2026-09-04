@@ -1,8 +1,8 @@
 module app.smoke_nfd
 
 imports
-    nfd.dialog = nfd
-    ori.io = io
+    nfd.dialog as nfd
+    ori.io as io
 end
 
 -- Headless smoke: never opens a real dialog (uses set_path / multi / clear).

@@ -1,7 +1,7 @@
 module game.engine
 
-import ori.list = lists
-import ori.math.vec2 = vec2
+import ori.list as lists
+import ori.math.vec2 as vec2
 
 -- Entity store + builtin gravity/movement (return-style mutation).
 

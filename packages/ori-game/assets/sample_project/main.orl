@@ -3,38 +3,38 @@ module sample.main
 -- engine_test (G1): World + combat/AI patrol + goal + save + camera stack/drive.
 
 imports
-    game.app = app
-    game.draw = draw
-    game.draw3d = draw3d
-    game.camera3d = cam3
-    game.camera_stack = cstack
-    game.camera_drive = cdrive
-    game.color = color
-    game.input = input
-    game.ogame = ogame
-    game.ogame_level = level
-    game.ogame_level_draw = level_draw
-    game.world = world
-    game.world_systems = systems
-    game.world_gameplay = gp
-    game.character_controller = ctrl
-    game.asset_paths = paths
-    game.audio = audio
-    game.audio_buses = buses
-    game.decals = decals
-    game.particles = particles
-    game.postfx = postfx
-    game.inventory = inv
-    game.path_follow = pfollow
-    game.save = save
-    game.world_replicate = rep
-    ori.io = stdio
-    ori.list = lists
-    ori.math = math
-    ori.math.vec2 = vec2
-    ori.math.vec3 = vec3
-    ori.format = fmt
-    ori.convert = convert
+    game.app as app
+    game.draw as draw
+    game.draw3d as draw3d
+    game.camera3d as cam3
+    game.camera_stack as cstack
+    game.camera_drive as cdrive
+    game.color as color
+    game.input as input
+    game.ogame as ogame
+    game.ogame_level as level
+    game.ogame_level_draw as level_draw
+    game.world as world
+    game.world_systems as systems
+    game.world_gameplay as gp
+    game.character_controller as ctrl
+    game.asset_paths as paths
+    game.audio as audio
+    game.audio_buses as buses
+    game.decals as decals
+    game.particles as particles
+    game.postfx as postfx
+    game.inventory as inv
+    game.path_follow as pfollow
+    game.save as save
+    game.world_replicate as rep
+    ori.io as stdio
+    ori.list as lists
+    ori.math as math
+    ori.math.vec2 as vec2
+    ori.math.vec3 as vec3
+    ori.format as fmt
+    ori.convert as convert
 end
 
 const SCENE_PATH: string = "scenes/engine_test.scene.json"

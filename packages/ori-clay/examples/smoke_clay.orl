@@ -1,8 +1,8 @@
 module app.smoke_clay
 
 imports
-    clay.layout = layout
-    ori.io = io
+    clay.layout as layout
+    ori.io as io
 end
 
 main()

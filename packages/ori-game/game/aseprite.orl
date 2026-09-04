@@ -4,12 +4,12 @@ module game.aseprite
 -- Frames + meta.frameTags + optional meta.image path.
 -- Playback is pure Ori; drawing uses game.draw when a texture is loaded.
 
-import ori.json = json
-import ori.map = maps
-import ori.list = lists
-import ori.math = math
-import ori.fs = fs
-import game.shape = shape
+import ori.json as json
+import ori.map as maps
+import ori.list as lists
+import ori.math as math
+import ori.fs as fs
+import game.shape as shape
 
 public struct AseFrame
     name: string

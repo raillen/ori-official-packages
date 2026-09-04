@@ -1,8 +1,8 @@
 module test.cgltf
 
 imports
-    cgltf.loader = gltf
-    ori.test = test
+    cgltf.loader as gltf
+    ori.test as test
 end
 
 @test

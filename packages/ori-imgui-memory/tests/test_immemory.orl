@@ -1,11 +1,11 @@
 module test.immemory
 
 imports
-    immemory.buffer = buf
-    immemory.hex = hex
-    ori.list = lists
-    ori.bytes = by
-    ori.test = test
+    immemory.buffer as buf
+    immemory.hex as hex
+    ori.list as lists
+    ori.bytes as by
+    ori.test as test
 end
 
 @test

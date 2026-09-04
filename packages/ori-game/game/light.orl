@@ -3,9 +3,9 @@ module game.light
 -- Point/directional lights as uniforms for a custom lighting shader.
 -- Bind locations once after loading the shader, then call apply each frame.
 
-import game.shader = shader
-import game.color = color
-import ori.math.vec3 = vec3
+import game.shader as shader
+import game.color as color
+import ori.math.vec3 as vec3
 
 public const LIGHT_DISABLED: int = 0
 public const LIGHT_DIRECTIONAL: int = 1

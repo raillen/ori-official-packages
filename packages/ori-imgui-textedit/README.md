@@ -73,8 +73,8 @@ for Ori and C. Not a full grammar / regex engine.
 ### Draw (`imtextedit.draw`)
 
 ```ori
-import imtextedit.buffer = buf
-import imtextedit.draw = draw
+import imtextedit.buffer as buf
+import imtextedit.draw as draw
 -- inside ImGui frame:
 e = draw.draw(e, "Script")
 -- e.text updated from host multiline when edited

@@ -4,8 +4,8 @@ module markdown.parse
 -- Choice: pure Ori, not C++ imgui_markdown for v0.1.0.
 -- Product ImGui draw lives in markdown.draw (path-dep ori-imgui).
 
-import ori.list = lists
-import ori.string = str
+import ori.list as lists
+import ori.string as str
 
 public const KIND_NONE: int = 0
 public const KIND_HEADING: int = 1

@@ -4,11 +4,11 @@ module app.world_net_sync
 -- Event loop no estilo enet/examples/game_tf_sync (service único por lado).
 
 imports
-    enet.session = net
-    enet.host = enet
-    game.world = world
-    game.world_replicate = wr
-    ori.io = io
+    enet.session as net
+    enet.host as enet
+    game.world as world
+    game.world_replicate as wr
+    ori.io as io
 end
 
 const PORT: int = 27791

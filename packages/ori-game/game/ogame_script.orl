@@ -3,12 +3,12 @@ module game.ogame_script
 -- Runtime interpreter for Studio N1 ogs:* visual-script markers.
 -- Uses milli-int for timing/vars where possible (Cranelift fcmp residual avoidance).
 
-import ori.list = lists
-import ori.string = str
-import ori.convert = conv
-import ori.log = log
-import ori.math = math
-import game.ogame_alarms = alarms
+import ori.list as lists
+import ori.string as str
+import ori.convert as conv
+import ori.log as log
+import ori.math as math
+import game.ogame_alarms as alarms
 
 public const KIND_PRINT: int = 1
 public const KIND_COMMENT: int = 2

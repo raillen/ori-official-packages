@@ -4,13 +4,13 @@ module jolt.world_character
 -- Game units → milli-meters: 1 game unit = 0.1 m (×100 milli).
 -- Lives in ori-jolt (ori_game cannot path-dep jolt — cycle).
 
-import jolt.dynamics = jolt
-import jolt.character_ctrl = ctrl
-import jolt.units = units
-import game.world = world
-import game.ogame_level = level
-import ori.list = lists
-import ori.math = math
+import jolt.dynamics as jolt
+import jolt.character_ctrl as ctrl
+import jolt.units as units
+import game.world as world
+import game.ogame_level as level
+import ori.list as lists
+import ori.math as math
 
 -- 1 game unit = 0.1 meter → milli = game * 100
 public const GAME_TO_MILLI: int = 100

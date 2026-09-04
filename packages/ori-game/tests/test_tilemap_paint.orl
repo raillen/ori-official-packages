@@ -1,10 +1,10 @@
 module test.tilemap_paint
 
 imports
-    game.tilemap = tm
-    game.shape = shape
-    ori.list = lists
-    ori.test = test
+    game.tilemap as tm
+    game.shape as shape
+    ori.list as lists
+    ori.test as test
 end
 
 @test

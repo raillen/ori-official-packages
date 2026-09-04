@@ -3,17 +3,17 @@ module app.path_follow_sample
 -- GP4 deep: pure path_follow along manual waypoints (no recast).
 
 imports
-    game.app = app
-    game.draw = draw
-    game.draw3d = draw3d
-    game.camera3d = cam3
-    game.color = color
-    game.world = world
-    game.world_systems = systems
-    game.path_follow = pfollow
-    ori.math.vec2 = vec2
-    ori.math.vec3 = vec3
-    ori.format = fmt
+    game.app as app
+    game.draw as draw
+    game.draw3d as draw3d
+    game.camera3d as cam3
+    game.color as color
+    game.world as world
+    game.world_systems as systems
+    game.path_follow as pfollow
+    ori.math.vec2 as vec2
+    ori.math.vec3 as vec3
+    ori.format as fmt
 end
 
 var cam: cam3.Camera3D = cam3.create_perspective(

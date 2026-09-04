@@ -4,13 +4,13 @@ module app.aseprite_demo
 -- Space toggles idle / walk.
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.input = input
-    game.aseprite = ase
-    game.shape = shape
-    ori.math.vec2 = vec2
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.input as input
+    game.aseprite as ase
+    game.shape as shape
+    ori.math.vec2 as vec2
 end
 
 var ready: bool = false

@@ -1,6 +1,6 @@
 module game.scene
 
-import ori.list = lists
+import ori.list as lists
 
 -- Screen stack by name (no capturing closures). Game code switches on current().
 

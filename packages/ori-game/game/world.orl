@@ -4,11 +4,11 @@ module game.world
 -- Systems ordered (B2) and script_system dispatch (B3) build on this store.
 -- Style: return-style mutation; dense live list (no flecs).
 
-import ori.list = lists
-import ori.math = math
-import game.ogame_entity = entity
-import game.ogame_scene = scene
-import game.ogame_spawn = spawn
+import ori.list as lists
+import ori.math as math
+import game.ogame_entity as entity
+import game.ogame_scene as scene
+import game.ogame_spawn as spawn
 
 public alias EntityId = int
 public alias WorldResult = result[World, string]

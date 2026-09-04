@@ -2,8 +2,8 @@ module game.nav_bake_geom
 
 -- Geometria pura solid → top face milli (sem native/recast).
 
-import ori.math = math
-import game.ogame_level = level
+import ori.math as math
+import game.ogame_level as level
 
 public struct CornerM
     x: int

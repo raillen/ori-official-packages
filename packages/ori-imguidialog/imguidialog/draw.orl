@@ -3,12 +3,12 @@ module imguidialog.draw
 -- Product draw for imguidialog.dialog using imgui.ui (path-dep ori-imgui).
 -- Call only inside an active ImGui frame. Headless CI uses dialog test hooks only.
 
-import imguidialog.dialog = dlg
-import imgui.ui = ui
-import ori.fs = fs
-import ori.list = lists
-import ori.path = path
-import ori.string = str
+import imguidialog.dialog as dlg
+import imgui.ui as ui
+import ori.fs as fs
+import ori.list as lists
+import ori.path as path
+import ori.string as str
 
 join2(a: string, b: string) -> string
     var parts: list[string] = []

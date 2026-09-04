@@ -1,9 +1,9 @@
 module test.camera_stack
 
 imports
-    game.camera_stack = cstack
-    ori.math.vec3 = vec3
-    ori.test = test
+    game.camera_stack as cstack
+    ori.math.vec3 as vec3
+    ori.test as test
 end
 
 @test

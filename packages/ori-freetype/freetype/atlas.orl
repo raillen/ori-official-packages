@@ -2,8 +2,8 @@ module freetype.atlas
 
 -- Shelf-packed gray atlas for a codepoint range (built in shim).
 
-import freetype.face = ft
-import ori.mem = mem
+import freetype.face as ft
+import ori.mem as mem
 
 public struct GlyphUv
     codepoint: int

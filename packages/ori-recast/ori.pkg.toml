@@ -2,7 +2,7 @@
 name = "recast"
 version = "0.2.0"
 entry = "recast/nav.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "Recast Navigation (Recast+Detour) navmesh build + path query for Ori"
 license = "Zlib"
 native_libs = ["ori_recast_shim"]

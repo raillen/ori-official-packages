@@ -3,12 +3,12 @@ module app.controllers.posts
 -- In-memory sample posts. Replace with a real store later.
 -- Clean-code: controller only maps request → data → render.
 
-import app.application = app
-import web = web
-import templates = tpl
-import ori.list = lists
-import ori.map = maps
-import ori.convert = conv
+import app.application as app
+import web as web
+import templates as tpl
+import ori.list as lists
+import ori.map as maps
+import ori.convert as conv
 
 var TITLES: list[string] = []
 var BODIES: list[string] = []

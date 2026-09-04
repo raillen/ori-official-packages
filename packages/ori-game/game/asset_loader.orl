@@ -1,8 +1,8 @@
 module game.asset_loader
 
-import game.assets = assets
-import ori.mem = mem
-import raylib = rl
+import game.assets as assets
+import ori.mem as mem
+import raylib as rl
 
 public load_texture(cache: assets.AssetCache, path: string) -> assets.AssetCache
     return load_texture_as(cache, path, path)

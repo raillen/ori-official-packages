@@ -1,10 +1,10 @@
 module test.ogame_script
 
 imports
-    game.ogame_script = ogs
-    game.ogame_alarms = alarms
-    ori.test = test
-    ori.list = lists
+    game.ogame_script as ogs
+    game.ogame_alarms as alarms
+    ori.test as test
+    ori.list as lists
 end
 
 @test

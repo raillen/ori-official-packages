@@ -1,8 +1,8 @@
 module test.save
 
 imports
-    ori.test = test
-    game.save = save
+    ori.test as test
+    game.save as save
 end
 
 @test

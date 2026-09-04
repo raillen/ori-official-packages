@@ -3,9 +3,9 @@ module game.multi_scene
 -- Multi-scene catalog (F): named scene paths + active index.
 -- Switch rebuilds World via game.world.spawn_scene_path (no live state keep).
 
-import ori.list = lists
-import game.world = world
-import game.ogame_spawn = spawn
+import ori.list as lists
+import game.world as world
+import game.ogame_spawn as spawn
 
 public struct SceneSlot
     name: string

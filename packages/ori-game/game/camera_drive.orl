@@ -3,7 +3,7 @@ module game.camera_drive
 -- R5.2: keyframed camera offset — pure, no ImGui.
 -- Sample/shell key T toggles drive; apply_to_stack updates follow offsets.
 
-import game.camera_stack = cstack
+import game.camera_stack as cstack
 
 public struct CamKey
     t_ms: int

@@ -1,14 +1,14 @@
 module app.anim_player_demo
 
 imports
-    game.app = app
-    game.draw = draw
-    game.draw3d = draw3d
-    game.camera3d = cam3
-    game.color = color
-    game.anim_player = anim
-    ori.math.vec2 = vec2
-    ori.math.vec3 = vec3
+    game.app as app
+    game.draw as draw
+    game.draw3d as draw3d
+    game.camera3d as cam3
+    game.color as color
+    game.anim_player as anim
+    ori.math.vec2 as vec2
+    ori.math.vec3 as vec3
 end
 
 var cam: cam3.Camera3D = cam3.create_perspective(

@@ -41,7 +41,7 @@ Artifacts in `lib/x86_64-unknown-linux-gnu/`:
 ## Usage — standalone GLFW window
 
 ```ori
-import imgui.ui = ui
+import imgui.ui as ui
 
 main()
     if not ui.init(480, 320, "My UI")
@@ -65,8 +65,8 @@ end
 ## Usage — embed in `game.app` / raylib (P2-A)
 
 ```ori
-import game.app = app
-import imgui.ui = ui
+import game.app as app
+import imgui.ui as ui
 
 on_draw() -> void
     -- world draw first …
@@ -185,7 +185,7 @@ meet the tools plan **B2** surface without FFI.
 Headless tests: `tests/test_timeline.orl`. No window required for the model API.
 
 ```ori
-import imgui.timeline = tl
+import imgui.timeline as tl
 
 main()
     var t: tl.Timeline = tl.create(1000)
@@ -217,7 +217,7 @@ injection into the host, or pixel regression.
 Headless tests: `tests/test_test_harness.orl` (no GLFW window).
 
 ```ori
-import imgui.test_harness = th
+import imgui.test_harness as th
 
 main()
     var h: th.Harness = th.create()

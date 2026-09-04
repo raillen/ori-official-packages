@@ -7,18 +7,18 @@ module app.cangaceiro_demo
 --           1-4 clips · Space play/pause · mouse on UI panel
 
 imports
-    game.app = app
-    game.draw = draw
-    game.draw3d = draw3d
-    game.camera3d = cam3
-    game.color = color
-    game.input = input
-    game.anim_player = anim
-    game.shape = shape
-    game.shader = shader
-    ori.math = math
-    ori.math.vec2 = vec2
-    ori.math.vec3 = vec3
+    game.app as app
+    game.draw as draw
+    game.draw3d as draw3d
+    game.camera3d as cam3
+    game.color as color
+    game.input as input
+    game.anim_player as anim
+    game.shape as shape
+    game.shader as shader
+    ori.math as math
+    ori.math.vec2 as vec2
+    ori.math.vec3 as vec3
 end
 
 -- Parent of assets/cangaceiro/ (same level as game-assets-3d/cangaceiro+glb.glb).

@@ -3,10 +3,10 @@ module app.world_sync_pkg
 -- Headless: game.world + box2d.world_sync — crate falls, transform updates.
 
 imports
-    box2d.world_sync = sync
-    box2d.units = units
-    game.world = world
-    ori.io = io
+    box2d.world_sync as sync
+    box2d.units as units
+    game.world as world
+    ori.io as io
 end
 
 main()

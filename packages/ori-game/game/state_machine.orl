@@ -1,6 +1,6 @@
 module game.state_machine
 
-import ori.list = lists
+import ori.list as lists
 
 -- Named states only (no function-pointer fields). Game code switches on current.
 

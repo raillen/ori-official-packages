@@ -1,8 +1,8 @@
 module test.context_image
 
 imports
-    imgui.ui = ui
-    ori.test = test
+    imgui.ui as ui
+    ori.test as test
 end
 
 -- Multi-context + image helpers (PR5 / B3). Needs host window (init).

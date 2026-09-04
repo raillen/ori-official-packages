@@ -2,7 +2,7 @@
 name = "raygui"
 version = "0.2.0"
 entry = "raygui/ui.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "raygui immediate-mode UI bindings for Ori (requires raylib/ori-game)"
 license = "Zlib"
 native_libs = ["raygui", "raylib"]

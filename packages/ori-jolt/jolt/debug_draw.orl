@@ -3,11 +3,11 @@ module jolt.debug_draw
 -- 3D physics debug draw via `game.draw3d`. Path-dep `ori_game`.
 -- Pass half-extents / radius in meters (not milli) at draw time.
 
-import jolt.dynamics = jolt
-import jolt.units = units
-import game.draw3d = draw3d
-import game.color = color
-import ori.math.vec3 = vec3
+import jolt.dynamics as jolt
+import jolt.units as units
+import game.draw3d as draw3d
+import game.color as color
+import ori.math.vec3 as vec3
 
 public body_pos(body: jolt.Body) -> vec3.Vec3
     return vec3.Vec3 {

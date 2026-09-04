@@ -3,13 +3,13 @@ module app.spine_demo
 -- Animated Spine bones (hero_spine.json): Space toggles idle/walk.
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.input = input
-    game.spine = spine
-    ori.math.vec2 = vec2
-    ori.list = lists
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.input as input
+    game.spine as spine
+    ori.math.vec2 as vec2
+    ori.list as lists
 end
 
 var player: spine.SpinePlayer = spine.create_player(

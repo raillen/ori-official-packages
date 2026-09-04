@@ -1,8 +1,8 @@
 module test.noise
 
 imports
-    game.noise = n
-    ori.test = test
+    game.noise as n
+    ori.test as test
 end
 
 @test

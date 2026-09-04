@@ -3,7 +3,7 @@ module tracy.profiler
 -- Tracy instrumentation for Ori (zones / frames / message / plot).
 -- Headless counters always work; FULL build talks to Tracy server when linked.
 
-import ori.mem = mem
+import ori.mem as mem
 
 extern c
     public ori_tracy_zone_begin(name_ptr: int) -> void

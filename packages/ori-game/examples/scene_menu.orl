@@ -1,13 +1,13 @@
 module app.scene_menu
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.input = input
-    game.scene = scene
-    game.tween = tween
-    ori.math.vec2 = vec2
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.input as input
+    game.scene as scene
+    game.tween as tween
+    ori.math.vec2 as vec2
 end
 
 var screens: scene.SceneStack = scene.create("menu")

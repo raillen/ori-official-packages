@@ -2,8 +2,8 @@ module imgui.plot
 
 -- Tier 1 plotting helpers over imgui.ui plot buffer (milli-int samples).
 
-import imgui.ui = ui
-import ori.math = math
+import imgui.ui as ui
+import ori.math as math
 
 public clear() -> void
     ui.plot_clear()

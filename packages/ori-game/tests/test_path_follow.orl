@@ -1,9 +1,9 @@
 module test.path_follow
 
 imports
-    game.path_follow = pfollow
-    ori.math = math
-    ori.test = test
+    game.path_follow as pfollow
+    ori.math as math
+    ori.test as test
 end
 
 @test

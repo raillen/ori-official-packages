@@ -6,7 +6,7 @@ module game.gltf
 -- avoid last-segment import ambiguity with local and sibling modules.
 -- 0.2: mesh export (interleaved floats + indices) for upload helpers.
 
-import cgltf.loader = gltf
+import cgltf.loader as gltf
 
 -- Load a .gltf / .glb path. Returns true on parse success.
 public load_file(path: string) -> bool

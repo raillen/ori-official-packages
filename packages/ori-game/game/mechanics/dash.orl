@@ -1,6 +1,6 @@
 module game.mechanics.dash
 
-import ori.math.vec2 = vec2
+import ori.math.vec2 as vec2
 
 public struct DashState
     cooldown: float

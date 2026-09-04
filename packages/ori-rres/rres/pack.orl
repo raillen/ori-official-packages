@@ -1,7 +1,7 @@
 module rres.pack
 
-import ori.mem = mem
-import ori.fs = fs
+import ori.mem as mem
+import ori.fs as fs
 
 -- ORPK resource packs. Resource ids use raysan5 rres CRC32 of the entry name.
 

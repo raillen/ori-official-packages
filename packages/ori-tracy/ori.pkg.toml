@@ -2,7 +2,7 @@
 name = "tracy"
 version = "0.2.0"
 entry = "tracy/profiler.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "Tracy profiler instrumentation for Ori"
 license = "BSD-3-Clause"
 native_libs = ["ori_tracy_shim"]

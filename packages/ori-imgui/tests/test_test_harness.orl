@@ -1,8 +1,8 @@
 module test.test_harness
 
 imports
-    imgui.test_harness = th
-    ori.test = test
+    imgui.test_harness as th
+    ori.test as test
 end
 
 -- Pure Ori harness: headless, no window / no host.

@@ -23,8 +23,8 @@ ln -sfn "$HOME/Documentos/Projetos/ori-sqlite" ../ori-sqlite
 ## Use
 
 ```ori
-import web = web
-import web_session_sqlite = ssql
+import web as web
+import web_session_sqlite as ssql
 
 match ssql.use_sqlite_sessions("var/sessions.db")
 case ok(_):

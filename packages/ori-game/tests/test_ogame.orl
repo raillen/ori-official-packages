@@ -1,11 +1,11 @@
 module test.ogame
 
 imports
-    game.ogame = ogame
-    game.ogame_level = game_level
-    game.engine = engine
-    ori.test = test
-    ori.list = lists
+    game.ogame as ogame
+    game.ogame_level as game_level
+    game.engine as engine
+    ori.test as test
+    ori.list as lists
 end
 
 const PLAYER_JSON: string = "{\"format_version\":1,\"id\":\"player\",\"name\":\"Player\",\"script\":\"player.orl\",\"tags\":[\"player\"],\"events\":[\"create\",\"step\",\"destroy\"],\"vars\":[{\"name\":\"move_speed\",\"type\":\"float\",\"default\":5.0}],\"parent\":null}"

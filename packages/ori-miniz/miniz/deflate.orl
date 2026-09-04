@@ -1,6 +1,6 @@
 module miniz.deflate
 
-import ori.mem = mem
+import ori.mem as mem
 
 extern c
     public ori_mz_compress(src_ptr: int, src_nbytes: int, level: int) -> int

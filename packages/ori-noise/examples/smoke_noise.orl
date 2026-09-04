@@ -1,8 +1,8 @@
 module app.smoke_noise
 
 imports
-    noise.fnl = fnl
-    ori.io = io
+    noise.fnl as fnl
+    ori.io as io
 end
 
 main()

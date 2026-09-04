@@ -2,9 +2,9 @@ module harfbuzz.layout
 
 -- Shape + FreeType glyph metrics into placed runs (atlas/draw consumers).
 
-import freetype.face = ft
-import harfbuzz.shape = hb
-import ori.list = lists
+import freetype.face as ft
+import harfbuzz.shape as hb
+import ori.list as lists
 
 public struct PlacedGlyph
     glyph_id: int

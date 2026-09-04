@@ -1,11 +1,11 @@
 module app.smoke_gizmo
 
 imports
-    imguizmo.gizmo = gz
-    imguizmo.curve = curve
-    imguizmo.gradient = grad
-    imguizmo.zoom = zoom
-    ori.io = io
+    imguizmo.gizmo as gz
+    imguizmo.curve as curve
+    imguizmo.gradient as grad
+    imguizmo.zoom as zoom
+    ori.io as io
 end
 
 main()

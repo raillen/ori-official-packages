@@ -1,8 +1,8 @@
 module test.scene
 
 imports
-    ori.test = test
-    game.scene = scene
+    ori.test as test
+    game.scene as scene
 end
 
 @test

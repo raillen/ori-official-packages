@@ -3,10 +3,10 @@ module templates
 -- Server-side HTML templates (@{ }) for Ori.
 -- Spec: docs/planning/web-templates-discussion-roadmap.md
 
-import ori.string = str
-import ori.map = maps
-import ori.list = lists
-import ori.fs = fs
+import ori.string as str
+import ori.map as maps
+import ori.list as lists
+import ori.fs as fs
 
 -- ─── Errors ─────────────────────────────────────────────
 

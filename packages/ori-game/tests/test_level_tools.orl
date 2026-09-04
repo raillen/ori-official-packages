@@ -1,9 +1,9 @@
 module test.level_tools
 
 imports
-    game.ogame_level = level
-    game.ogame_level_tools = tools
-    ori.test = test
+    game.ogame_level as level
+    game.ogame_level_tools as tools
+    ori.test as test
 end
 
 @test

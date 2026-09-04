@@ -6,7 +6,7 @@ module game.obj
 -- `cgltf.loader` does not hit last-segment import ambiguity.
 -- 0.2: materials + interleaved mesh export [px,py,pz,nx,ny,nz,u,v]*V.
 
-import fast_obj.mesh = obj
+import fast_obj.mesh as obj
 
 -- Load Wavefront OBJ from path. Returns true on success.
 public load(path: string) -> bool

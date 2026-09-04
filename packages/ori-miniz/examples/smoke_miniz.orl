@@ -1,8 +1,8 @@
 module app.smoke_miniz
 
 imports
-    miniz.deflate = mz
-    ori.io = io
+    miniz.deflate as mz
+    ori.io as io
 end
 
 main()

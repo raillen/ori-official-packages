@@ -2,8 +2,8 @@ module game.postfx
 
 -- X2: toggable post/look presets (fog material params; host applies when shader loaded).
 
-import game.shader_presets = presets
-import game.shader = shader
+import game.shader_presets as presets
+import game.shader as shader
 
 public struct PostFxState
     fog_on: bool

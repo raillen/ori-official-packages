@@ -2,12 +2,12 @@ module game.font_atlas
 
 -- FreeType atlas → raylib texture + draw helpers.
 
-import freetype.face = ft
-import freetype.atlas = atlas
-import game.draw = draw
-import game.color = color
-import game.shape = shape
-import ori.math.vec2 = vec2
+import freetype.face as ft
+import freetype.atlas as atlas
+import game.draw as draw
+import game.color as color
+import game.shape as shape
+import ori.math.vec2 as vec2
 
 public struct FontAtlas
     texture: draw.TextureId

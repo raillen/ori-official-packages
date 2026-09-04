@@ -3,8 +3,8 @@ module freetype.text
 -- LTR metrics helpers (single codepoints + kerning pairs).
 -- Complex scripts / full strings → harfbuzz.shape.
 
-import freetype.face = ft
-import ori.list = lists
+import freetype.face as ft
+import ori.list as lists
 
 public struct GlyphMetrics
     codepoint: int

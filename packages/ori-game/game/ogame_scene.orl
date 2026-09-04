@@ -2,15 +2,15 @@ module game.ogame_scene
 
 -- Scene file: instances of Entity types (Studio content format).
 
-import ori.json = json
-import ori.map = maps
-import ori.list = lists
-import ori.math = math
-import ori.fs = fs
-import ori.format = fmt
-import ori.string = str
-import game.json_fields = jf
-import game.ogame_level = level
+import ori.json as json
+import ori.map as maps
+import ori.list as lists
+import ori.math as math
+import ori.fs as fs
+import ori.format as fmt
+import ori.string as str
+import game.json_fields as jf
+import game.ogame_level as level
 
 public struct VarOverride
     name: string

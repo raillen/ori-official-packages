@@ -1,10 +1,10 @@
 module game.tilemap
 
-import ori.list = lists
-import ori.format = fmt
-import ori.fs = fs
-import ori.math = math
-import game.shape = shape
+import ori.list as lists
+import ori.format as fmt
+import ori.fs as fs
+import ori.math as math
+import game.shape as shape
 
 public struct Tilemap
     width: int

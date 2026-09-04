@@ -2,12 +2,12 @@ module game.ogame_spawn
 
 -- Catalog + resolve/spawn instances into game.engine (R2–R3).
 
-import ori.list = lists
-import ori.math = math
-import ori.math.vec2 = vec2
-import game.ogame_entity = entity
-import game.ogame_scene = scene
-import game.engine = engine
+import ori.list as lists
+import ori.math as math
+import ori.math.vec2 as vec2
+import game.ogame_entity as entity
+import game.ogame_scene as scene
+import game.engine as engine
 
 public struct EntityCatalog
     entities: list[entity.EntityDef]

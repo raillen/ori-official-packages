@@ -3,13 +3,13 @@ module test.world_systems
 -- B2/B3: ordered systems + script create/step over game.world.
 
 imports
-    game.world = world
-    game.world_systems = systems
-    game.ogame_level = level
-    game.ogame_script = ogs
-    game.ogame_entity = entity
-    ori.test = test
-    ori.list = lists
+    game.world as world
+    game.world_systems as systems
+    game.ogame_level as level
+    game.ogame_script as ogs
+    game.ogame_entity as entity
+    ori.test as test
+    ori.list as lists
 end
 
 const CREATE_OGS: string = "-- ogs:print player create\n-- ogs:set_var ready = 1\n-- ogs:call on_ready\n"

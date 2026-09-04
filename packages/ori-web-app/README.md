@@ -76,8 +76,8 @@ myapp/
 ## Import
 
 ```ori
-import web_app = wa
-import web = web
+import web_app as wa
+import web as web
 
 main()
     var a: web.App = wa.standard_app()

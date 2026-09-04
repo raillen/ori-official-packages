@@ -2,7 +2,7 @@ module implot3d.charts
 
 -- ImPlot3D for Ori. 3D series buffer + axis labels always; FULL draw needs ImGui context.
 
-import ori.mem = mem
+import ori.mem as mem
 
 extern c
     public ori_implot3d_create_context() -> void

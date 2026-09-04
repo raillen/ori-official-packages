@@ -2,7 +2,7 @@ module game.path_follow
 
 -- GP4: fixed-capacity XZ path (no dynamic float lists — safer AOT).
 
-import ori.math = math
+import ori.math as math
 
 public struct PathFollow
     x0: float

@@ -1,12 +1,12 @@
 module app.audio_demo
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.input = input
-    game.audio = audio
-    ori.math.vec2 = vec2
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.input as input
+    game.audio as audio
+    ori.math.vec2 as vec2
 end
 
 var ready: bool = false

@@ -2,7 +2,7 @@
 name = "sqlite"
 version = "0.3.0"
 entry = "sqlite/db.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "SQLite bindings for Ori (amalgamation + thin C shim)"
 license = "MIT"
 native_libs = ["ori_sqlite_shim", "sqlite3"]

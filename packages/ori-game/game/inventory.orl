@@ -1,6 +1,6 @@
 module game.inventory
 
-import ori.list = lists
+import ori.list as lists
 
 public struct Item
     id: string

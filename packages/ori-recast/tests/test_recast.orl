@@ -1,8 +1,8 @@
 module test.recast
 
 imports
-    recast.nav = nav
-    ori.test = test
+    recast.nav as nav
+    ori.test as test
 end
 
 @test

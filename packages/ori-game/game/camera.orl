@@ -1,7 +1,7 @@
 module game.camera
 
-import ori.math.vec2 = vec2
-import raylib = rl
+import ori.math.vec2 as vec2
+import raylib as rl
 
 public struct Camera2D
     offset: vec2.Vec2

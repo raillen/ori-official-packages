@@ -1,8 +1,8 @@
 module test.timeline
 
 imports
-    imgui.timeline = tl
-    ori.test = test
+    imgui.timeline as tl
+    ori.test as test
 end
 
 @test

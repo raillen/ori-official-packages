@@ -1,8 +1,8 @@
 module app.pack_roundtrip
 
 imports
-    rres.pack = rres
-    ori.io = io
+    rres.pack as rres
+    ori.io as io
 end
 
 main()

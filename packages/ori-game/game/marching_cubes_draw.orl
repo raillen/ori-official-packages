@@ -2,11 +2,11 @@ module game.marching_cubes_draw
 
 -- Draw helpers for game.marching_cubes meshes (raylib 3D).
 
-import game.marching_cubes = mc
-import game.draw3d = draw3d
-import game.color = color
-import ori.math.vec3 = vec3
-import ori.list = lists
+import game.marching_cubes as mc
+import game.draw3d as draw3d
+import game.color as color
+import ori.math.vec3 as vec3
+import ori.list as lists
 
 vec_from_m(p: mc.Vec3m) -> vec3.Vec3
     return vec3.Vec3 {

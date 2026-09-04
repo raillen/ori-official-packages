@@ -1,8 +1,8 @@
 module test.noise
 
 imports
-    noise.fnl = fnl
-    ori.test = test
+    noise.fnl as fnl
+    ori.test as test
 end
 
 @test

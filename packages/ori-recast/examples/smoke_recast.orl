@@ -1,8 +1,8 @@
 module app.smoke_recast
 
 imports
-    recast.nav = nav
-    ori.io = io
+    recast.nav as nav
+    ori.io as io
 end
 
 main()

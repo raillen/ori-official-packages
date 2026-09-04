@@ -5,11 +5,11 @@ module game.spine
 --   position: units × 1000   rotation: degrees × 1000   time: seconds × 1000
 -- No mesh/skins/constraints. Good stick-figure / logic bones.
 
-import ori.json = json
-import ori.map = maps
-import ori.list = lists
-import ori.math = math
-import ori.fs = fs
+import ori.json as json
+import ori.map as maps
+import ori.list as lists
+import ori.math as math
+import ori.fs as fs
 
 public struct SpineBone
     name: string

@@ -1,11 +1,11 @@
 module test.ogame_level
 
 imports
-    game.ogame_level = level
-    game.ogame_level_csg = csg
-    game.ogame_alarms = alarms
-    ori.list = lists
-    ori.test = test
+    game.ogame_level as level
+    game.ogame_level_csg as csg
+    game.ogame_alarms as alarms
+    ori.list as lists
+    ori.test as test
 end
 
 @test

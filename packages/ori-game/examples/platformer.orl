@@ -1,16 +1,16 @@
 module app.platformer
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.input = input
-    game.shape = shape
-    game.collision = collision
-    game.mechanics.jumps = jumps
-    game.mechanics.movement = movement
-    ori.math.vec2 = vec2
-    ori.list = lists
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.input as input
+    game.shape as shape
+    game.collision as collision
+    game.mechanics.jumps as jumps
+    game.mechanics.movement as movement
+    ori.math.vec2 as vec2
+    ori.list as lists
 end
 
 var px: float = 100.0

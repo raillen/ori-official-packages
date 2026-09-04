@@ -1,12 +1,12 @@
 module test.world_physics
 
 imports
-    game.world = world
-    game.world_physics = wphys
-    game.world_systems = systems
-    game.ogame_level = level
-    ori.list = lists
-    ori.test = test
+    game.world as world
+    game.world_physics as wphys
+    game.world_systems as systems
+    game.ogame_level as level
+    ori.list as lists
+    ori.test as test
 end
 
 @test

@@ -3,13 +3,13 @@ module box2d.debug_draw
 -- 2D physics debug draw via `game.draw` (raylib). Path-dep `ori_game`.
 -- Bodies store no shape size; pass half-extents / radius in meters at draw time.
 
-import box2d.dynamics = b2
-import box2d.units = units
-import game.draw = draw
-import game.color = color
-import game.shape = shape
-import ori.math.vec2 = vec2
-import ori.math = math
+import box2d.dynamics as b2
+import box2d.units as units
+import game.draw as draw
+import game.color as color
+import game.shape as shape
+import ori.math.vec2 as vec2
+import ori.math as math
 
 public struct View2D
     origin_x: float

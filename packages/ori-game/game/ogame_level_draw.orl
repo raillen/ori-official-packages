@@ -2,13 +2,13 @@ module game.ogame_level_draw
 
 -- Runtime draw for level geometry: PBR lit cubes + mesh models + collider debug.
 
-import ori.list = lists
-import ori.math.vec3 = vec3
-import game.ogame_level = level
-import game.draw3d = draw3d
-import game.draw = draw2d
-import game.color = color
-import game.shader = shader
+import ori.list as lists
+import ori.math.vec3 as vec3
+import game.ogame_level as level
+import game.draw3d as draw3d
+import game.draw as draw2d
+import game.color as color
+import game.shader as shader
 
 var pbr_shader: shader.ShaderId = 0
 var pbr_loc_view: shader.LocationId = -1

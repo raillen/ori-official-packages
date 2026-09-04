@@ -4,11 +4,11 @@ module app.nav_bake_smoke
 -- Run from ori-game root with recast native_libs staged.
 
 imports
-    game.nav_bake = bake
-    game.ogame_level = level
-    game.path_follow = pfollow
-    ori.io = io
-    ori.list = lists
+    game.nav_bake as bake
+    game.ogame_level as level
+    game.path_follow as pfollow
+    ori.io as io
+    ori.list as lists
 end
 
 make_floor(x: float, z: float, sx: float, sz: float) -> level.SolidPiece

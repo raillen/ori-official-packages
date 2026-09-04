@@ -3,10 +3,10 @@ module markdown.draw
 -- Product draw for markdown.parse using imgui.ui (path-dep ori-imgui).
 -- Call only inside an active ImGui frame. Headless CI uses parse + ime_stub only.
 
-import markdown.parse = md
-import imgui.ui = ui
-import ori.format = fmt
-import ori.string = str
+import markdown.parse as md
+import imgui.ui as ui
+import ori.format as fmt
+import ori.string as str
 
 int_text(n: int) -> string
     return fmt.number(float(n), 0)

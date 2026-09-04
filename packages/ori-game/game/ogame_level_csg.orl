@@ -2,8 +2,8 @@ module game.ogame_level_csg
 
 -- Multi-piece AABB CSG: oriented box → world AABB, sequential carve into N slabs.
 
-import ori.list = lists
-import ori.math = math
+import ori.list as lists
+import ori.math as math
 
 public struct Aabb
     x: float

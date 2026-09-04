@@ -1,7 +1,7 @@
 module app.wrapper_test
 
 import ori.mem
-import ori.math.vec2 = vec2
+import ori.math.vec2 as vec2
 
 -- Raylib extern declarations
 extern c

@@ -1,10 +1,10 @@
 module app.smoke
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    ori.math.vec2 = vec2
+    game.app as app
+    game.draw as draw
+    game.color as color
+    ori.math.vec2 as vec2
 end
 
 on_update(_dt: float) -> void

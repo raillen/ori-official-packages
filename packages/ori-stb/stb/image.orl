@@ -1,6 +1,6 @@
 module stb.image
 
-import ori.mem = mem
+import ori.mem as mem
 
 extern c
     public ori_stb_load(path_ptr: int, desired_channels: int) -> int

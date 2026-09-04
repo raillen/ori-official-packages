@@ -3,8 +3,8 @@ module app.multi_message
 -- Loopback: client sends three reliable messages; server echoes count.
 
 imports
-    enet.host = enet
-    ori.io = io
+    enet.host as enet
+    ori.io as io
 end
 
 const port: int = 27778

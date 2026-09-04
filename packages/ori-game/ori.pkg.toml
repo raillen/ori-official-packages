@@ -2,7 +2,7 @@
 name = "ori_game"
 version = "0.3.0"
 entry = "game/app.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "Game helpers (L1) for Ori — L0 raylib lives in ori-raylib"
 authors = ["Ori Team"]
 license = "MIT"

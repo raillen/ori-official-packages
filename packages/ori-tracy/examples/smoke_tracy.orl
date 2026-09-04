@@ -1,8 +1,8 @@
 module app.smoke_tracy
 
 imports
-    tracy.profiler = tracy
-    ori.io = io
+    tracy.profiler as tracy
+    ori.io as io
 end
 
 main()

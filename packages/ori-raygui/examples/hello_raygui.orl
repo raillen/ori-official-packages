@@ -1,9 +1,9 @@
 module app.hello_raygui
 
 imports
-    raylib_raw = rl
-    raygui.ui = ui
-    ori.mem = mem
+    raylib_raw as rl
+    raygui.ui as ui
+    ori.mem as mem
 end
 
 var volume: float = 0.5

@@ -1,10 +1,10 @@
 module test.camera_matrices
 
 imports
-    game.camera_matrix = cmat
-    ori.math.vec3 = vec3
-    ori.test = test
-    ori.list = lists
+    game.camera_matrix as cmat
+    ori.math.vec3 as vec3
+    ori.test as test
+    ori.list as lists
 end
 
 @test

@@ -1,9 +1,9 @@
 module app.boxes_fall
 
 imports
-    box2d.dynamics = b2
-    box2d.units = units
-    ori.io = io
+    box2d.dynamics as b2
+    box2d.units as units
+    ori.io as io
 end
 
 main()

@@ -1,6 +1,6 @@
 module jolt.units
 
-import ori.math = math
+import ori.math as math
 
 -- Milli-unit boundary (meters×1000, µs for dt) — same idea as ori-box2d.
 

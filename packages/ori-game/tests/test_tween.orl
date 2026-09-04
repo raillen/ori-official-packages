@@ -1,8 +1,8 @@
 module test.tween
 
 imports
-    ori.test = test
-    game.tween = tween
+    ori.test as test
+    game.tween as tween
 end
 
 @test

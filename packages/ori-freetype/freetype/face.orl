@@ -2,7 +2,7 @@ module freetype.face
 
 -- FreeType face + glyph raster (shim). Handles are ints (64-bit ABI).
 
-import ori.mem = mem
+import ori.mem as mem
 
 public alias FaceId = int
 

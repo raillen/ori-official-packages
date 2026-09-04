@@ -2,7 +2,7 @@
 name = "sample_project"
 version = "0.1.0"
 entry = "main.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "Ori Game Studio sample / engine_test (path-dep on ori_game)"
 # Do NOT list native_libs here: Ori resolves them from package_root/lib/<triple>.
 # sample_project has no staged libs; transitive path-dep ori_game + raylib do.

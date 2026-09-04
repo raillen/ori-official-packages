@@ -5,7 +5,7 @@ module game.physfs_assets
 -- binary unless a module that imports this (or `physfs.fs`) is linked.
 -- 0.2: write-dir, mkdir, write, multi-mount re-exports.
 
-import physfs.fs = pfs
+import physfs.fs as pfs
 
 public init() -> bool
     return pfs.init()

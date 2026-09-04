@@ -3,8 +3,8 @@ module app.tf_codec_smoke
 -- Headless encode/decode smoke (no network).
 
 imports
-    enet.tf_codec = tf
-    ori.io = io
+    enet.tf_codec as tf
+    ori.io as io
 end
 
 main()

@@ -1,6 +1,6 @@
 module physfs.fs
 
-import ori.mem = mem
+import ori.mem as mem
 
 extern c
     public ori_physfs_init() -> int

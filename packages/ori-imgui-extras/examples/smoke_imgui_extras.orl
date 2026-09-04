@@ -1,13 +1,13 @@
 module app.smoke_imgui_extras
 
 imports
-    imgui_extras.notify = notify
-    imgui_extras.search = search
-    imgui_extras.hotkey = hotkey
-    imgui_extras.command_palette = palette
-    imgui_extras.metrics = metrics
-    ori.io = io
-    ori.list = lists
+    imgui_extras.notify as notify
+    imgui_extras.search as search
+    imgui_extras.hotkey as hotkey
+    imgui_extras.command_palette as palette
+    imgui_extras.metrics as metrics
+    ori.io as io
+    ori.list as lists
 end
 
 -- Headless smoke: toast queue, filter, hotkey, palette run, fps/frame milli.

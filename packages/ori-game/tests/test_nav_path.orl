@@ -3,8 +3,8 @@ module test.nav_path
 -- Headless: host ctor only. Full path query needs staged recast (see test_navmesh when libs link).
 
 imports
-    game.nav_path = npath
-    ori.test = test
+    game.nav_path as npath
+    ori.test as test
 end
 
 @test

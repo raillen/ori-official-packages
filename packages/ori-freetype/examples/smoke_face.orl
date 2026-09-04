@@ -1,10 +1,10 @@
 module app.smoke_face
 
 imports
-    freetype.face = ft
-    freetype.text = text
-    ori.io = io
-    ori.os = os
+    freetype.face as ft
+    freetype.text as text
+    ori.io as io
+    ori.os as os
 end
 
 main()

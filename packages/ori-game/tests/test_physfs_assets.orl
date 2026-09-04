@@ -1,8 +1,8 @@
 module test.physfs_assets
 
 imports
-    game.physfs_assets = pfs
-    ori.test = test
+    game.physfs_assets as pfs
+    ori.test as test
 end
 
 @test

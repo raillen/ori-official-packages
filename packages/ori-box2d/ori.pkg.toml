@@ -2,7 +2,7 @@
 name = "box2d"
 version = "0.3.0"
 entry = "box2d/dynamics.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "Box2D 3.x physics bindings for Ori"
 license = "MIT"
 native_libs = ["ori_box2d_shim", "box2d"]

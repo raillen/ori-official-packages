@@ -4,8 +4,8 @@ module tests.l1_api
 -- `ori check` on game/* and smoke compile of examples/hello_3d.orl.
 
 imports
-    ori.test = test
-    game.ids = ids
+    ori.test as test
+    game.ids as ids
 end
 
 @test

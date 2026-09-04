@@ -2,7 +2,7 @@
 name = "web_framework"
 version = "0.1.0"
 entry = "src/lib.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "Symbolic meta-package: pulls the Ori web core stack (web, templates, web_app) from the registry"
 
 # Version pins only — no vendored sources. `ori install web_framework@0.1.0`

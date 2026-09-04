@@ -1,10 +1,10 @@
 module test.texinspect
 
 imports
-    texinspect.inspect = insp
-    texinspect.zoom = zoom
-    texinspect.channels = ch
-    ori.test = test
+    texinspect.inspect as insp
+    texinspect.zoom as zoom
+    texinspect.channels as ch
+    ori.test as test
 end
 
 @test

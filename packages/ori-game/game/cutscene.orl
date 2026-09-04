@@ -2,7 +2,7 @@ module game.cutscene
 
 -- Lightweight step runner: wait / dialogue-line / marker.
 
-import ori.list = lists
+import ori.list as lists
 
 public const STEP_WAIT: int = 1
 public const STEP_DIALOGUE: int = 2

@@ -1,8 +1,8 @@
 module test.compress
 
 imports
-    game.compress = c
-    ori.test = test
+    game.compress as c
+    ori.test as test
 end
 
 @test

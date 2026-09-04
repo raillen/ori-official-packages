@@ -3,8 +3,8 @@ module texinspect.inspect
 -- Texture inspect session: texture id, size, zoom, channel mask, pan.
 -- Headless-safe state machine (G1). Product draw: texinspect.draw.
 
-import texinspect.zoom = zoom
-import texinspect.channels = ch
+import texinspect.zoom as zoom
+import texinspect.channels as ch
 
 public struct Inspect
     texture_id: int

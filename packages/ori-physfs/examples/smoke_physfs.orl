@@ -1,8 +1,8 @@
 module app.smoke_physfs
 
 imports
-    physfs.fs = pfs
-    ori.io = io
+    physfs.fs as pfs
+    ori.io as io
 end
 
 main()

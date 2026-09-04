@@ -61,8 +61,8 @@ Smoke **never** opens a window. Draw is only `ori check`'d when `../ori-imgui` e
 ### Draw (`markdown.draw`)
 
 ```ori
-import markdown.parse = md
-import markdown.draw = draw
+import markdown.parse as md
+import markdown.draw as draw
 -- inside ImGui frame:
 doc = md.open_ui(doc)
 doc = draw.draw(doc)

@@ -1,10 +1,10 @@
 module test.stb
 
 imports
-    stb.image = img
-    stb.perlin = perlin
-    stb.rect_pack = rp
-    ori.test = test
+    stb.image as img
+    stb.perlin as perlin
+    stb.rect_pack as rp
+    ori.test as test
 end
 
 @test

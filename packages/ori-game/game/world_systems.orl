@@ -4,11 +4,11 @@ module game.world_systems
 -- Fixed order: input → script_step → move → collision.
 -- Camera/draw stay in the app (or B4 camera_system later).
 
-import ori.list = lists
-import game.world = world
-import game.ogame_level = level
-import game.ogame_script = ogs
-import game.world_physics = wphys
+import ori.list as lists
+import game.world as world
+import game.ogame_level as level
+import game.ogame_script as ogs
+import game.world_physics as wphys
 
 -- Axes already resolved from keys/gamepad by the host.
 public struct FrameInput

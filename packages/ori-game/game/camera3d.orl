@@ -1,7 +1,7 @@
 module game.camera3d
 
-import ori.math.vec3 = vec3
-import raylib = rl
+import ori.math.vec3 as vec3
+import raylib as rl
 
 -- CAMERA_PERSPECTIVE = 0, CAMERA_ORTHOGRAPHIC = 1 (raylib CameraProjection)
 public const PROJECTION_PERSPECTIVE: int = 0

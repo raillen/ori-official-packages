@@ -3,9 +3,9 @@ module game.rres_assets
 -- Glue: ORPK packs (`rres.pack`) → `game.assets` cache via raylib loaders.
 -- Consumers must path-dep both `ori_game` and `rres` and link `rres` + raylib.
 
-import rres.pack = pack
-import game.assets = assets
-import game.asset_loader = loader
+import rres.pack as pack
+import game.assets as assets
+import game.asset_loader as loader
 
 -- Re-export pack handle type for call sites.
 public alias Pack = pack.Pack

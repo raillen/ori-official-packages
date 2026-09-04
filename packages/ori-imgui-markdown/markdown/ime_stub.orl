@@ -4,7 +4,7 @@ module markdown.ime_stub
 -- Real IMM32 composition is Phase OS Windows-only (DearImGui-with-IMM32 family).
 -- On Linux this module keeps enable flags and empty composition; no OS hooks.
 
-import ori.string = str
+import ori.string as str
 
 public const PLATFORM_UNKNOWN: int = 0
 public const PLATFORM_LINUX: int = 1

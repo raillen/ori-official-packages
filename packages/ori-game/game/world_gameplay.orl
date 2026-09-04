@@ -3,11 +3,11 @@ module game.world_gameplay
 -- GP*/R* gameplay host over ECS-lite World (parallel bags by EntityId).
 -- Combat health, simple enemy chase AI, wave counters, HUD snapshot.
 
-import ori.list = lists
-import ori.format = fmt
-import ori.math = math
-import game.world = world
-import game.mechanics.combat = combat
+import ori.list as lists
+import ori.format as fmt
+import ori.math as math
+import game.world as world
+import game.mechanics.combat as combat
 
 public struct HealthSlot
     entity_id: world.EntityId

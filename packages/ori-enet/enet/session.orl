@@ -2,7 +2,7 @@ module enet.session
 
 -- R7: minimal host/client session (loopback-friendly) for game samples.
 
-import enet.host = enet
+import enet.host as enet
 
 public const ROLE_NONE: int = 0
 public const ROLE_HOST: int = 1

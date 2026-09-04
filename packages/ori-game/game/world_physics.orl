@@ -4,8 +4,8 @@ module game.world_physics
 -- Default: pure Ori gravity + integrate (no flecs, no mandatory ECO).
 -- body_handle: optional ECO id (box2d/jolt) for games that path-dep solvers.
 
-import ori.list = lists
-import game.world = world
+import ori.list as lists
+import game.world as world
 
 public struct PhysicsBodyComp
     mass: float

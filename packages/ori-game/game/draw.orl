@@ -1,12 +1,12 @@
 module game.draw
 
-import raylib = rl
-import game.color = color
-import game.shape = shape
-import ori.math.vec2 = vec2
-import ori.math = math
-import ori.mem = mem
-import ori.list = lists
+import raylib as rl
+import game.color as color
+import game.shape as shape
+import ori.math.vec2 as vec2
+import ori.math as math
+import ori.mem as mem
+import ori.list as lists
 
 public alias TextureId = int
 public alias FontId = int

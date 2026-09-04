@@ -1,6 +1,6 @@
 module game.shape
 
-import ori.math.vec2 = vec2
+import ori.math.vec2 as vec2
 
 public struct Rectangle
     x: float

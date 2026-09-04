@@ -2,8 +2,8 @@ module enet.host
 
 -- ENet UDP multiplayer for Ori (S3). Int handles; packet bytes via path/string.
 
-import ori.mem = mem
-import ori.fs = fs
+import ori.mem as mem
+import ori.fs as fs
 
 extern c
     public ori_enet_initialize() -> int

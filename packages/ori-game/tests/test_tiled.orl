@@ -1,10 +1,10 @@
 module test.tiled
 
 imports
-    game.tiled = tiled
-    game.tilemap = tilemap
-    ori.test = test
-    ori.list = lists
+    game.tiled as tiled
+    game.tilemap as tilemap
+    ori.test as test
+    ori.list as lists
 end
 
 const SAMPLE: string = "{\"width\":8.0,\"height\":5.0,\"tilewidth\":32.0,\"tileheight\":32.0,\"orientation\":\"orthogonal\",\"layers\":[{\"name\":\"ground\",\"type\":\"tilelayer\",\"visible\":true,\"opacity\":1.0,\"width\":8.0,\"height\":5.0,\"data\":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]},{\"name\":\"entities\",\"type\":\"objectgroup\",\"visible\":true,\"opacity\":1.0,\"objects\":[{\"id\":3.0,\"name\":\"player_start\",\"type\":\"spawn\",\"x\":48.0,\"y\":64.0,\"width\":16.0,\"height\":16.0,\"visible\":true}]}]}"

@@ -1,10 +1,10 @@
 module app.character_frame_test
 
 imports
-    jolt.dynamics = jolt
-    jolt.character_ctrl = ctrl
-    jolt.units = units
-    ori.io = io
+    jolt.dynamics as jolt
+    jolt.character_ctrl as ctrl
+    jolt.units as units
+    ori.io as io
 end
 
 main()

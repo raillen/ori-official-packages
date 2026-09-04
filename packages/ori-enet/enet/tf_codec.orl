@@ -4,8 +4,8 @@ module enet.tf_codec
 -- Format: "tf:<x>,<y>,<z>" with 2 decimal milli-ish floats as plain numbers.
 -- Keep pure (no enet link) for unit-style checks inside enet package.
 
-import ori.format = fmt
-import ori.string = str
+import ori.format as fmt
+import ori.string as str
 
 public struct TfPose
     x: float

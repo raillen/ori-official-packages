@@ -1,8 +1,8 @@
 module app.smoke_lz4
 
 imports
-    lz4.codec = lz
-    ori.io = io
+    lz4.codec as lz
+    ori.io as io
 end
 
 main()

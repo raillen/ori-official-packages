@@ -1,10 +1,10 @@
 module test.curve_gradient_zoom
 
 imports
-    imguizmo.curve = curve
-    imguizmo.gradient = grad
-    imguizmo.zoom = zoom
-    ori.test = test
+    imguizmo.curve as curve
+    imguizmo.gradient as grad
+    imguizmo.zoom as zoom
+    ori.test as test
 end
 
 @test

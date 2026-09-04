@@ -40,7 +40,7 @@ export ORI_USE_SYSTEM_LINKER=1
 ### notify
 
 ```ori
-import imgui_extras.notify = notify
+import imgui_extras.notify as notify
 var q = notify.create(3000, 5)
 q = notify.push_info(q, "Saved")
 q = notify.tick(q, frame_dt_milli)
@@ -49,7 +49,7 @@ q = notify.tick(q, frame_dt_milli)
 ### search
 
 ```ori
-import imgui_extras.search = search
+import imgui_extras.search as search
 var fl = search.create()
 fl = search.add_item(fl, "Player")
 fl = search.set_query(fl, "play")
@@ -59,7 +59,7 @@ fl = search.set_query(fl, "play")
 ### hotkey
 
 ```ori
-import imgui_extras.hotkey = hotkey
+import imgui_extras.hotkey as hotkey
 var h = hotkey.begin_capture(hotkey.create())
 h = hotkey.feed_key(h, "S", true, true, false)
 -- hotkey.chord_of(h) == "Ctrl+Shift+S"
@@ -68,7 +68,7 @@ h = hotkey.feed_key(h, "S", true, true, false)
 ### command_palette
 
 ```ori
-import imgui_extras.command_palette = palette
+import imgui_extras.command_palette as palette
 var p = palette.create()
 p = palette.register(p, "file.save", "Save", "Ctrl+S")
 p = palette.open_ui(p)
@@ -80,7 +80,7 @@ p = palette.run_filtered_at(p, 0)
 ### metrics
 
 ```ori
-import imgui_extras.metrics = metrics
+import imgui_extras.metrics as metrics
 var m = metrics.create()
 m = metrics.record_frame(m, 16)
 -- metrics.frame_milli_of(m), metrics.fps_milli_of(m), metrics.integer_fps_of(m)

@@ -1,8 +1,8 @@
 module test.gizmo
 
 imports
-    imguizmo.gizmo = gz
-    ori.test = test
+    imguizmo.gizmo as gz
+    ori.test as test
 end
 
 @test

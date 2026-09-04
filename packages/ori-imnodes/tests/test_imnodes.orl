@@ -1,8 +1,8 @@
 module test.imnodes
 
 imports
-    imnodes.editor = ed
-    ori.test = test
+    imnodes.editor as ed
+    ori.test as test
 end
 
 @test

@@ -3,20 +3,20 @@ module app.physics_host_sample
 -- R4.1: pure Ori PhysicsHost gravity + move + collision (Linux, no ECO Jolt required).
 
 imports
-    game.app = app
-    game.draw = draw
-    game.draw3d = draw3d
-    game.camera3d = cam3
-    game.color = color
-    game.input = input
-    game.world = world
-    game.world_systems = systems
-    game.world_physics = wphys
-    game.ogame_level = level
-    ori.list = lists
-    ori.math.vec2 = vec2
-    ori.math.vec3 = vec3
-    ori.format = fmt
+    game.app as app
+    game.draw as draw
+    game.draw3d as draw3d
+    game.camera3d as cam3
+    game.color as color
+    game.input as input
+    game.world as world
+    game.world_systems as systems
+    game.world_physics as wphys
+    game.ogame_level as level
+    ori.list as lists
+    ori.math.vec2 as vec2
+    ori.math.vec3 as vec3
+    ori.format as fmt
 end
 
 var cam: cam3.Camera3D = cam3.create_perspective(

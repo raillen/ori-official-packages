@@ -1,11 +1,11 @@
 module test.widgets
 
 imports
-    widgets.knob = knob
-    widgets.toggle = toggle
-    widgets.spinner = spinner
-    widgets.spectrum = spectrum
-    ori.test = test
+    widgets.knob as knob
+    widgets.toggle as toggle
+    widgets.spinner as spinner
+    widgets.spectrum as spectrum
+    ori.test as test
 end
 
 @test

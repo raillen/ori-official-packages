@@ -3,10 +3,10 @@ module game.ogame_level_tools
 -- Level author tools (E1): grid snap + face extrude/push-pull on brushes.
 -- Runtime only mutates LevelGeometry; shell panels emit these commands.
 
-import ori.list = lists
-import ori.math = math
-import game.ogame_level = level
-import game.ogame_level_csg = csg
+import ori.list as lists
+import ori.math as math
+import game.ogame_level as level
+import game.ogame_level_csg as csg
 
 public const AXIS_X: int = 0
 public const AXIS_Y: int = 1

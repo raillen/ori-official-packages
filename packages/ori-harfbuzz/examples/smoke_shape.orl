@@ -1,11 +1,11 @@
 module app.smoke_shape
 
 imports
-    freetype.face = ft
-    harfbuzz.shape = hb
-    ori.io = io
-    ori.os = os
-    ori.list = lists
+    freetype.face as ft
+    harfbuzz.shape as hb
+    ori.io as io
+    ori.os as os
+    ori.list as lists
 end
 
 main()

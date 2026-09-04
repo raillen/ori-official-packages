@@ -6,17 +6,17 @@ module examples.perf_window_probe
 -- Run: ori compile examples/perf_window_probe.orl -o /tmp/probe && /tmp/probe
 
 imports
-    game.app = app
-    game.draw3d = draw3d
-    game.camera3d = cam3
-    game.draw = draw2d
-    game.color = color
-    ori.math.vec2 = vec2
-    ori.math.vec3 = vec3
-    ori.io = io
-    ori.format = fmt
-    ori.math = math
-    ori.time = time
+    game.app as app
+    game.draw3d as draw3d
+    game.camera3d as cam3
+    game.draw as draw2d
+    game.color as color
+    ori.math.vec2 as vec2
+    ori.math.vec3 as vec3
+    ori.io as io
+    ori.format as fmt
+    ori.math as math
+    ori.time as time
 end
 
 var frames: int = 0

@@ -1,8 +1,8 @@
 module app.imgui_demo
 
 imports
-    imgui.ui = ui
-    ori.io = io
+    imgui.ui as ui
+    ori.io as io
 end
 
 var clicks: int = 0

@@ -2,7 +2,7 @@ module imgui.curves
 
 -- Cubic-ish piecewise linear curve (milli) for Tier 2 MVP.
 
-import ori.list = lists
+import ori.list as lists
 
 public struct Point
     t_milli: int

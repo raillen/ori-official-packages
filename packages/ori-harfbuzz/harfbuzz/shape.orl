@@ -2,9 +2,9 @@ module harfbuzz.shape
 
 -- HarfBuzz shaping on FreeType faces (ori-freetype).
 
-import ori.mem = mem
-import ori.list = lists
-import freetype.face = ft
+import ori.mem as mem
+import ori.list as lists
+import freetype.face as ft
 
 -- Direction codes (match C shim ORI_HB_DIR_*).
 public const DIR_LTR: int = 0

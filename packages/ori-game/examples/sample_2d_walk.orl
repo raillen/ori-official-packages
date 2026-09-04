@@ -3,15 +3,15 @@ module app.sample_2d_walk
 -- T3: minimal 2D walk sample (tilemap solids + circle player).
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.input = input
-    game.tilemap = tilemap
-    game.shape = shape
-    ori.list = lists
-    ori.math.vec2 = vec2
-    ori.format = fmt
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.input as input
+    game.tilemap as tilemap
+    game.shape as shape
+    ori.list as lists
+    ori.math.vec2 as vec2
+    ori.format as fmt
 end
 
 var walk_map: tilemap.Tilemap = tilemap.create(16, 10, 32.0)

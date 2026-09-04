@@ -3,11 +3,11 @@ module app.jolt_character_world_test
 -- R4.3: World player + static floor/solids + CharacterVirtual step (headless).
 
 imports
-    jolt.world_character = wc
-    game.world = world
-    game.ogame_level = level
-    ori.list = lists
-    ori.io = io
+    jolt.world_character as wc
+    game.world as world
+    game.ogame_level as level
+    ori.list as lists
+    ori.io as io
 end
 
 main()

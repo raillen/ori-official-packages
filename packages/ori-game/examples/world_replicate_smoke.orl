@@ -3,9 +3,9 @@ module app.world_replicate_smoke
 -- R7.2+: headless capture → encode → apply_message roundtrip.
 
 imports
-    game.world = world
-    game.world_replicate = wr
-    ori.io = io
+    game.world as world
+    game.world_replicate as wr
+    ori.io as io
 end
 
 main()

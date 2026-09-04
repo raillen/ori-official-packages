@@ -1,8 +1,8 @@
 module test.gltf
 
 imports
-    game.gltf = gltf
-    ori.test = test
+    game.gltf as gltf
+    ori.test as test
 end
 
 @test

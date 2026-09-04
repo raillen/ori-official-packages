@@ -3,12 +3,12 @@ module texinspect.draw
 -- Product draw for texinspect.inspect using imgui.ui (path-dep ori-imgui).
 -- Call only inside an active ImGui frame. Headless CI uses inspect state only.
 
-import texinspect.inspect = insp
-import texinspect.channels = ch
-import texinspect.zoom = zoom
-import imgui.ui = ui
-import ori.format = fmt
-import ori.string = str
+import texinspect.inspect as insp
+import texinspect.channels as ch
+import texinspect.zoom as zoom
+import imgui.ui as ui
+import ori.format as fmt
+import ori.string as str
 
 int_text(n: int) -> string
     return fmt.number(float(n), 0)

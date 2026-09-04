@@ -3,20 +3,20 @@ module test.phase_g_l
 -- Smoke tests for runtime slices G–L (controller, layers, triggers, gameplay, scene helpers).
 
 imports
-    game.character_controller = ctrl
-    game.collision_layers = layers
-    game.world_triggers = trig
-    game.world_gameplay = gp
-    game.world = world
-    game.ogame_scene = scene
-    game.ogame_level = level
-    game.ogame_level_tools = ltools
-    game.multi_scene = mscene
-    game.tilemap = tilemap
-    ori.math = math
-    ori.test = test
-    ori.list = lists
-    ori.string = str
+    game.character_controller as ctrl
+    game.collision_layers as layers
+    game.world_triggers as trig
+    game.world_gameplay as gp
+    game.world as world
+    game.ogame_scene as scene
+    game.ogame_level as level
+    game.ogame_level_tools as ltools
+    game.multi_scene as mscene
+    game.tilemap as tilemap
+    ori.math as math
+    ori.test as test
+    ori.list as lists
+    ori.string as str
 end
 
 spawn_tagged(w: world.World, tag: string, x: float, z: float) -> world.World

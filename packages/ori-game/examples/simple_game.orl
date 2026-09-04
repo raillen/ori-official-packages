@@ -1,10 +1,10 @@
 module app.simple_game
 
 imports
-    game.collision = collision
-    game.shape = shape
-    ori.math.vec2 = vec2
-    ori.io = io
+    game.collision as collision
+    game.shape as shape
+    ori.math.vec2 as vec2
+    ori.io as io
 end
 
 main()

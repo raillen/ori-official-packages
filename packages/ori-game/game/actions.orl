@@ -2,9 +2,9 @@ module game.actions
 
 -- Named input actions → key rebinding (pure Ori over game.input).
 
-import game.input = input
-import ori.list = lists
-import ori.fs = fs
+import game.input as input
+import ori.list as lists
+import ori.fs as fs
 
 public struct Binding
     action: string

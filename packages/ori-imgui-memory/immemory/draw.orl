@@ -3,11 +3,11 @@ module immemory.draw
 -- Product draw for immemory.buffer using imgui.ui (path-dep ori-imgui).
 -- Call only inside an active ImGui frame. Headless CI uses buffer + hex only.
 
-import immemory.buffer = buf
-import immemory.hex = hex
-import imgui.ui = ui
-import ori.format = fmt
-import ori.string = str
+import immemory.buffer as buf
+import immemory.hex as hex
+import imgui.ui as ui
+import ori.format as fmt
+import ori.string as str
 
 int_text(n: int) -> string
     return fmt.number(float(n), 0)

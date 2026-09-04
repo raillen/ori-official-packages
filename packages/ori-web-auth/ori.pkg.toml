@@ -2,5 +2,5 @@
 name = "web_auth"
 version = "0.1.0"
 entry = "src/lib.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "Optional 2FA helpers for Ori web apps (TOTP RFC 6238 + recovery codes)"

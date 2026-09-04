@@ -1,11 +1,11 @@
 module test.multi_scene
 
 imports
-    game.multi_scene = ms
-    game.ogame = ogame
-    game.world = world
-    ori.list = lists
-    ori.test = test
+    game.multi_scene as ms
+    game.ogame as ogame
+    game.world as world
+    ori.list as lists
+    ori.test as test
 end
 
 sample_entity_paths() -> list[string]

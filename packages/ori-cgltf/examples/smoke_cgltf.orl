@@ -1,8 +1,8 @@
 module app.smoke_cgltf
 
 imports
-    cgltf.loader = gltf
-    ori.io = io
+    cgltf.loader as gltf
+    ori.io as io
 end
 
 main()

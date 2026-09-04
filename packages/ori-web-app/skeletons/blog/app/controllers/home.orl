@@ -1,8 +1,8 @@
 module app.controllers.home
 
-import app.application = app
-import web = web
-import templates = tpl
+import app.application as app
+import web as web
+import templates as tpl
 
 public index(req: web.Request) -> web.ActionResult
     var d: tpl.Data = tpl.empty_data()

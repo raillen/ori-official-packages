@@ -3,9 +3,9 @@ module imtextedit.lang
 -- Language id stub + lightweight highlight tokenizer (headless).
 -- Not full ColorTextEdit grammar — product G1 stub for Studio/script panes.
 
-import imtextedit.buffer = buf
-import ori.list = lists
-import ori.string = str
+import imtextedit.buffer as buf
+import ori.list as lists
+import ori.string as str
 
 public const KIND_PLAIN: int = 0
 public const KIND_KEYWORD: int = 1

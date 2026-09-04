@@ -1,12 +1,12 @@
 module app.smoke_immemory
 
 imports
-    immemory.buffer = buf
-    immemory.hex = hex
-    ori.io = io
-    ori.list = lists
-    ori.bytes = by
-    ori.string = str
+    immemory.buffer as buf
+    immemory.hex as hex
+    ori.io as io
+    ori.list as lists
+    ori.bytes as by
+    ori.string as str
 end
 
 -- Headless smoke: bind buffer, read/write cell, hex row helpers — no GUI.

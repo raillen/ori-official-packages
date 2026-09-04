@@ -1,7 +1,7 @@
 module game.collision
 
-import ori.math.vec2 = vec2
-import game.shape = shape
+import ori.math.vec2 as vec2
+import game.shape as shape
 
 public rects_overlap(a: shape.Rectangle, b: shape.Rectangle) -> bool
     return a.x < b.x + b.width

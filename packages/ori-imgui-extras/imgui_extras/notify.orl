@@ -3,7 +3,7 @@ module imgui_extras.notify
 -- Toast notification queue (headless-safe).
 -- Product UI draws visible messages; tick expires by remaining_milli.
 
-import ori.list = lists
+import ori.list as lists
 
 public const KIND_INFO: int = 0
 public const KIND_WARN: int = 1

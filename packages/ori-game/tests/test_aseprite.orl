@@ -1,9 +1,9 @@
 module test.aseprite
 
 imports
-    game.aseprite = ase
-    ori.test = test
-    ori.list = lists
+    game.aseprite as ase
+    ori.test as test
+    ori.list as lists
 end
 
 const SAMPLE: string = "{\"frames\":[{\"filename\":\"a\",\"frame\":{\"x\":0.0,\"y\":0.0,\"w\":16.0,\"h\":16.0},\"duration\":100.0},{\"filename\":\"b\",\"frame\":{\"x\":16.0,\"y\":0.0,\"w\":16.0,\"h\":16.0},\"duration\":100.0},{\"filename\":\"c\",\"frame\":{\"x\":32.0,\"y\":0.0,\"w\":16.0,\"h\":16.0},\"duration\":100.0}],\"meta\":{\"image\":\"sheet.png\",\"size\":{\"w\":48.0,\"h\":16.0},\"frameTags\":[{\"name\":\"idle\",\"from\":0.0,\"to\":1.0,\"direction\":\"forward\"},{\"name\":\"walk\",\"from\":2.0,\"to\":2.0,\"direction\":\"forward\"}]}}"

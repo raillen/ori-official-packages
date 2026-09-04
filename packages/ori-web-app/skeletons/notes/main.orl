@@ -2,14 +2,14 @@ module app.main
 
 -- Skeleton: notes (SSR with ori-templates). Clean-code: thin main, logic in handlers.
 
-import web = web
-import templates = tpl
-import ori.io = io
-import ori.list = lists
-import ori.map = maps
-import ori.string = str
-import ori.os = os
-import ori.convert = conv
+import web as web
+import templates as tpl
+import ori.io as io
+import ori.list as lists
+import ori.map as maps
+import ori.string as str
+import ori.os as os
+import ori.convert as conv
 
 var NOTES: list[string] = []
 var VIEWS: tpl.Engine = tpl.open("views")

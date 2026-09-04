@@ -4,12 +4,12 @@ module app.main
 -- lockout/reauth/upload (no network).
 -- Run: tools/qa/web_sec8.sh  OR  ori run main.orl
 
-import web = web
-import ori.io = io
-import ori.string = str
-import ori.map = maps
-import ori.list = lists
-import ori.fs = fs
+import web as web
+import ori.io as io
+import ori.string as str
+import ori.map as maps
+import ori.list as lists
+import ori.fs as fs
 
 var FAILS: int = 0
 

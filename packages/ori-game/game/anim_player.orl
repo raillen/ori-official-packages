@@ -4,10 +4,10 @@ module game.anim_player
 -- clips for static meshes (e.g. Tripo OBJ without bones).
 -- `in_place`: skeletal zeros root XZ; procedural keeps root at origin.
 
-import game.draw3d = draw3d
-import game.color = color
-import ori.math = math
-import ori.math.vec3 = vec3
+import game.draw3d as draw3d
+import game.color as color
+import ori.math as math
+import ori.math.vec3 as vec3
 
 public const CLIP_IDLE: int = 0
 public const CLIP_WALK: int = 1

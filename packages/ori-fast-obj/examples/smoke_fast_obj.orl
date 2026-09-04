@@ -1,8 +1,8 @@
 module app.smoke_fast_obj
 
 imports
-    fast_obj.mesh = obj
-    ori.io = io
+    fast_obj.mesh as obj
+    ori.io as io
 end
 
 main()

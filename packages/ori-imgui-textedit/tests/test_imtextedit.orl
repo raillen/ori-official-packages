@@ -1,10 +1,10 @@
 module test.imtextedit
 
 imports
-    imtextedit.buffer = buf
-    imtextedit.lang = lang
-    ori.list = lists
-    ori.test = test
+    imtextedit.buffer as buf
+    imtextedit.lang as lang
+    ori.list as lists
+    ori.test as test
 end
 
 @test

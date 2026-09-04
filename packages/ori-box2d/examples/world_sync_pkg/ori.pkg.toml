@@ -2,7 +2,7 @@
 name = "world_sync_demo"
 version = "0.1.0"
 entry = "main.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "Headless Box2D ↔ game.world sync demo"
 native_libs = ["ori_box2d_shim", "box2d"]
 

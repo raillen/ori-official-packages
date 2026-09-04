@@ -2,7 +2,7 @@
 name = "implot"
 version = "0.2.0"
 entry = "implot/charts.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "ImPlot for Ori (Dear ImGui plots)"
 license = "MIT"
 native_libs = ["ori_implot_shim"]

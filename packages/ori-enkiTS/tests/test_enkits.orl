@@ -1,8 +1,8 @@
 module test.enkits
 
 imports
-    enkits.tasks = enki
-    ori.test = test
+    enkits.tasks as enki
+    ori.test as test
 end
 
 @test

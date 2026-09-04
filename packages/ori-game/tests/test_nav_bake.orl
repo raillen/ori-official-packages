@@ -3,9 +3,9 @@ module test.nav_bake
 -- Pure geometry checks (nav_bake_geom — no recast native link).
 
 imports
-    game.nav_bake_geom = bake
-    game.ogame_level = level
-    ori.test = test
+    game.nav_bake_geom as bake
+    game.ogame_level as level
+    ori.test as test
 end
 
 @test

@@ -1,10 +1,10 @@
 module test.ldtk
 
 imports
-    game.ldtk = ldtk
-    game.tilemap = tilemap
-    ori.test = test
-    ori.list = lists
+    game.ldtk as ldtk
+    game.tilemap as tilemap
+    ori.test as test
+    ori.list as lists
 end
 
 const SAMPLE: string = "{\"jsonVersion\":\"1.5.3\",\"defaultGridSize\":32.0,\"levels\":[{\"identifier\":\"Level_0\",\"uid\":1.0,\"pxWid\":256.0,\"pxHei\":160.0,\"worldX\":0.0,\"worldY\":0.0,\"layerInstances\":[{\"__type\":\"IntGrid\",\"__identifier\":\"Collisions\",\"__cWid\":8.0,\"__cHei\":5.0,\"__gridSize\":32.0,\"intGridCsv\":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],\"entityInstances\":[],\"gridTiles\":[]},{\"__type\":\"Entities\",\"__identifier\":\"Entities\",\"__cWid\":8.0,\"__cHei\":5.0,\"__gridSize\":32.0,\"intGridCsv\":[],\"entityInstances\":[{\"__identifier\":\"PlayerStart\",\"iid\":\"p0\",\"px\":[48.0,64.0],\"width\":16.0,\"height\":16.0}],\"gridTiles\":[]}]}]}"

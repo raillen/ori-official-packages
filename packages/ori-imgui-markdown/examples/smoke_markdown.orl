@@ -1,10 +1,10 @@
 module app.smoke_markdown
 
 imports
-    markdown.parse = md
-    markdown.ime_stub = ime
-    ori.io = io
-    ori.string = str
+    markdown.parse as md
+    markdown.ime_stub as ime
+    ori.io as io
+    ori.string as str
 end
 
 -- Headless smoke: parse G1 markdown + IME stub policy — no GUI / no IMM32.

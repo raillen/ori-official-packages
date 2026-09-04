@@ -4,10 +4,10 @@ module box2d.world_sync
 -- Uses PhysicsHost.body_handle as Box2D Body.id.
 -- Mapping: World XZ ground plane → Box2D XY (Y-up in 2D = World Y height ignored for step).
 
-import box2d.dynamics = b2
-import box2d.units = units
-import game.world = world
-import game.world_physics = wphys
+import box2d.dynamics as b2
+import box2d.units as units
+import game.world as world
+import game.world_physics as wphys
 
 public struct SyncHost
     b2_world: b2.World

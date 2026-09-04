@@ -4,12 +4,12 @@ module game.ogame
 -- Implementation split by domain: entity / scene / spawn (+ json_fields).
 -- Spec: docs/planning/STUDIO-PRODUCT-DECISIONS.md
 
-import game.ogame_entity = entity
-import game.ogame_scene = scene
-import game.ogame_spawn = spawn
-import game.ogame_level = level
-import game.ogame_alarms = alarms
-import game.engine = engine
+import game.ogame_entity as entity
+import game.ogame_scene as scene
+import game.ogame_spawn as spawn
+import game.ogame_level as level
+import game.ogame_alarms as alarms
+import game.engine as engine
 
 public alias EntityVar = entity.EntityVar
 public alias EntityDef = entity.EntityDef

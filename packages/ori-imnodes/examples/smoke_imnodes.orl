@@ -1,8 +1,8 @@
 module app.smoke_imnodes
 
 imports
-    imnodes.editor = ed
-    ori.io = io
+    imnodes.editor as ed
+    ori.io as io
 end
 
 main()

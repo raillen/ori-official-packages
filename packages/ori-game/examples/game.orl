@@ -1,9 +1,9 @@
 module app.game
 
 import ori.mem
-import ori.list = lists
-import ori.random = rng
-import ori.math = math
+import ori.list as lists
+import ori.random as rng
+import ori.math as math
 
 extern c
     InitWindow(width: int, height: int, title: int) -> void

@@ -1,8 +1,8 @@
 module test.imguidialog
 
 imports
-    imguidialog.dialog = dlg
-    ori.test = test
+    imguidialog.dialog as dlg
+    ori.test as test
 end
 
 @test

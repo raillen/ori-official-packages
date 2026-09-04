@@ -3,11 +3,11 @@ module app.main
 -- SQLite session adapter smoke (no network).
 -- Requires ori-sqlite native libs built: ~/Documentos/Projetos/ori-sqlite/tools/build_linux.sh
 
-import web = web
-import web_session_sqlite = ssql
-import ori.io = io
-import ori.string = str
-import ori.fs = fs
+import web as web
+import web_session_sqlite as ssql
+import ori.io as io
+import ori.string as str
+import ori.fs as fs
 
 var FAILS: int = 0
 

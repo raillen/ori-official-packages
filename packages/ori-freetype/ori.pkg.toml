@@ -2,7 +2,7 @@
 name = "freetype"
 version = "0.1.0"
 entry = "freetype/face.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "FreeType font face + glyph raster for Ori (thin C shim)"
 license = "MIT"
 # AOT order: shim first, then FreeType + typical static deps (staged by tools/build_linux.sh).

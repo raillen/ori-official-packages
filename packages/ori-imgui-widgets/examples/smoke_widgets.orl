@@ -1,11 +1,11 @@
 module app.smoke_widgets
 
 imports
-    widgets.knob = knob
-    widgets.toggle = toggle
-    widgets.spinner = spinner
-    widgets.spectrum = spectrum
-    ori.io = io
+    widgets.knob as knob
+    widgets.toggle as toggle
+    widgets.spinner as spinner
+    widgets.spectrum as spectrum
+    ori.io as io
 end
 
 -- Headless smoke: knob milli, toggle bool, spinner phase, spectrum theme.

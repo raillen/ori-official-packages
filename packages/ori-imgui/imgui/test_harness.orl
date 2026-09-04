@@ -4,7 +4,7 @@ module imgui.test_harness
 -- Query widgets by label; simulate click / open / close headlessly.
 -- Non-goal: full official imgui_test_engine CI / pixel regression.
 
-import ori.list = lists
+import ori.list as lists
 
 -- Item kinds (product-facing constants).
 public const KIND_BUTTON: int = 0

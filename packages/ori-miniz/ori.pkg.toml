@@ -2,7 +2,7 @@
 name = "miniz"
 version = "0.2.0"
 entry = "miniz/deflate.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "miniz deflate/CRC/zip for Ori"
 license = "MIT"
 native_libs = ["ori_miniz_shim"]

@@ -2,7 +2,7 @@ module game.audio_buses
 
 -- X5: named volume buses (master / sfx / bgm) over game.audio.
 
-import game.audio = audio
+import game.audio as audio
 
 public struct BusMixer
     master: float

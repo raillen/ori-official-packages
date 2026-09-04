@@ -1,8 +1,8 @@
 module test.miniz
 
 imports
-    miniz.deflate = mz
-    ori.test = test
+    miniz.deflate as mz
+    ori.test as test
 end
 
 @test

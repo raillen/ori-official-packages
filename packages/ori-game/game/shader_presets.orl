@@ -2,8 +2,8 @@ module game.shader_presets
 
 -- Documented material/fog helpers on top of game.shader (no shadow pipeline).
 
-import game.shader = shader
-import ori.math.vec3 = vec3
+import game.shader as shader
+import ori.math.vec3 as vec3
 
 public struct FogParams
     density: float

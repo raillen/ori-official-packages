@@ -3,16 +3,16 @@ module app.tiled_demo
 -- Load assets/maps/sample.tmj (Tiled JSON) and walk the solid tiles.
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.input = input
-    game.shape = shape
-    game.tilemap = tilemap
-    game.tiled = tiled
-    ori.math.vec2 = vec2
-    ori.math = math
-    ori.list = lists
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.input as input
+    game.shape as shape
+    game.tilemap as tilemap
+    game.tiled as tiled
+    ori.math.vec2 as vec2
+    ori.math as math
+    ori.list as lists
 end
 
 var grid: tilemap.Tilemap = tilemap.create(8, 5, 32.0)

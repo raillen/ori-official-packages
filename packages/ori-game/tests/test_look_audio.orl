@@ -3,13 +3,13 @@ module test.look_audio
 -- Headless-pure modules (no raylib link).
 
 imports
-    game.asset_paths = paths
-    game.inventory = inv
-    game.collision_layers = layers
-    game.character_controller = ctrl
-    game.multi_scene = mscene
-    game.decals = decals
-    ori.test = test
+    game.asset_paths as paths
+    game.inventory as inv
+    game.collision_layers as layers
+    game.character_controller as ctrl
+    game.multi_scene as mscene
+    game.decals as decals
+    ori.test as test
 end
 
 @test

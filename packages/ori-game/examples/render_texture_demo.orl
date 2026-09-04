@@ -1,11 +1,11 @@
 module app.render_texture_demo
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.shape = shape
-    ori.math.vec2 = vec2
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.shape as shape
+    ori.math.vec2 as vec2
 end
 
 var rt: draw.RenderTextureId = 0

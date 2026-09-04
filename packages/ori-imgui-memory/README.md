@@ -75,8 +75,8 @@ Smoke **never** opens a window. Draw is only `ori check`'d when `../ori-imgui` e
 ### Draw (`immemory.draw`)
 
 ```ori
-import immemory.buffer = buf
-import immemory.draw = draw
+import immemory.buffer as buf
+import immemory.draw as draw
 -- inside ImGui frame:
 e = buf.open_ui(e)
 e = draw.draw(e)

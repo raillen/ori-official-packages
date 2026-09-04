@@ -1,12 +1,12 @@
 module test.freetype
 
 imports
-    freetype.face = ft
-    freetype.text = text
-    freetype.atlas = atlas
-    ori.test = test
-    ori.os = os
-    ori.list = lists
+    freetype.face as ft
+    freetype.text as text
+    freetype.atlas as atlas
+    ori.test as test
+    ori.os as os
+    ori.list as lists
 end
 
 font_path() -> string

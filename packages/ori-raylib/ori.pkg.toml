@@ -2,7 +2,7 @@
 name = "raylib"
 version = "0.1.0"
 entry = "raylib.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "Raylib L0 bindings for Ori (ori_rl_* scalar shim)"
 license = "MIT"
 native_libs = ["ori_raylib_shim", "raylib"]

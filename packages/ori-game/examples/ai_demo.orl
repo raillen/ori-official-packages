@@ -1,12 +1,12 @@
 module app.ai_demo
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.input = input
-    game.mechanics.ai = ai
-    ori.math.vec2 = vec2
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.input as input
+    game.mechanics.ai as ai
+    ori.math.vec2 as vec2
 end
 
 var px: float = 320.0

@@ -3,8 +3,8 @@ module imgui_extras.command_palette
 -- Command palette: register commands, filter by query, run by id/index.
 -- Headless-safe; product draw binds open/query/selection to ImGui.
 
-import imgui_extras.search = search
-import ori.list = lists
+import imgui_extras.search as search
+import ori.list as lists
 
 public struct Command
     id: string

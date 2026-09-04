@@ -1,9 +1,9 @@
 module test.camera_drive
 
 imports
-    game.camera_drive = drive
-    game.camera_stack = cstack
-    ori.test = test
+    game.camera_drive as drive
+    game.camera_stack as cstack
+    ori.test as test
 end
 
 @test

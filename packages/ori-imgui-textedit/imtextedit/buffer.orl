@@ -4,8 +4,8 @@ module imtextedit.buffer
 -- Choice: pure Ori buffer + language stub, not C++ ColorTextEdit (pthom).
 -- G1: set/get text, cursor, lines, language id; highlight via imtextedit.lang.
 
-import ori.list = lists
-import ori.string = str
+import ori.list as lists
+import ori.string as str
 
 public struct Editor
     text: string

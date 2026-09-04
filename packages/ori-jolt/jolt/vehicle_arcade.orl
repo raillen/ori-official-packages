@@ -3,7 +3,7 @@ module jolt.vehicle_arcade
 -- Arcade vehicles: land (default), plane (flight), boat (water plane).
 -- Modes are L1 behaviour on top of chassis body + input.
 
-import jolt.dynamics = jolt
+import jolt.dynamics as jolt
 
 public const MODE_LAND: int = 0
 public const MODE_PLANE: int = 1

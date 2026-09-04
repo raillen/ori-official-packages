@@ -1,9 +1,9 @@
 module test.markdown
 
 imports
-    markdown.parse = md
-    markdown.ime_stub = ime
-    ori.test = test
+    markdown.parse as md
+    markdown.ime_stub as ime
+    ori.test as test
 end
 
 @test

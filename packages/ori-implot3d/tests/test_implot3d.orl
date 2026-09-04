@@ -1,8 +1,8 @@
 module test.implot3d
 
 imports
-    implot3d.charts = plot
-    ori.test = test
+    implot3d.charts as plot
+    ori.test as test
 end
 
 @test

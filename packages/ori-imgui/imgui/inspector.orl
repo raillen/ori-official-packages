@@ -2,7 +2,7 @@ module imgui.inspector
 
 -- Tier 1 inspector helpers: labelled property rows on top of imgui.ui.
 
-import imgui.ui = ui
+import imgui.ui as ui
 
 public struct IntField
     label: string

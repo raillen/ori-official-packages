@@ -1,9 +1,9 @@
 module test.marching_cubes
 
 imports
-    game.marching_cubes = mc
-    ori.test = test
-    ori.list = lists
+    game.marching_cubes as mc
+    ori.test as test
+    ori.list as lists
 end
 
 @test

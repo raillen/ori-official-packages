@@ -1,9 +1,9 @@
 module game.particles
 
-import ori.list = lists
-import ori.math.vec2 = vec2
-import game.color = color
-import game.draw = draw
+import ori.list as lists
+import ori.math.vec2 as vec2
+import game.color as color
+import game.draw as draw
 
 public struct Particle
     pos: vec2.Vec2

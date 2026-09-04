@@ -1,10 +1,10 @@
 module game.draw3d
 
-import raylib = rl
-import game.color = color
-import game.camera3d = cam3
-import ori.math.vec3 = vec3
-import ori.mem = mem
+import raylib as rl
+import game.color as color
+import game.camera3d as cam3
+import ori.math.vec3 as vec3
+import ori.mem as mem
 
 public alias ModelId = int
 public alias TextureId = int

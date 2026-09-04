@@ -3,8 +3,8 @@ module app.broadcast_demo
 -- Server broadcasts to two clients in-process (two client hosts).
 
 imports
-    enet.host = enet
-    ori.io = io
+    enet.host as enet
+    ori.io as io
 end
 
 const port: int = 27780

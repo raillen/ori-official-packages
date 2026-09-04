@@ -3,7 +3,7 @@ module game.collision_layers
 -- R3.1: named layers (int ids) + simple mask lists.
 -- Avoids bitwise ops for Ori portability.
 
-import ori.list = lists
+import ori.list as lists
 
 public const LAYER_WORLD: int = 1
 public const LAYER_PLAYER: int = 2

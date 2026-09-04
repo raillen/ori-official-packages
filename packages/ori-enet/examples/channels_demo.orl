@@ -3,8 +3,8 @@ module app.channels_demo
 -- Reliable ch0 + unreliable ch1 loopback; verify event_channel on receive.
 
 imports
-    enet.host = enet
-    ori.io = io
+    enet.host as enet
+    ori.io as io
 end
 
 const port: int = 27779

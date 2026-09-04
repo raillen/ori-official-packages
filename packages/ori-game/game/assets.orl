@@ -1,6 +1,6 @@
 module game.assets
 
-import ori.list = lists
+import ori.list as lists
 
 public struct AssetCache
     texture_paths: list[string]

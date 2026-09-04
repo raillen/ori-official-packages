@@ -2,7 +2,7 @@
 name = "nfd"
 version = "0.2.0"
 entry = "nfd/dialog.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "Native file dialogs for Ori (portable-file-dialogs)"
 license = "MIT"
 native_libs = ["ori_nfd_shim"]

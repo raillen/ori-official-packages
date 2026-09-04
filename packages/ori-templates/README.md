@@ -19,7 +19,7 @@ templates = { path = "../packages/ori-templates", version = "0.1.0" }
 ```
 
 ```ori
-import templates = tpl
+import templates as tpl
 
 match tpl.render_string("Hello @{ name }!", tpl.data_with("name", "World"))
 case ok(html):

@@ -1,9 +1,9 @@
 module test.physics
 
 imports
-    ori.test = test
-    game.physics = physics
-    ori.math.vec2 = vec2
+    ori.test as test
+    game.physics as physics
+    ori.math.vec2 as vec2
 end
 
 @test

@@ -1,8 +1,8 @@
 module test.navmesh
 
 imports
-    game.navmesh = nav
-    ori.test = test
+    game.navmesh as nav
+    ori.test as test
 end
 
 @test

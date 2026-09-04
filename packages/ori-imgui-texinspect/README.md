@@ -66,8 +66,8 @@ RGBA visibility (bool fields). Encoded mask 0..15 for interop (`R=1 G=2 B=4 A=8`
 ### Draw (`texinspect.draw`)
 
 ```ori
-import texinspect.inspect = insp
-import texinspect.draw = draw
+import texinspect.inspect as insp
+import texinspect.draw as draw
 -- inside ImGui frame:
 i = draw.draw(i)
 ```

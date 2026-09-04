@@ -1,8 +1,8 @@
 module test.lz4
 
 imports
-    lz4.codec = lz
-    ori.test = test
+    lz4.codec as lz
+    ori.test as test
 end
 
 @test

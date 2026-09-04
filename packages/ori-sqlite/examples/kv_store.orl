@@ -1,8 +1,8 @@
 module app.kv_store
 
 imports
-    sqlite.db = sql
-    ori.io = io
+    sqlite.db as sql
+    ori.io as io
 end
 
 main()

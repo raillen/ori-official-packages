@@ -3,9 +3,9 @@ module game.marching_cubes_gpu
 -- Bake MC mesh to Wavefront OBJ then load as raylib Model (GPU path).
 -- Unit tests cover export; load_model needs a windowed raylib context.
 
-import game.marching_cubes = mc
-import game.draw3d = draw3d
-import ori.os = os
+import game.marching_cubes as mc
+import game.draw3d as draw3d
+import ori.os as os
 
 public struct BakedMesh
     model: draw3d.ModelId

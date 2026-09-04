@@ -1,9 +1,9 @@
 module app.main
 
-import templates = tpl
-import ori.io = io
-import ori.list = lists
-import ori.string = str
+import templates as tpl
+import ori.io as io
+import ori.list as lists
+import ori.string as str
 
 main()
     -- escape

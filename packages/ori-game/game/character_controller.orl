@@ -3,7 +3,7 @@ module game.character_controller
 -- R1: sphere character controller (grounded + horizontal move + simple step).
 -- Pure data + step; host applies result to World transform/velocity.
 
-import game.ogame_level = level
+import game.ogame_level as level
 
 public struct Controller
     radius: float

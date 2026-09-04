@@ -2,7 +2,7 @@
 name = "jolt"
 version = "0.2.0"
 entry = "jolt/dynamics.orl"
-ori_version = "0.3.0"
+ori_version = "0.3.8"
 description = "Jolt Physics 3D bindings for Ori (milli-unit C ABI)"
 license = "MIT"
 native_libs = ["ori_jolt_shim", "Jolt"]

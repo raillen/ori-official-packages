@@ -2,11 +2,11 @@ module app.main
 
 -- TOTP + recovery-code smoke (no network).
 
-import web_auth = wa
-import web = web
-import ori.io = io
-import ori.string = str
-import ori.list = lists
+import web_auth as wa
+import web as web
+import ori.io as io
+import ori.string as str
+import ori.list as lists
 
 var FAILS: int = 0
 

@@ -1,9 +1,9 @@
 module test.pathfind
 
 imports
-    game.pathfind = pf
-    ori.test = test
-    ori.list = lists
+    game.pathfind as pf
+    ori.test as test
+    ori.list as lists
 end
 
 @test

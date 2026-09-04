@@ -1,12 +1,12 @@
 module test.imgui_extras
 
 imports
-    imgui_extras.notify = notify
-    imgui_extras.search = search
-    imgui_extras.hotkey = hotkey
-    imgui_extras.command_palette = palette
-    imgui_extras.metrics = metrics
-    ori.test = test
+    imgui_extras.notify as notify
+    imgui_extras.search as search
+    imgui_extras.hotkey as hotkey
+    imgui_extras.command_palette as palette
+    imgui_extras.metrics as metrics
+    ori.test as test
 end
 
 @test

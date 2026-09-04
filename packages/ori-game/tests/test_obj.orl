@@ -1,8 +1,8 @@
 module test.obj
 
 imports
-    game.obj = obj
-    ori.test = test
+    game.obj as obj
+    ori.test as test
 end
 
 @test

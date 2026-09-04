@@ -3,9 +3,9 @@ module web_session_sqlite
 -- SQLite-backed session blobs for ori-web (phase B3).
 -- Requires package `sqlite` (ori-sqlite) with native libs staged under lib/<triple>/.
 
-import web = web
-import sqlite.db = sql
-import ori.string = str
+import web as web
+import sqlite.db as sql
+import ori.string as str
 
 var DB: sql.Db = sql.Db { id: -1 }
 var OPEN: bool = false

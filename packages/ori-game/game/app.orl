@@ -1,8 +1,8 @@
 module game.app
 
-import ori.mem = mem
-import ori.math.vec2 = vec2
-import raylib = rl
+import ori.mem as mem
+import ori.math.vec2 as vec2
+import raylib as rl
 
 public alias UpdateFn = func(float) -> void
 public alias DrawFn = func() -> void

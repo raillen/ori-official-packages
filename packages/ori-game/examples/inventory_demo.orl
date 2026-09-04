@@ -1,12 +1,12 @@
 module app.inventory_demo
 
 imports
-    game.app = app
-    game.draw = draw
-    game.color = color
-    game.input = input
-    game.inventory = inv
-    ori.math.vec2 = vec2
+    game.app as app
+    game.draw as draw
+    game.color as color
+    game.input as input
+    game.inventory as inv
+    ori.math.vec2 as vec2
 end
 
 var bag: inv.Inventory = inv.create(8)

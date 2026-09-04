@@ -4,13 +4,13 @@ module game.tiled
 -- Supports orthogonal maps, tile layers (array data), object groups.
 -- Does not support infinite maps, base64 chunk data, or embedded tileset images yet.
 
-import ori.json = json
-import ori.map = maps
-import ori.list = lists
-import ori.math = math
-import ori.fs = fs
-import game.tilemap = tilemap
-import game.shape = shape
+import ori.json as json
+import ori.map as maps
+import ori.list as lists
+import ori.math as math
+import ori.fs as fs
+import game.tilemap as tilemap
+import game.shape as shape
 
 public struct TiledObject
     id: int
